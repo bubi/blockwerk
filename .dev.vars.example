@@ -1,0 +1,7 @@
+# Copy to .dev.vars (gitignored) for local `wrangler dev`.
+# wrangler deploy never reads .dev.vars, so this can never reach production.
+#
+# When set, the worker treats a request with no Cf-Access-Jwt-Assertion header
+# as this identity instead of returning 401 — only wrangler dev ever sees that
+# combination, since Access always attaches the header to deployed traffic.
+DEV_ACCESS_EMAIL=dev@example.com
