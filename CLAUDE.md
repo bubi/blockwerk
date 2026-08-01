@@ -142,8 +142,8 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 
 | Phase | Ziel | Status |
 |-------|------|--------|
-| 0 | Repo-Skelett, Toolchain, `CLAUDE.md` | in Arbeit |
-| 1 | Leere Seite deployt, hinter Access, CI grün | offen |
+| 0 | Repo-Skelett, Toolchain, `CLAUDE.md` | erledigt |
+| 1 | Leere Seite deployt, hinter Access, CI grün | in Arbeit |
 | 2 | D1-Schema, API, Prototyp-Logik migriert | offen |
 | 3 | Tests, ADRs, Aufräumen | offen |
 | 4 | Features: Volltextsuche, Rückverweise, Terminserien | offen |
