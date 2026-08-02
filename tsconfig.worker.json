@@ -2,12 +2,15 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023"],
-    "types": ["@cloudflare/workers-types"],
+    "types": ["@cloudflare/workers-types", "@cloudflare/vitest-pool-workers/types"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "moduleDetection": "force",
     "allowImportingTsExtensions": true,
     "noEmit": true,
+    "paths": {
+      "#test-db": ["./worker/db/testing/get-test-db.workers.ts"]
+    },
 
     "strict": true,
     "noUnusedLocals": true,
@@ -19,5 +22,10 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["worker", "shared"]
+  "include": ["worker", "shared", "worker-configuration.d.ts"],
+  "exclude": [
+    "worker/db/vitest.config.ts",
+    "worker/db/testing/get-test-db.local.ts",
+    "worker/db/testing/sqlite-d1.ts"
+  ]
 }

@@ -49,10 +49,20 @@ Regeln, die im Code gelten müssen:
   Darstellung, es gibt keine Baumstruktur in den Daten.
 - **Spiegel:** Der Bereich einer Person zeigt `SELECT … WHERE assignee_space_id = ?`.
   Niemals ein zweiter Datensatz.
-- **Löschen eines Space:** Seiten, Blöcke und deren Items werden mitgelöscht. Tasks in
-  *fremden* Blöcken bleiben bestehen und verlieren nur `assignee_space_id`.
-- **Löschen eines Templates:** Blöcke behalten ihre `template_id` und fallen in der Anzeige
-  auf „Ohne Template" zurück. Inhalte gehen nie verloren.
+
+**Löschregeln:** Kaskadiert wird ausschließlich entlang der Besitzkette
+Bereich → Seite → Block → Item. Jeder Querbezug wird dagegen genullt, nie gelöscht.
+Eine Zeile darf nicht verschwinden, weil jemand an anderer Stelle etwas gelöscht hat.
+
+- **Löschen eines Bereichs:** Seiten, Blöcke und deren Items werden mitgelöscht. Tasks in
+  fremden Blöcken bleiben bestehen und verlieren nur ihre Zuständigkeit
+  (`assignee_space_id` → `NULL`).
+- **Löschen eines Templates:** Der Block behält Titel, Datum und alle Items und fällt in
+  der Anzeige auf „Ohne Template" zurück (`template_id` → `NULL`). Inhalte gehen nie
+  verloren.
+- **Löschen eines Blocks:** Verweise auf diesen Block bleiben als Zeile bestehen und
+  verlieren nur ihr Ziel (`ref_block_id` → `NULL`). Die Oberfläche zeigt „Ziel entfernt".
+  Ein Verweis wird nie gelöscht, weil sein Ziel verschwindet.
 
 ---
 

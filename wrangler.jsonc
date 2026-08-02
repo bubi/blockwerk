@@ -11,4 +11,11 @@
     "ACCESS_TEAM_DOMAIN": "broad-lab-6351.cloudflareaccess.com",
     "ACCESS_AUD": "0aa8825b43a306fb9bc79a4d17f7dd13fd8e577e4a365f19ed3977c696a577fb",
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "blockwerk",
+      "database_id": "fb22c017-60ba-4578-a1da-2cccec022033",
+    },
+  ],
 }

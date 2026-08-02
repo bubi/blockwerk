@@ -5,10 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b tsconfig.app.json tsconfig.worker.json && vite build",
-    "typecheck": "tsc -b tsconfig.app.json tsconfig.worker.json",
+    "build": "tsc -b tsconfig.app.json tsconfig.worker.json tsconfig.node.json && vite build",
+    "typecheck": "tsc -b tsconfig.app.json tsconfig.worker.json tsconfig.node.json",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:workers": "vitest run -c worker/db/vitest.config.ts",
+    "types:worker": "wrangler types --strict-vars=false",
+    "db:migrate:local": "wrangler d1 migrations apply blockwerk --local",
+    "db:migrate:remote": "wrangler d1 migrations apply blockwerk --remote",
+    "db:seed": "wrangler d1 execute blockwerk --local --file=./seed.sql",
     "predeploy": "npm run build",
     "deploy": "wrangler deploy"
   },
@@ -18,8 +23,10 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.20.1",
     "@cloudflare/workers-types": "5.20260801.1",
     "@eslint/js": "10.0.1",
+    "@types/node": "22.20.1",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",

@@ -2,14 +2,21 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023"],
+    "types": ["node"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "moduleDetection": "force",
+    "allowImportingTsExtensions": true,
     "noEmit": true,
 
     "strict": true,
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["vite.config.ts"]
+  "include": [
+    "vite.config.ts",
+    "worker/db/vitest.config.ts",
+    "worker/db/testing/get-test-db.local.ts",
+    "worker/db/testing/sqlite-d1.ts"
+  ]
 }

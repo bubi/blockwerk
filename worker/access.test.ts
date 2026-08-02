@@ -39,7 +39,11 @@ function signToken(
 }
 
 function makeEnv(overrides: Partial<Env> & { ACCESS_TEAM_DOMAIN: string; ACCESS_AUD: string }): Env {
-  return { ASSETS: undefined as unknown as Fetcher, ...overrides };
+  return {
+    ASSETS: undefined as unknown as Fetcher,
+    DB: undefined as unknown as D1Database,
+    ...overrides,
+  };
 }
 
 function makeRequest(token?: string) {
