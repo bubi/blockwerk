@@ -6,20 +6,22 @@ export interface NewSpaceInput {
   name: string;
   kind: SpaceRow["kind"];
   short: string;
+  email?: string | null;
 }
 
 export interface SpacePatch {
   name?: string;
   kind?: SpaceRow["kind"];
   short?: string;
+  email?: string | null;
 }
 
 export async function createSpace(db: D1Database, input: NewSpaceInput, now: number): Promise<SpaceRow> {
   await db
-    .prepare("INSERT INTO spaces (id, name, kind, short, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)")
-    .bind(input.id, input.name, input.kind, input.short, now, now)
+    .prepare("INSERT INTO spaces (id, name, kind, short, email, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .bind(input.id, input.name, input.kind, input.short, input.email ?? null, now, now)
     .run();
-  return { ...input, createdAt: now, updatedAt: now };
+  return { ...input, email: input.email ?? null, createdAt: now, updatedAt: now };
 }
 
 export async function getSpace(db: D1Database, id: string): Promise<SpaceRow | null> {
@@ -51,6 +53,10 @@ export async function updateSpace(
   if (patch.short !== undefined) {
     sets.push("short = ?");
     values.push(patch.short);
+  }
+  if (patch.email !== undefined) {
+    sets.push("email = ?");
+    values.push(patch.email);
   }
   sets.push("updated_at = ?");
   values.push(now, id);

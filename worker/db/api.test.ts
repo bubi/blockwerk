@@ -4,7 +4,7 @@ import worker from "../index.ts";
 import type { Env } from "../env.ts";
 import { countingD1 } from "./testing/counting-d1.ts";
 import { getTestDb } from "./testing/get-test-db.ts";
-import { createBlock, createItem, createPage, createSpace, createTemplate, loadPageBlocks } from "./index.ts";
+import { createBlock, createItem, createPage, createSpace, createTemplate, loadPageBlocks, updateSpace } from "./index.ts";
 import type { CalendarResponse, ItemWriteResponse, OverviewResponse, PageResponse, SearchResponse, SpacesResponse } from "../../shared/api.ts";
 import { insertPositionBetween } from "../../src/domain/position.ts";
 
@@ -72,6 +72,19 @@ describe("GET /api/spaces", () => {
       pages: [expect.objectContaining({ id: "list-b-page", spaceId: "list-b" })],
     });
     expect(body.templates).toEqual([expect.objectContaining({ id: "list-tpl" })]);
+  });
+
+  it("resolves meSpaceId from the Access email against a person space", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "me-me", "person");
+    await seedSpace(db, "me-other", "person");
+    await updateSpace(db, "me-me", { email: DEV_EMAIL }, NOW);
+
+    const { status, body } = await json<SpacesResponse>("GET", "/api/spaces");
+
+    expect(status).toBe(200);
+    // A person without the email, or any topic, never becomes "me".
+    expect(body.meSpaceId).toBe("me-me");
   });
 });
 

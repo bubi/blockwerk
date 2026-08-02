@@ -56,7 +56,9 @@ test("deleting a person space keeps foreign tasks and only drops the assignment"
   const composer = hostBlock.getByLabel("Neue Zeile");
   await composer.fill("/task");
   await page.keyboard.press("Enter");
-  await composer.fill("Check @kim");
+  // The trailing space closes the @-mention list, so Enter commits the task
+  // instead of picking a person.
+  await composer.fill("Check @kim ");
   await page.keyboard.press("Enter");
   await expect(hostBlock.locator('input[value="Check"]')).toBeVisible();
   await expect(hostBlock.getByText("KL", { exact: true })).toBeVisible();

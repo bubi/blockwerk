@@ -56,6 +56,13 @@ export function composeItem(input: {
   refBlockId: string | null;
   spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
   today: Date;
+  /**
+   * The person explicitly picked from the @-mention list. It wins over the
+   * text parser, so two people sharing a first name resolve deterministically
+   * to the one that was chosen (docs/adr/0013). The parser stays the fallback
+   * for typed "@Name" without a menu selection.
+   */
+  mentionId: string | null;
 }): ComposerItemFields | null {
   if (input.mode === "ref") {
     if (!input.refBlockId) return null;
@@ -71,7 +78,13 @@ export function composeItem(input: {
 
   switch (input.mode) {
     case "task":
-      return { kind: "task", text: tokens.text, done: false, dueDate: tokens.dueDate, assigneeSpaceId: tokens.assigneeId };
+      return {
+        kind: "task",
+        text: tokens.text,
+        done: false,
+        dueDate: tokens.dueDate,
+        assigneeSpaceId: input.mentionId ?? tokens.assigneeId,
+      };
     case "event":
       return { kind: "event", text: tokens.text, eventDate: tokens.dueDate ?? toISODate(input.today), eventTime: tokens.eventTime };
     case "heading": {

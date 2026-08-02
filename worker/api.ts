@@ -149,7 +149,7 @@ export async function handleApiRequest(
     if (api !== "api") throw new NotFoundError();
 
     if (a === "spaces" && !b) {
-      if (method === "GET") return ok(await getSpaces(env.DB));
+      if (method === "GET") return ok(await getSpaces(env.DB, identity.email));
       throw new MethodNotAllowedError("GET");
     }
     if (a === "calendar" && !b) {

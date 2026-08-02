@@ -25,7 +25,8 @@ test("mobile shows the tab bar with the team overview and no date column", async
 test("Notizen drills down Bereich → Seite → Stream and back", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Notizen" }).click();
-  await expect(page.getByRole("heading", { name: "Bereiche" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Personen" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Themen" })).toBeVisible();
 
   // Space → pages.
   await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
@@ -43,7 +44,7 @@ test("Notizen drills down Bereich → Seite → Stream and back", async ({ page 
 
   // The in-app back button climbs back to the spaces list.
   await page.getByRole("button", { name: "Zurück" }).click();
-  await expect(page.getByRole("heading", { name: "Bereiche" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Personen" })).toBeVisible();
 });
 
 test("a person space leads to the Zugewiesen overview", async ({ page }) => {

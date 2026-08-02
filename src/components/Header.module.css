@@ -40,11 +40,6 @@
   letter-spacing: -0.01em;
 }
 
-.tagline {
-  font-size: 12.5px;
-  color: var(--text3);
-}
-
 .searchwrap {
   margin-left: auto;
   display: flex;
@@ -77,9 +72,5 @@
   .top {
     gap: 10px;
     padding: 9px 13px;
-  }
-
-  .tagline {
-    display: none;
   }
 }

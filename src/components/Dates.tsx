@@ -17,6 +17,7 @@ interface DatesProps {
   onNextMonth: () => void;
   onJumpToBlock: (blockId: string) => void;
   onReschedule: (itemId: string, patch: ItemPatch) => void;
+  onToggleDone: (itemId: string, done: boolean) => void;
   onRetry: () => void;
 }
 
@@ -27,12 +28,13 @@ interface DatesProps {
  * task due dates and events; a block's date is automatic and never appears.
  * The date on a card is a date field: clicking it opens the browser date
  * picker and re-schedules the item (due date for tasks, event date for
- * events). Consecutive empty days collapse into one gap row; a completely
- * empty month shows an empty state instead. The grouping is pure domain
- * logic (ledgerRows); this component only renders it.
+ * events). A task card's checkbox toggles done directly; the rest of the card
+ * jumps to the source block. Consecutive empty days collapse into one gap
+ * row; a completely empty month shows an empty state instead. The grouping is
+ * pure domain logic (ledgerRows); this component only renders it.
  */
 export function Dates(props: DatesProps) {
-  const { month, view, ledger, today, spacesById, onPrevMonth, onNextMonth, onJumpToBlock, onReschedule, onRetry } = props;
+  const { month, view, ledger, today, spacesById, onPrevMonth, onNextMonth, onJumpToBlock, onReschedule, onToggleDone, onRetry } = props;
   const load = ledger.reduce((sum, day) => sum + day.tasks.length + day.events.length, 0);
 
   return (
@@ -69,6 +71,7 @@ export function Dates(props: DatesProps) {
                 spacesById={spacesById}
                 onJumpToBlock={onJumpToBlock}
                 onReschedule={onReschedule}
+                onToggleDone={onToggleDone}
               />
             ),
           )}
@@ -84,12 +87,14 @@ function DayBlock({
   spacesById,
   onJumpToBlock,
   onReschedule,
+  onToggleDone,
 }: {
   day: LedgerDay;
   today: string;
   spacesById: ReadonlyMap<string, SpaceRow>;
   onJumpToBlock: (blockId: string) => void;
   onReschedule: (itemId: string, patch: ItemPatch) => void;
+  onToggleDone: (itemId: string, done: boolean) => void;
 }) {
   const isToday = day.date === today;
   const monthAbbrev = monthName(Number(day.date.slice(5, 7)) - 1).slice(0, 3);
@@ -106,18 +111,20 @@ function DayBlock({
 
       {day.events.map((event) => (
         <div key={event.id} className={`${styles.card} ${styles.cardEvent}`}>
-          <button type="button" className={styles.cardtitle} onClick={() => onJumpToBlock(event.blockId)}>
-            {event.text}
-          </button>
-          <span className={styles.cardmeta}>
-            <DateField
-              value={event.eventDate ?? ""}
-              label="Neues Termindatum wählen"
-              onChange={(value) => onReschedule(event.id, { eventDate: value })}
-            />
-            <span className={styles.cardkind}>Termin</span>
-            {event.eventTime && <span className={styles.cardtime}>{event.eventTime}</span>}
-          </span>
+          <div className={styles.cardbody}>
+            <button type="button" className={styles.cardtitle} onClick={() => onJumpToBlock(event.blockId)}>
+              {event.text}
+            </button>
+            <span className={styles.cardmeta}>
+              <DateField
+                value={event.eventDate ?? ""}
+                label="Neues Termindatum wählen"
+                onChange={(value) => onReschedule(event.id, { eventDate: value })}
+              />
+              <span className={styles.cardkind}>Termin</span>
+              {event.eventTime && <span className={styles.cardtime}>{event.eventTime}</span>}
+            </span>
+          </div>
         </div>
       ))}
 
@@ -126,13 +133,25 @@ function DayBlock({
         return (
           <div
             key={task.id}
+            data-due-card
             className={`${styles.card} ${styles.cardTask} ${task.done ? styles.isDone : ""} ${late ? styles.isLate : ""}`}
           >
-            <button type="button" className={styles.cardtitle} onClick={() => onJumpToBlock(task.blockId)}>
-              {task.text}
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={task.done}
+              aria-label={`${task.text || "Aufgabe"} — ${task.done ? "wieder öffnen" : "als erledigt markieren"}`}
+              className={task.done ? styles.cardcheckDone : styles.cardcheck}
+              onClick={() => onToggleDone(task.id, !task.done)}
+            >
+              <span aria-hidden="true" />
             </button>
-            <span className={styles.cardmeta}>
-              <DateField
+            <div className={styles.cardbody}>
+              <button type="button" className={styles.cardtitle} onClick={() => onJumpToBlock(task.blockId)}>
+                {task.text}
+              </button>
+              <span className={styles.cardmeta}>
+                <DateField
                 value={task.dueDate ?? ""}
                 label="Neues Fälligkeitsdatum wählen"
                 onChange={(value) => onReschedule(task.id, { dueDate: value })}
@@ -141,7 +160,8 @@ function DayBlock({
               {task.assigneeSpaceId && (
                 <span className={styles.cardwho}>{spacesById.get(task.assigneeSpaceId)?.name.split(" ")[0]}</span>
               )}
-            </span>
+              </span>
+            </div>
           </div>
         );
       })}

@@ -7,6 +7,7 @@ import {
   fromISODate,
   monthName,
   parseDateWord,
+  refreshToday,
   relativeLabel,
   toISODate,
   weekdayShort,
@@ -121,5 +122,24 @@ describe("parseDateWord", () => {
     expect(parseDateWord("whatever", today)).toBeNull();
     expect(parseDateWord("", today)).toBeNull();
     expect(parseDateWord("25", today)).toBeNull();
+  });
+});
+
+describe("refreshToday", () => {
+  it("is identity-preserving while nothing changed", () => {
+    const midnight = new Date(2026, 7, 2, 0, 0);
+    expect(refreshToday("2026-08-02", midnight, true)).toBe("2026-08-02");
+  });
+
+  it("rolls over to the new date when visible after midnight", () => {
+    const previous = refreshToday("2026-08-02", new Date(2026, 7, 2, 23, 59), true);
+    const afterMidnight = refreshToday(previous, new Date(2026, 7, 3, 0, 1), true);
+    expect(afterMidnight).toBe("2026-08-03");
+  });
+
+  it("stays on the stale date while the tab is hidden", () => {
+    // The tab was last visible before midnight; while hidden nothing refreshes,
+    // so the moment it comes back it re-reads the clock.
+    expect(refreshToday("2026-08-02", new Date(2026, 7, 3, 0, 1), false)).toBe("2026-08-02");
   });
 });

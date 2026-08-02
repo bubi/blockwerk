@@ -10,8 +10,8 @@ const people: Pick<SpaceRow, "id" | "name" | "kind">[] = [
   { id: "amira", name: "Amira Sy", kind: "person" },
 ];
 
-function commit(mode: Parameters<typeof composeItem>[0]["mode"], raw: string, refBlockId: string | null = null) {
-  return composeItem({ mode, raw, refBlockId, spaces: people, today: TODAY });
+function commit(mode: Parameters<typeof composeItem>[0]["mode"], raw: string, refBlockId: string | null = null, mentionId: string | null = null) {
+  return composeItem({ mode, raw, refBlockId, spaces: people, today: TODAY, mentionId });
 }
 
 describe("matchComposerCommands", () => {
@@ -70,6 +70,34 @@ describe("composeItem", () => {
 
   it("builds a ref from the chosen target block", () => {
     expect(commit("ref", "anything", "b2")).toEqual({ kind: "ref", text: "", refBlockId: "b2" });
+  });
+
+  it("prefers the picked mention's id over the text parser — two people may share a first name", () => {
+    // Both resolve to "Lena" by text; the remembered id decides.
+    expect(commit("task", "Protokoll @Lena", null, "lena")).toEqual({
+      kind: "task",
+      text: "Protokoll",
+      done: false,
+      dueDate: null,
+      assigneeSpaceId: "lena",
+    });
+    expect(commit("task", "Protokoll @Lena", null, "lena-mueller")).toEqual({
+      kind: "task",
+      text: "Protokoll",
+      done: false,
+      dueDate: null,
+      assigneeSpaceId: "lena-mueller",
+    });
+  });
+
+  it("parses a picked mention followed by a date word", () => {
+    expect(commit("task", "Rückschau @Lena !morgen", null, "lena")).toEqual({
+      kind: "task",
+      text: "Rückschau",
+      done: false,
+      dueDate: "2026-08-11",
+      assigneeSpaceId: "lena",
+    });
   });
 
   it("returns null when there is nothing to commit", () => {

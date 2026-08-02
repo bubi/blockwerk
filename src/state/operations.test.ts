@@ -95,8 +95,9 @@ describe("operations — loads", () => {
   it("loads spaces and flattens the nested pages into the action", async () => {
     const { calls, actions, ops } = makeHarness();
     const payload: SpacesResponse = {
-      spaces: [{ id: "s1", name: "S", kind: "topic", short: "S", createdAt: 1, updatedAt: 1, pages: [{ id: "p1", spaceId: "s1", title: "P", createdAt: 1, updatedAt: 1 }] }],
+      spaces: [{ id: "s1", name: "S", kind: "topic", short: "S", email: null, createdAt: 1, updatedAt: 1, pages: [{ id: "p1", spaceId: "s1", title: "P", createdAt: 1, updatedAt: 1 }] }],
       templates: [],
+      meSpaceId: null,
     };
     calls.getSpaces.mockResolvedValue(payload);
 
@@ -105,6 +106,7 @@ describe("operations — loads", () => {
     expect(actions.map((action) => action.type)).toEqual(["spacesLoadStarted", "spacesLoaded"]);
     const loaded = actions[1]!;
     if (loaded.type === "spacesLoaded") {
+      expect(loaded.meSpaceId).toBeNull();
       expect(loaded.spaces).toEqual([payload.spaces[0]]);
       expect(loaded.pages).toEqual([{ id: "p1", spaceId: "s1", title: "P", createdAt: 1, updatedAt: 1 }]);
     }

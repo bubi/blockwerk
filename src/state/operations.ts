@@ -50,6 +50,7 @@ export interface SpaceCreateInput {
   name: string;
   kind: SpaceKind;
   short: string;
+  email?: string | null;
 }
 
 export interface PageCreateInput {
@@ -98,6 +99,7 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
         spaces: data.spaces,
         pages: data.spaces.flatMap((space) => space.pages),
         templates: data.templates,
+        meSpaceId: data.meSpaceId,
       });
     } catch (err) {
       dispatch({ type: "spacesLoadFailed", error: asClientError(err) });
@@ -263,7 +265,7 @@ function now(): number {
 
 function toSpaceRow(input: SpaceCreateInput): SpaceRow {
   const ts = now();
-  return { id: input.id, name: input.name, kind: input.kind, short: input.short, createdAt: ts, updatedAt: ts };
+  return { id: input.id, name: input.name, kind: input.kind, short: input.short, email: input.email ?? null, createdAt: ts, updatedAt: ts };
 }
 
 function toPageRow(input: PageCreateInput): PageRow {
@@ -310,7 +312,7 @@ function toTemplateRow(input: TemplateCreateInput): TemplateRow {
 }
 
 function toSpaceBody(input: SpaceCreateInput) {
-  return { name: input.name, kind: input.kind, short: input.short };
+  return { name: input.name, kind: input.kind, short: input.short, email: input.email ?? null };
 }
 
 function toPageBody(input: PageCreateInput) {

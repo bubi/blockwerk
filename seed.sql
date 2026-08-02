@@ -16,13 +16,18 @@ INSERT OR IGNORE INTO templates (id, label, hue, seed, created_at, updated_at) V
 
 -- ============================================================
 -- spaces: three people, two topics
+-- lena carries the dev Access email (DEV_ACCESS_EMAIL) so identity resolves
+-- to her in local development (docs/adr/0013); UPDATE also fixes an already
+-- seeded local database.
 -- ============================================================
-INSERT OR IGNORE INTO spaces (id, name, kind, short, created_at, updated_at) VALUES
-  ('lena',  'Lena Brandt',    'person', 'LB', 1754000000000, 1754000000000),
-  ('tomas', 'Tomas Kirsch',   'person', 'TK', 1754000000000, 1754000000000),
-  ('amira', 'Amira Sy',       'person', 'AS', 1754000000000, 1754000000000),
-  ('road',  'Roadmap Q3',     'topic',  'RQ', 1754000000000, 1754000000000),
-  ('feed',  'Kundenfeedback', 'topic',  'KF', 1754000000000, 1754000000000);
+INSERT OR IGNORE INTO spaces (id, name, kind, short, email, created_at, updated_at) VALUES
+  ('lena',  'Lena Brandt',    'person', 'LB', 'dev@example.com', 1754000000000, 1754000000000),
+  ('tomas', 'Tomas Kirsch',   'person', 'TK', NULL,              1754000000000, 1754000000000),
+  ('amira', 'Amira Sy',       'person', 'AS', NULL,              1754000000000, 1754000000000),
+  ('road',  'Roadmap Q3',     'topic',  'RQ', NULL,              1754000000000, 1754000000000),
+  ('feed',  'Kundenfeedback', 'topic',  'KF', NULL,              1754000000000, 1754000000000);
+
+UPDATE spaces SET email = 'dev@example.com' WHERE id = 'lena';
 
 -- ============================================================
 -- pages

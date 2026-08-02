@@ -7,7 +7,7 @@ export type Dispatch = (action: Action) => void;
 export type Action =
   // ---- loads (per view: started / loaded / failed, data kept on reload) ----
   | { type: "spacesLoadStarted" }
-  | { type: "spacesLoaded"; spaces: SpaceRow[]; pages: PageRow[]; templates: TemplateRow[] }
+  | { type: "spacesLoaded"; spaces: SpaceRow[]; pages: PageRow[]; templates: TemplateRow[]; meSpaceId: string | null }
   | { type: "spacesLoadFailed"; error: ClientError }
   | { type: "pageLoadStarted"; pageId: string }
   | { type: "pageLoaded"; page: PageRow; blocks: ApiBlock[] }
@@ -38,6 +38,7 @@ export function reduce(state: AppState, action: Action): AppState {
         spaces: mapOf(action.spaces),
         pages: mapOf(action.pages),
         templates: mapOf(action.templates),
+        meSpaceId: action.meSpaceId,
         spacesView: { status: "loaded" },
       };
     case "spacesLoadFailed":

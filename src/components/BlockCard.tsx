@@ -140,16 +140,6 @@ export function BlockCard({
               onChange={(event) => event.target.value && onPatchBlock(block.id, { date: event.target.value })}
             />
           </label>
-          {block.sections.tasks.length > 0 && (
-            <span className={styles.meta}>
-              {doneCount}/{block.sections.tasks.length} Tasks
-            </span>
-          )}
-          {eventCount > 0 && (
-            <span className={styles.meta}>
-              {eventCount} {eventCount === 1 ? "Termin" : "Termine"}
-            </span>
-          )}
           <button
             type="button"
             className={styles.kill}

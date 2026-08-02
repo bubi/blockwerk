@@ -70,7 +70,7 @@ test("overdue tasks are grouped by person and a row jumps to its source block", 
   await expect(page.locator("[data-block-id='b1']")).toBeVisible();
 });
 
-test("the scope toggle persists and, without an identity, narrows the tasks away", async ({ page }) => {
+test("the scope toggle persists and, with an identity, narrows to my tasks", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Auslastung" })).toBeVisible();
 
@@ -81,12 +81,19 @@ test("the scope toggle persists and, without an identity, narrows the tasks away
   const mine = page.getByRole("tab", { name: "Nur meine" });
   await mine.click();
   await expect(mine).toHaveAttribute("aria-selected", "true");
-  // Without a known identity no task can be "mine" — only the team's events
-  // remain (events are never scoped, matching the prototype).
-  await expect(page.getByRole("checkbox")).toHaveCount(0);
+
+  // With the dev identity (Lena), "nur meine" shows her tasks and hides the
+  // others — open the folded sections first so it holds on any run date.
+  await expandFoldedSections(page);
+  await expect(page.locator("[data-item-id='b1-t3']")).toBeVisible();
+  await expect(page.locator("[data-item-id='b4-t1']")).toBeVisible();
+  await expect(page.locator("[data-item-id='b1-t1']")).toHaveCount(0);
+
+  // Own rows are marked as such.
+  await expect(page.locator("[data-item-id='b1-t3']").getByText("ich", { exact: true })).toBeVisible();
 
   // The choice is a per-device preference and survives a reload.
   await page.goto("/");
   await expect(page.getByRole("tab", { name: "Nur meine" })).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("checkbox")).toHaveCount(0);
+  await expect(page.locator("[data-item-id='b1-t3']")).toBeVisible();
 });

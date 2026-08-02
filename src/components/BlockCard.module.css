@@ -50,11 +50,6 @@
   padding: 0;
 }
 
-.meta {
-  font-size: 12.5px;
-  color: var(--text3);
-}
-
 .kill {
   margin-left: auto;
   font-size: 13px;

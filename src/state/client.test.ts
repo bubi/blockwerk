@@ -12,7 +12,11 @@ function makeClient(fetchImpl: typeof fetch, options: { maxAttempts?: number; re
 
 describe("FetchApiClient reads", () => {
   it("parses a successful response", async () => {
-    const payload: SpacesResponse = { spaces: [{ id: "s1", name: "S", kind: "topic", short: "S", createdAt: 1, updatedAt: 1, pages: [] }], templates: [] };
+    const payload: SpacesResponse = {
+      spaces: [{ id: "s1", name: "S", kind: "topic", short: "S", email: null, createdAt: 1, updatedAt: 1, pages: [] }],
+      templates: [],
+      meSpaceId: null,
+    };
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(payload));
     const client = makeClient(fetchImpl as unknown as typeof fetch);
 

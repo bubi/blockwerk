@@ -132,3 +132,52 @@ test("a change made through the composer survives a reload", async ({ page }) =>
   await page.getByRole("button", { name: "Planung", exact: true }).click();
   await expect(page.locator('input[value="Rechner bestellen"]')).toBeVisible();
 });
+
+test("composer: @ opens a filtered person list, Enter picks and remembers the person", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
+
+  const composer = page.locator("[data-block-id='b1']").getByLabel("Neue Zeile");
+  await composer.click();
+  await page.keyboard.type("/task");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Rückschau @Le");
+  await expect(page.getByRole("listbox", { name: "Person wählen" })).toBeVisible();
+  await expect(page.getByRole("option", { name: /Lena Brandt/ })).toBeVisible();
+  await expect(page.getByRole("option", { name: /Amira/ })).toHaveCount(0);
+  await page.keyboard.press("Enter");
+  await expect(composer).toHaveValue("Rückschau @Lena ");
+  await page.keyboard.type("!morgen");
+  await expect(composer).toHaveValue("Rückschau @Lena !morgen");
+  await page.keyboard.press("Enter");
+
+  const row = page.locator("[data-item-id]").filter({ has: page.locator('input[value="Rückschau"]') });
+  await expect(row).toBeVisible();
+  await expect(row.getByText("LB", { exact: true })).toBeVisible();
+  await expect(row.getByText("morgen", { exact: true })).toBeVisible();
+});
+
+test("a task can be checked off from its date-column card and stays visible", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
+
+  // A task due today, so it sits in the current month of the date column.
+  const composer = page.locator("[data-block-id='b1']").getByLabel("Neue Zeile");
+  await composer.click();
+  await page.keyboard.type("/task");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("Kalendertest !heute");
+  await page.keyboard.press("Enter");
+  await expect(page.locator('input[value="Kalendertest"]')).toBeVisible();
+
+  // The date column (the last aside) shows a card for the task; its checkbox
+  // toggles done and the card stays — struck through, not removed.
+  const dates = page.locator("aside").last();
+  const card = dates.locator("[data-due-card]").filter({ hasText: "Kalendertest" });
+  await expect(card).toBeVisible();
+  await card.getByRole("checkbox").click();
+  await expect(card.getByRole("checkbox")).toHaveAttribute("aria-checked", "true");
+  await expect(card).toBeVisible();
+});

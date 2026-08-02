@@ -64,6 +64,7 @@ export const spaceWriteSchema = z
     name: z.string().min(1).max(200),
     kind: z.enum(["person", "topic"]),
     short: z.string().min(1).max(10),
+    email: z.string().email().max(320).nullable().default(null),
   })
   .strict();
 
@@ -72,6 +73,7 @@ export const spacePatchSchema = z
     name: z.string().min(1).max(200),
     kind: z.enum(["person", "topic"]),
     short: z.string().min(1).max(10),
+    email: z.string().email().max(320).nullable(),
   })
   .strict()
   .partial();

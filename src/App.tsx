@@ -15,7 +15,7 @@ import { Today } from "./components/Today.tsx";
 import { formatError } from "./components/errorText.ts";
 import { LoadError, Loading } from "./components/status.tsx";
 import { monthLedger } from "./domain/calendar.ts";
-import { toISODate } from "./domain/dates.ts";
+import { fromISODate, refreshToday, toISODate } from "./domain/dates.ts";
 import { detectHeading } from "./domain/headings.ts";
 import { newBlockId, newItemId, newPageId, newSpaceId, newTemplateId } from "./domain/ids.ts";
 import { deriveShort } from "./domain/naming.ts";
@@ -56,8 +56,7 @@ export function App() {
   const [spaceId, setSpaceId] = useState<string | null>(null);
   const [pageId, setPageId] = useState<string | "mirror" | null>(null);
   const [pane, setPane] = useState<"today" | "spaces" | "stream" | "dates">("today");
-  const todayDate = new Date();
-  const today = toISODate(todayDate);
+  const { today, todayDate } = useToday();
   const [month, setMonth] = useState({ year: todayDate.getFullYear(), month: todayDate.getMonth() });
   const [jump, setJump] = useState<{ blockId: string; pageId: string; focusComposer?: boolean } | null>(null);
   const [bootRetries, setBootRetries] = useState(0);
@@ -186,7 +185,7 @@ export function App() {
   const spacesView = selectSpacesView(state);
   const calendarView = selectCalendarView(state);
   const overviewView = selectOverviewView(state);
-  const meSpaceId = selectMeSpaceId();
+  const meSpaceId = selectMeSpaceId(state);
 
   // Boot resilience: in dev the worker comes up a few seconds after Vite, so
   // the first requests can be lost while it is still starting. Retry any view
@@ -324,9 +323,10 @@ export function App() {
   const createItem = (input: ItemCreateInput) => void ops.createItem(input);
   const deleteItem = (id: string) => void ops.deleteItem(id);
 
-  const createSpace = async (kind: SpaceKind, rawName: string) => {
+  const createSpace = async (kind: SpaceKind, rawName: string, rawEmail = "") => {
     const name = rawName.trim();
     if (!name) return;
+    const email = rawEmail.trim() || null;
     const id = newSpaceId();
     const pageId = newPageId();
     const nextPageId: string | "mirror" = kind === "person" ? "mirror" : pageId;
@@ -343,7 +343,7 @@ export function App() {
     // The page references the space, so its PUT must not race the space's
     // (both rows are optimistic already; the page's request follows once
     // the space is confirmed on the server).
-    const space = ops.createSpace({ id, name, kind, short: deriveShort(name) });
+    const space = ops.createSpace({ id, name, kind, short: deriveShort(name), email });
     await space;
     ops.createPage({ id: pageId, spaceId: id, title: "Notizen" });
   };
@@ -564,6 +564,7 @@ export function App() {
                 openCounts={openCounts}
                 selectedSpaceId={activeSpaceId}
                 overdueCount={overdueCount}
+                meSpaceId={meSpaceId}
                 homeActive={false}
                 showHome={false}
                 onHome={goHome}
@@ -629,6 +630,7 @@ export function App() {
               openCounts={openCounts}
               selectedSpaceId={pane === "today" ? null : activeSpaceId}
               overdueCount={overdueCount}
+              meSpaceId={meSpaceId}
               homeActive={pane === "today"}
               onHome={goHome}
               onSelectSpace={selectSpace}
@@ -667,6 +669,7 @@ export function App() {
             onNextMonth={() => shiftMonth(1)}
             onJumpToBlock={jumpToBlock}
             onReschedule={(id, patch) => patchItem(id, patch)}
+            onToggleDone={(id, done) => patchItem(id, { done })}
             onRetry={() => void ops.loadCalendar(monthFrom, monthTo)}
           />
         </aside>
@@ -699,4 +702,29 @@ function defaultSpace(spaces: SpaceWithPages[]): SpaceWithPages | null {
     spaces[0] ??
     null
   );
+}
+
+/**
+ * The "today" the app works with, recomputed when the tab becomes visible
+ * again — the fix for an app left open across midnight (docs/adr/0013). The
+ * date itself is derived by refreshToday (domain), which is unit-tested; this
+ * hook only wires it to visibility and focus.
+ */
+function useToday(): { today: string; todayDate: Date } {
+  const [today, setToday] = useState(() => toISODate(new Date()));
+
+  useEffect(() => {
+    const refresh = () => {
+      const visible = document.visibilityState === "visible";
+      setToday((previous) => refreshToday(previous, new Date(), visible));
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, []);
+
+  return { today, todayDate: fromISODate(today) };
 }

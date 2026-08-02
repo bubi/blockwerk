@@ -11,7 +11,6 @@ export function Header({ query, onQueryChange }: HeaderProps) {
       <div className={styles.brand}>
         <span className={styles.mark} aria-hidden="true" />
         <span className={styles.wordmark}>Blockwerk</span>
-        <span className={styles.tagline}>ein Objektmodell für Notizen, Tasks und Termine</span>
       </div>
       <div className={styles.searchwrap}>
         <input

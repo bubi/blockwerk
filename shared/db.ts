@@ -5,6 +5,8 @@ export interface SpaceRow {
   name: string;
   kind: SpaceKind;
   short: string;
+  /** The Access email a person space stands for (docs/adr/0013); topics are null. */
+  email: string | null;
   createdAt: number;
   updatedAt: number;
 }

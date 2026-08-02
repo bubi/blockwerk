@@ -71,6 +71,19 @@ export function formatShort(isoDate: string): string {
   return `${WEEKDAY_ABBREV[date.getDay()]} ${date.getDate()}.${date.getMonth() + 1}.`;
 }
 
+/**
+ * The refresh rule for the "today" display: recompute only when the tab is
+ * visible again, and only when the date actually rolled over. Identity-
+ * preserving when nothing changed, so effects keyed on the date do not fire
+ * needlessly. Fixes "today frozen at load" for an app left open across
+ * midnight (docs/adr/0013).
+ */
+export function refreshToday(previous: string, now: Date, visible: boolean): string {
+  if (!visible) return previous;
+  const next = toISODate(now);
+  return next === previous ? previous : next;
+}
+
 /** German weekday abbreviation for a 0-based weekday index (0 = Sunday). */
 export function weekdayShort(weekdayIndex: number): string {
   return WEEKDAY_ABBREV[weekdayIndex] ?? "";

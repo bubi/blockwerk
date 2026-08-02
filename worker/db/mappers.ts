@@ -7,6 +7,7 @@ export interface RawSpaceRow {
   name: string;
   kind: string;
   short: string;
+  email: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -61,6 +62,7 @@ export function mapSpace(row: RawSpaceRow): SpaceRow {
     name: row.name,
     kind: row.kind as SpaceRow["kind"],
     short: row.short,
+    email: row.email,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

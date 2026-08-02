@@ -82,6 +82,9 @@ export interface AppState {
   items: Map<string, ItemRow>;
   templates: Map<string, TemplateRow>;
 
+  /** The person space that is "me", from the server's Access email (docs/adr/0013). */
+  meSpaceId: string | null;
+
   spacesView: ViewStatus;
   pageViews: Map<string, ViewStatus>;
   calendarView: ViewStatus;
@@ -101,6 +104,7 @@ export function initialState(): AppState {
     blocks: new Map(),
     items: new Map(),
     templates: new Map(),
+    meSpaceId: null,
     spacesView: { status: "idle" },
     pageViews: new Map(),
     calendarView: { status: "idle" },

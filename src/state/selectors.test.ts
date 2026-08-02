@@ -21,6 +21,7 @@ function withData(seed: {
   blocks?: ReturnType<typeof block>[];
   items?: ReturnType<typeof item>[];
   templates?: ReturnType<typeof template>[];
+  meSpaceId?: string | null;
 }): AppState {
   const state = initialState();
   return {
@@ -30,6 +31,7 @@ function withData(seed: {
     blocks: new Map((seed.blocks ?? []).map((row) => [row.id, row])),
     items: new Map((seed.items ?? []).map((row) => [row.id, row])),
     templates: new Map((seed.templates ?? []).map((row) => [row.id, row])),
+    meSpaceId: seed.meSpaceId ?? null,
   };
 }
 
@@ -124,7 +126,7 @@ describe("selectTeamOverview / selectPersonOverview", () => {
     expect(known.days[0]!.tasks.map((row) => row.item.id)).toEqual(["l1"]);
   });
 
-  it("open counts derive from the normalized rows, identity is not yet known", () => {
+  it("open counts derive from the normalized rows; identity resolves from state", () => {
     const state = withData({
       spaces: spaces(),
       blocks: [block({ id: "b1", pageId: "pg1", date: "2026-08-01" })],
@@ -134,11 +136,12 @@ describe("selectTeamOverview / selectPersonOverview", () => {
         item({ id: "l2", kind: "task", blockId: "b1", assigneeSpaceId: "lena" }),
         item({ id: "ldone", kind: "task", blockId: "b1", assigneeSpaceId: "lena", done: true }),
       ],
+      meSpaceId: "lena",
     });
 
     expect(selectPersonOpenCount(state, "lena")).toBe(2);
     expect(selectOpenTaskCounts(state).get("lena")).toBe(2);
-    expect(selectMeSpaceId()).toBeNull();
+    expect(selectMeSpaceId(state)).toBe("lena");
   });
 });
 

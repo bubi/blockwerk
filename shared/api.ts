@@ -42,6 +42,8 @@ export interface SpaceWithPages extends SpaceRow {
 export interface SpacesResponse {
   spaces: SpaceWithPages[];
   templates: TemplateRow[];
+  /** The person space whose email matches the caller's Access email (docs/adr/0013). */
+  meSpaceId: string | null;
 }
 
 export interface PageResponse {

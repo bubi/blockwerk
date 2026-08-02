@@ -123,9 +123,11 @@
   flex: none;
 }
 
-/* Eintragskarte: Titel oben, Metazeile darunter */
+/* Eintragskarte: Checkbox (Tasks), Titel oben, Metazeile darunter */
 .card {
-  display: block;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
   width: 100%;
   background: var(--white);
   border: 1px solid var(--line);
@@ -139,6 +141,53 @@
 .card:hover {
   background: #fbfcfb;
   border-color: #cfd4d9;
+}
+
+/* Der Fokus bleibt sichtbar, egal ob auf der Checkbox oder dem Datumsfeld. */
+.card:focus-within {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+
+.cardbody {
+  flex: 1;
+  min-width: 0;
+}
+
+.cardcheck,
+.cardcheckDone {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: var(--white);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.cardcheck:hover {
+  border-color: var(--green);
+}
+
+.cardcheck span {
+  display: none;
+}
+
+.cardcheckDone {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+.cardcheckDone span {
+  display: block;
+  width: 8px;
+  height: 4px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg) translate(1px, -1px);
 }
 
 .cardtitle {

@@ -65,7 +65,7 @@ function assertRow<T>(row: T | null): T {
 // Reads
 // ============================================================
 
-export async function getSpaces(db: D1Database): Promise<SpacesResponse> {
+export async function getSpaces(db: D1Database, email: string): Promise<SpacesResponse> {
   const spaces = await listSpaces(db);
   const pages = await listPages(db);
   const templates = await listTemplates(db);
@@ -77,9 +77,12 @@ export async function getSpaces(db: D1Database): Promise<SpacesResponse> {
     else pagesBySpace.set(page.spaceId, [page]);
   }
 
+  const meSpaceId = spaces.find((space) => space.kind === "person" && space.email === email)?.id ?? null;
+
   return {
     spaces: spaces.map((space) => ({ ...space, pages: pagesBySpace.get(space.id) ?? [] })),
     templates,
+    meSpaceId,
   };
 }
 

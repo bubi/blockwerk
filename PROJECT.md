@@ -46,7 +46,7 @@ Space (Bereich)     Person oder Thema
 
 | Entität  | Wichtige Felder |
 |----------|-----------------|
-| `space`  | `id`, `name`, `kind` (`person` \| `topic`), `short` (Kürzel) |
+| `space`  | `id`, `name`, `kind` (`person` \| `topic`), `short` (Kürzel), `email` (nur Person, eindeutig, für „ich" — ADR 0013) |
 | `page`   | `id`, `space_id`, `title` |
 | `block`  | `id`, `page_id`, `template_id`, `title`, `date` (jeder Block ist datiert) |
 | `item`   | `id`, `block_id`, `kind`, `position`, `text`, `heading` (1\|2\|null), `done`, `due_date`, `event_date`, `event_time`, `assignee_space_id`, `ref_block_id` |
@@ -79,6 +79,14 @@ Regeln, die im Code gelten müssen:
   (Überfällig · nächste 8 Tage · Später fällig · Ohne Datum), der Blocktitel steht als
   Herkunft in der Zeile. Der frühere Spiegel gruppierte nach Ursprungsblock — das wird
   nicht zurückgebaut.
+- **Identität (ADR 0013):** „Ich" ist der Personenbereich, dessen `email` der
+  Access-E-Mail entspricht — vom Worker bei `/api/spaces` als `meSpaceId` aufgelöst, im
+  State genau einmal gehalten, von `selectMeSpaceId` gelesen. Ohne Zuordnung arbeitet die
+  Anwendung weiter („nur meine" zeigt nichts, nie eine falsche Auswahl).
+- **`@`-Auswahl merkt die Bereichs-ID, nicht den Text:** Die Auswahl aus der
+  Personenliste schreibt `@Vorname` und merkt `mentionId`; `composeItem` nimmt die
+  gemerkte ID vor dem Textparser (gleiche Vornamen bleiben unterscheidbar). Der Parser
+  bleibt Rückfall für getipptes `@Name` ohne Menüauswahl.
 
 **Löschregeln:** Kaskadiert wird ausschließlich entlang der Besitzkette
 Bereich → Seite → Block → Item. Jeder Querbezug wird dagegen genullt, nie gelöscht.
@@ -242,7 +250,7 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 4 | Features: Volltextsuche (erledigt), Rückverweise, Terminserien | in Arbeit |
 | 5 | Aufgabenüberblick (ADR 0011): Übersichtsroute, Team-/Personen-Ansicht, „Heute" als Einstieg | erledigt |
 | 6 | Mobile Gestalt (ADR 0012): Tab-Leiste Heute/Notizen/Suche unter 860px, Drill-down mit Verlauf, keine Datumsspalte | erledigt |
-| 7 | Identität (E-Mail am Personenbereich), @-Auswahl, Checkbox in der Datumsspalte, Aufräumen | geplant |
+| 7 | Identität (ADR 0013), @-Auswahl im Composer, Checkbox in der Datumsspalte, Aufräumen, Mitternachts-Fix | erledigt |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
 Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.

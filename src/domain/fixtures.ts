@@ -38,6 +38,7 @@ export function space(overrides: Partial<SpaceRow> & { id: string }): SpaceRow {
     name: "",
     kind: "topic",
     short: "",
+    email: null,
     createdAt: 1_700_000_000_000,
     updatedAt: 1_700_000_000_000,
     ...overrides,

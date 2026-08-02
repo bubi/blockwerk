@@ -74,12 +74,13 @@ export function selectSearch(state: AppState): SearchView {
 }
 
 /**
- * Which space is "me". Null until the person-space email field exists
- * (PR 3); the scope filter and own-row highlighting hook onto this single
- * place and light up once identity arrives.
+ * Which space is "me" — resolved server-side from the Access email against
+ * the person spaces' email field (docs/adr/0013). Null when no person space
+ * carries the caller's email; the app keeps working, the scope filter and
+ * own-row highlighting just stay neutral.
  */
-export function selectMeSpaceId(): string | null {
-  return null;
+export function selectMeSpaceId(state: AppState): string | null {
+  return state.meSpaceId;
 }
 
 /** The team view ("Heute"): every open task, optionally scoped to "mine". */

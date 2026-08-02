@@ -198,9 +198,10 @@ describe("load states", () => {
     let state = reduce(initialState(), { type: "spacesLoadStarted" });
     expect(state.spacesView.status).toBe("loading");
 
-    state = reduce(state, { type: "spacesLoaded", spaces: [space({ id: "s1" })], pages: [], templates: [] });
+    state = reduce(state, { type: "spacesLoaded", spaces: [space({ id: "s1" })], pages: [], templates: [], meSpaceId: "s1" });
     expect(state.spacesView.status).toBe("loaded");
     expect(state.spaces.has("s1")).toBe(true);
+    expect(state.meSpaceId).toBe("s1");
 
     const error: ClientError = { kind: "network", message: "offline" };
     state = reduce(state, { type: "spacesLoadFailed", error });
