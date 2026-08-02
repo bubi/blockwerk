@@ -28,6 +28,11 @@ export async function getTemplate(db: D1Like, id: string): Promise<TemplateRow |
   return row ? mapTemplate(row) : null;
 }
 
+export async function listTemplates(db: D1Like): Promise<TemplateRow[]> {
+  const { results } = await db.prepare("SELECT * FROM templates ORDER BY id ASC").all<RawTemplateRow>();
+  return results.map(mapTemplate);
+}
+
 export async function updateTemplate(
   db: D1Like,
   id: string,
