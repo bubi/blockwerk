@@ -5,8 +5,9 @@ import type { Env } from "../env.ts";
 import type { D1Like } from "./d1-like.ts";
 import { countingD1 } from "./testing/counting-d1.ts";
 import { getTestDb } from "./testing/get-test-db.ts";
-import { createBlock, createItem, createPage, createSpace, createTemplate } from "./index.ts";
-import type { CalendarResponse, MirrorTask, PageResponse, SpacesResponse } from "../../shared/api.ts";
+import { createBlock, createItem, createPage, createSpace, createTemplate, loadPageBlocks } from "./index.ts";
+import type { CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SpacesResponse } from "../../shared/api.ts";
+import { insertPositionBetween } from "../../src/domain/position.ts";
 
 const NOW = 1_700_000_000_000;
 const DEV_EMAIL = "tester@example.com";
@@ -275,9 +276,10 @@ describe("PATCH /api/:entity/:id", () => {
     await seedBlock(db, "patch-block", "patch-page");
     await createItem(db, { id: "patch-item", blockId: "patch-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
 
-    const patched = await json<{ done: boolean }>("PATCH", "/api/items/patch-item", { done: true });
+    const patched = await json<ItemWriteResponse>("PATCH", "/api/items/patch-item", { done: true });
     expect(patched.status).toBe(200);
-    expect(patched.body.done).toBe(true);
+    expect(patched.body.row.done).toBe(true);
+    expect(patched.body.respaced).toBeNull();
 
     const missing = await json<ErrorBody>("PATCH", "/api/items/no-such-item", { done: true });
     expect(missing.status).toBe(404);
@@ -432,4 +434,83 @@ describe("query budget per read route", () => {
     expect(calendar.status).toBe(200);
     expect(count() - beforeCalendar).toBe(2);
   });
+
+  it("stays fixed for a respace-triggering item write, regardless of block size", async () => {
+    const raw = await getTestDb();
+    await seedSpace(raw, "rs-space");
+    await seedPage(raw, "rs-page", "rs-space");
+    await seedBlock(raw, "rs-block", "rs-page");
+    for (let i = 0; i < 40; i++) {
+      await createItem(raw, { id: `rs-${i}`, blockId: "rs-block", position: (i + 1) * 1000, kind: "note", text: "x", heading: null }, NOW);
+    }
+
+    const { db, count } = countingD1(raw);
+    const before = count();
+    const result = await json<ItemWriteResponse>("PUT", "/api/items/rs-collide", {
+      blockId: "rs-block",
+      kind: "note",
+      position: 1000,
+      text: "neu",
+      heading: null,
+    }, db);
+
+    expect(result.status).toBe(200);
+    expect(result.body.respaced).not.toBeNull();
+    expect(Object.keys(result.body.respaced!).length).toBe(41);
+    // getItem + getBlock + listBlockItems + respace UPDATE + INSERT — one
+    // UPDATE for the whole block, never one per row.
+    expect(count() - before).toBe(5);
+  });
 });
+
+describe("item re-spacing (respace)", () => {
+  it("inserting twenty times at the same slot keeps the expected order without collisions", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "x20-space");
+    await seedPage(db, "x20-page", "x20-space");
+    await seedBlock(db, "x20-block", "x20-page");
+    await createItem(db, { id: "x20-anchor", blockId: "x20-block", position: 1000, kind: "note", text: "Anker", heading: 1 }, NOW);
+    await createItem(db, { id: "x20-last", blockId: "x20-block", position: 2000, kind: "note", text: "Schluss", heading: null }, NOW);
+
+    // The client's flow: place each new row between the anchor and the next
+    // stream row, then PUT. Positions are integers, so roughly every ninth
+    // insert exhausts the gap and the server re-spaces the block.
+    for (let i = 0; i < 20; i++) {
+      const items = await streamItems(db, "x20-block");
+      const anchorIndex = items.findIndex((item) => item.id === "x20-anchor");
+      const after = items[anchorIndex]!;
+      const before = items[anchorIndex + 1] ?? null;
+      const position = insertPositionBetween(after.position, before ? before.position : null);
+
+      const result = await json<ItemWriteResponse>("PUT", `/api/items/x20-row-${i}`, {
+        blockId: "x20-block",
+        kind: "note",
+        position,
+        text: `zeile-${i}`,
+        heading: null,
+      });
+      expect(result.status).toBe(200);
+      if (result.body.respaced) {
+        const positions = Object.values(result.body.respaced);
+        expect(new Set(positions).size).toBe(positions.length);
+      }
+    }
+
+    const items = await streamItems(db, "x20-block");
+    expect(items).toHaveLength(22);
+    // Newest row sits directly under the anchor, nothing lost, no collision.
+    expect(items.map((item) => item.text)).toEqual([
+      "Anker",
+      ...Array.from({ length: 20 }, (_, i) => `zeile-${19 - i}`),
+      "Schluss",
+    ]);
+    const positions = items.map((item) => item.position);
+    expect(new Set(positions).size).toBe(positions.length);
+  });
+});
+
+async function streamItems(db: D1Like, blockId: string) {
+  const page = await loadPageBlocks(db, "x20-page");
+  const block = page.find((entry) => entry.id === blockId);
+  return block?.items ?? [];
+}

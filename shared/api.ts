@@ -54,5 +54,16 @@ export interface MirrorTask {
   block: Pick<BlockRow, "id" | "pageId" | "title" | "date">;
 }
 
+/**
+ * The response of an item write (PUT/PATCH). `row` is the stored item;
+ * `respaced` carries every item's position in the block when the server had
+ * to re-space it (exhausted position gap) so the client's local order can
+ * follow the server's truth — null when nothing was re-spaced.
+ */
+export interface ItemWriteResponse {
+  row: ItemRow;
+  respaced: Record<string, number> | null;
+}
+
 /** The calendar route returns the same shape the domain projection builds. */
 export type CalendarResponse = CalendarWindow;

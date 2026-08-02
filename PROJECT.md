@@ -57,6 +57,8 @@ Regeln, die im Code gelten müssen:
   Notizen und Verweise zählt `position`, Termine werden chronologisch sortiert. Diese Regel
   ist **genau einmal** definiert (in `/src/domain`, `orderBlockItems`); der Worker ruft sie
   von dort auf und sortiert nicht zusätzlich in SQL.
+- **Positionen:** Lücken zulassen (Schritt 1000), bei Erschöpfung Respace des Blocks
+  (eine Anweisung, Reihenfolge bleibt erhalten — siehe [ADR 0009](docs/adr/0009-position-respace.md)).
 - **Überschriften:** Ein Item mit `heading` ist eine Überschrift; alle folgenden Notiz- und
   Verweiszeilen bis zur nächsten Überschrift werden eingerückt dargestellt. Die Einrückung
   ist reine Darstellung, es gibt keine Baumstruktur in den Daten.
@@ -228,7 +230,10 @@ Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.
 `/prototype/blockwerk.jsx` ist eine lauffähige Einzeldatei mit dem vollständigen
 Interaktionsmodell: Slash-Befehle, `#`-Überschriften mit Einrückung, Tastaturbedienung
 (Pfeiltasten wählen Zeilen, Leertaste hakt ab), Task-Spiegel, Datumsleiste,
-Bereichs- und Template-Verwaltung.
+Bereichs- und Template-Verwaltung. In der echten Anwendung sind davon umgesetzt:
+Composer mit Slash-Menü, `#`-Umwandlung, Zeilen einfügen/löschen, zwei Tastaturmodi
+über den DOM-Fokus (ADR 0008) sowie Position-Respace (ADR 0009); Bereichs- und
+Template-Verwaltung folgen noch.
 
 Er ist **Referenz für das Verhalten, nicht für die Struktur.** Der Zustand liegt dort in
 einem einzigen Objekt und wird über einen Key-Value-Speicher persistiert. Diese Grenze

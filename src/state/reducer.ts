@@ -20,7 +20,7 @@ export type Action =
   | { type: "calendarLoadFailed"; error: ClientError }
   // ---- optimistic writes ----
   | { type: "writeOptimistic"; op: OptimisticWrite; now: number }
-  | { type: "writeConfirmed"; opKey: string }
+  | { type: "writeConfirmed"; opKey: string; respaced?: Record<string, number> }
   | { type: "writeFailed"; opKey: string; error: ClientError; now: number }
   | { type: "dismissNotification"; id: string };
 
@@ -64,7 +64,7 @@ export function reduce(state: AppState, action: Action): AppState {
     case "writeOptimistic":
       return applyWrite(state, action.op, action.now);
     case "writeConfirmed":
-      return confirmWrite(state, action.opKey);
+      return confirmWrite(state, action.opKey, action.respaced);
     case "writeFailed":
       return failWrite(state, action.opKey, action.error, action.now);
     case "dismissNotification":
@@ -296,10 +296,19 @@ function addPending(state: AppState, op: OptimisticWrite, undo: UndoPlan): AppSt
   return { ...state, pending };
 }
 
-function confirmWrite(state: AppState, opKey: string): AppState {
+function confirmWrite(state: AppState, opKey: string, respaced?: Record<string, number>): AppState {
   const pending = new Map(state.pending);
   if (!pending.delete(opKey)) return state;
-  return { ...state, pending };
+  if (!respaced) return { ...state, pending };
+
+  // A re-spaced block: adopt the server's positions. Only the position field
+  // is touched, so concurrent optimistic edits to other fields are kept.
+  const items = new Map(state.items);
+  for (const [id, position] of Object.entries(respaced)) {
+    const row = items.get(id);
+    if (row) items.set(id, { ...row, position });
+  }
+  return { ...state, pending, items };
 }
 
 function failWrite(state: AppState, opKey: string, error: ClientError, now: number): AppState {

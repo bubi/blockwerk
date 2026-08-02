@@ -10,6 +10,7 @@ import { formatError } from "./components/errorText.ts";
 import { LoadError, Loading } from "./components/status.tsx";
 import { monthLedger } from "./domain/calendar.ts";
 import { toISODate } from "./domain/dates.ts";
+import type { ItemCreateInput } from "./state/operations.ts";
 import {
   selectCalendar,
   selectCalendarView,
@@ -168,6 +169,8 @@ export function App() {
 
   const patchBlock = (id: string, patch: BlockPatch) => void ops.updateBlock(id, patch);
   const patchItem = (id: string, patch: ItemPatch) => void ops.updateItem(id, patch);
+  const createItem = (input: ItemCreateInput) => void ops.createItem(input);
+  const deleteItem = (id: string) => void ops.deleteItem(id);
 
   const jumpToBlock = (blockId: string) => {
     const block = state.blocks.get(blockId);
@@ -229,12 +232,16 @@ export function App() {
               templatesById={templatesById}
               spacesById={spacesById}
               blocksById={state.blocks}
+              spaces={spaces}
+              today={todayDate}
               pageView={selectPageView(state, resolvedPageId)}
               mirrorView={mirrorView ?? { status: "idle" }}
               pulseBlockId={jump?.blockId ?? null}
               onSelectPage={selectPage}
               onPatchBlock={patchBlock}
               onPatchItem={patchItem}
+              onCreateItem={createItem}
+              onDeleteItem={deleteItem}
               onJumpToBlock={jumpToBlock}
               onRetryPage={() => resolvedPageId !== "mirror" && void ops.loadPage(resolvedPageId)}
               onRetryMirror={() => activeSpaceId !== null && void ops.loadMirror(activeSpaceId)}

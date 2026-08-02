@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import type { BlockRow, ItemRow, SpaceRow } from "../../shared/db.ts";
 import type { ItemPatch } from "../../shared/schemas.ts";
 import { formatShort, fromISODate, relativeLabel } from "../domain/dates.ts";
+import { detectHeading } from "../domain/headings.ts";
 import styles from "./ItemRow.module.css";
 
 interface ItemRowProps {
@@ -10,8 +12,17 @@ interface ItemRowProps {
   assignee?: Pick<SpaceRow, "short"> | null;
   /** The ref's target block, when it still exists. */
   targetBlock?: Pick<BlockRow, "id" | "title" | "date"> | null;
+  /** The row before this one in display order — where focus returns after a delete. */
+  prevId?: string | null;
   onPatch: (id: string, patch: ItemPatch) => void;
   onJumpToBlock: (blockId: string) => void;
+  /** Enter in a note's field inserts a new note directly below it. */
+  onInsertAfter?: (itemId: string) => void;
+  onDeleteRow?: (itemId: string, prevId: string | null) => void;
+  /** Arrow keys move the row selection through the block's display order. */
+  onNav?: (itemId: string, dir: -1 | 1) => void;
+  onRowRef?: (el: HTMLLIElement | null) => void;
+  onInputRef?: (el: HTMLInputElement | null) => void;
 }
 
 const KIND_LABEL: Record<ItemRow["kind"], string> = {
@@ -21,29 +32,167 @@ const KIND_LABEL: Record<ItemRow["kind"], string> = {
   ref: "Verweis",
 };
 
-export function ItemRow({ item, indent, assignee, targetBlock, onPatch, onJumpToBlock }: ItemRowProps) {
-  const kindClass = styles[`kind${item.kind[0]!.toUpperCase() + item.kind.slice(1)}`];
-  const rowClass = [styles.item, kindClass, indent ? styles.indented : "", item.done ? styles.done : ""].filter(Boolean).join(" ");
+/**
+ * Two keyboard modes, decided by which element holds focus — no state, no
+ * second copy of "where am I" (docs/adr/0008):
+ *
+ *  - Row selected (the <li> has focus): arrow keys move through all rows in
+ *    display order, Space toggles a task (or enters the field), Enter enters
+ *    the field, Backspace/Delete removes the row.
+ *  - Cursor in the field (the <input> has focus): arrow keys leave the field
+ *    and select the neighbor row, Escape returns to the row, Enter inserts a
+ *    new note directly below, Backspace in an empty note first demotes a
+ *    heading and only then deletes the row.
+ *
+ * Space is the reason the split is structural: on the row it toggles, inside
+ * the field it types.
+ */
+export function ItemRow({
+  item,
+  indent,
+  assignee,
+  targetBlock,
+  prevId,
+  onPatch,
+  onJumpToBlock,
+  onInsertAfter,
+  onDeleteRow,
+  onNav,
+  onRowRef,
+  onInputRef,
+}: ItemRowProps) {
+  const rowRef = useRef<HTMLLIElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  if (item.kind === "note" && item.heading !== null) {
-    return (
-      <li className={`${rowClass} ${styles.heading}`} data-item-id={item.id}>
-        <span className={styles.hmark} aria-hidden="true">
-          {item.heading === 1 ? "#" : "##"}
-        </span>
-        <input
-          className={styles.headingInput}
-          value={item.text}
-          onChange={(event) => onPatch(item.id, { text: event.target.value })}
-          aria-label="Überschrift"
-          placeholder="Überschrift"
-        />
-      </li>
-    );
-  }
+  const isHeading = item.kind === "note" && item.heading !== null;
+
+  const focusRow = () => rowRef.current?.focus();
+  const focusField = () => {
+    const el = inputRef.current;
+    if (el) {
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    }
+  };
+
+  const rowKeys = (event: React.KeyboardEvent<HTMLLIElement>) => {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      onNav?.(item.id, 1);
+      return;
+    }
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      onNav?.(item.id, -1);
+      return;
+    }
+
+    const inField = event.target === inputRef.current;
+    if (inField) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        focusRow();
+        return;
+      }
+      if (item.kind === "note") {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          onInsertAfter?.(item.id);
+          return;
+        }
+        if (event.key === "Backspace" && item.text === "") {
+          if (isHeading) {
+            // First step: back to normal text, second Backspace deletes.
+            event.preventDefault();
+            onPatch(item.id, { heading: null });
+            return;
+          }
+          if (onDeleteRow) {
+            event.preventDefault();
+            onDeleteRow(item.id, prevId ?? null);
+            return;
+          }
+        }
+      }
+      return;
+    }
+
+    if (event.key === " ") {
+      event.preventDefault();
+      if (item.kind === "task") onPatch(item.id, { done: !item.done });
+      else focusField();
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      if (item.kind === "ref" && targetBlock) onJumpToBlock(targetBlock.id);
+      else focusField();
+      return;
+    }
+    if (event.key === "Backspace" || event.key === "Delete") {
+      event.preventDefault();
+      onDeleteRow?.(item.id, prevId ?? null);
+    }
+  };
+
+  const handleTextChange = (value: string) => {
+    if (item.kind === "note" && item.heading === null) {
+      const detected = detectHeading(value);
+      if (detected) {
+        onPatch(item.id, { heading: detected.heading, text: detected.text });
+        return;
+      }
+    }
+    onPatch(item.id, { text: value });
+  };
+
+  const kindClass = styles[`kind${item.kind[0]!.toUpperCase() + item.kind.slice(1)}`];
+  const rowClass = [
+    styles.item,
+    kindClass,
+    indent ? styles.indented : "",
+    item.done ? styles.done : "",
+    isHeading ? styles.heading : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <li className={rowClass} data-item-id={item.id}>
+    <li
+      ref={(el) => {
+        rowRef.current = el;
+        onRowRef?.(el);
+      }}
+      className={rowClass}
+      data-item-id={item.id}
+      tabIndex={-1}
+      onKeyDown={rowKeys}
+    >
+      <input
+        ref={(el) => {
+          inputRef.current = el;
+          onInputRef?.(el);
+        }}
+        className={isHeading ? styles.headingInput : styles.text}
+        value={item.text}
+        onChange={(event) => (isHeading ? onPatch(item.id, { text: event.target.value }) : handleTextChange(event.target.value))}
+        aria-label={isHeading ? "Überschrift" : KIND_LABEL[item.kind]}
+        placeholder={isHeading ? "Überschrift" : item.kind === "event" ? "Termin" : item.kind === "task" ? "Aufgabe" : "Notiz"}
+      />
+
+      {isHeading && (
+        <button
+          type="button"
+          className={styles.hmark}
+          tabIndex={-1}
+          onClick={() => onPatch(item.id, { heading: null })}
+          aria-label="In normalen Text umwandeln"
+          title="In normalen Text umwandeln"
+        >
+          {item.heading === 1 ? "#" : "##"}
+        </button>
+      )}
+
       {item.kind === "task" && (
         <button
           type="button"
@@ -51,32 +200,24 @@ export function ItemRow({ item, indent, assignee, targetBlock, onPatch, onJumpTo
           aria-checked={item.done}
           aria-label={`${item.text || "Aufgabe"} — ${item.done ? "wieder öffnen" : "als erledigt markieren"}`}
           className={item.done ? styles.checkDone : styles.check}
+          tabIndex={-1}
           onClick={() => onPatch(item.id, { done: !item.done })}
         >
           <span aria-hidden="true" />
         </button>
       )}
 
-      <input
-        className={styles.text}
-        value={item.text}
-        onChange={(event) => onPatch(item.id, { text: event.target.value })}
-        aria-label={KIND_LABEL[item.kind]}
-        placeholder={item.kind === "event" ? "Termin" : item.kind === "task" ? "Aufgabe" : "Notiz"}
-      />
-
       {item.kind === "task" && item.dueDate && <DueChip dueDate={item.dueDate} />}
       {item.kind === "task" && assignee && <span className={styles.who}>{assignee.short}</span>}
 
-      {item.kind === "event" && (
-        <span className={styles.eventTime}>{item.eventTime ?? "—"}</span>
-      )}
+      {item.kind === "event" && <span className={styles.eventTime}>{item.eventTime ?? "—"}</span>}
 
       {item.kind === "ref" &&
         (targetBlock ? (
           <button
             type="button"
             className={styles.refLink}
+            tabIndex={-1}
             onClick={() => onJumpToBlock(targetBlock.id)}
             aria-label={`Zum Block „${targetBlock.title || "ohne Titel"}" springen`}
           >

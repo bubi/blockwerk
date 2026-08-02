@@ -90,6 +90,31 @@ describe("FetchApiClient writes", () => {
     await expect(client.delete("space", "s1")).resolves.toBeUndefined();
   });
 
+  it("parses an item write response with its re-spaced positions", async () => {
+    const payload = {
+      row: { id: "i1", blockId: "b1", kind: "note", position: 2000, text: "hi" },
+      respaced: { i0: 1000, i1: 2000 },
+    };
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse(payload));
+    const client = makeClient(fetchImpl as unknown as typeof fetch);
+
+    await expect(client.putItem("i1", { blockId: "b1", kind: "note", position: 1000 })).resolves.toEqual(payload);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      expect.stringContaining("/api/items/i1"),
+      expect.objectContaining({ method: "PUT" }),
+    );
+  });
+
+  it("parses an item write response without a re-space as respaced null", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ row: { id: "i1", position: 1500 }, respaced: null }));
+    const client = makeClient(fetchImpl as unknown as typeof fetch);
+
+    await expect(client.patchItem("i1", { done: true })).resolves.toEqual({
+      row: { id: "i1", position: 1500 },
+      respaced: null,
+    });
+  });
+
   it("classifies a 404 delete as an http error", async () => {
     const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ error: { code: "not_found" } }, 404));
     const client = makeClient(fetchImpl as unknown as typeof fetch);

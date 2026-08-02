@@ -12,6 +12,8 @@ function makeHarness() {
     getCalendar: vi.fn(),
     put: vi.fn(),
     patch: vi.fn(),
+    putItem: vi.fn(),
+    patchItem: vi.fn(),
     delete: vi.fn(),
   };
   const client: ApiClient = {
@@ -21,6 +23,8 @@ function makeHarness() {
     getCalendar: calls.getCalendar,
     put: calls.put,
     patch: calls.patch,
+    putItem: calls.putItem,
+    patchItem: calls.patchItem,
     delete: calls.delete,
   };
   const actions: Action[] = [];
@@ -31,12 +35,12 @@ function makeHarness() {
 describe("operations — optimistic writes", () => {
   it("dispatches the optimistic write before the request and confirms after", async () => {
     const { calls, actions, ops } = makeHarness();
-    calls.put.mockResolvedValue({});
+    calls.putItem.mockResolvedValue({ row: {} as never, respaced: null });
 
     await ops.createItem({ id: "i1", blockId: "b1", kind: "note", position: 1000, text: "hi" });
 
     expect(actions.map((action) => action.type)).toEqual(["writeOptimistic", "writeConfirmed"]);
-    expect(calls.put).toHaveBeenCalledWith("item", "i1", expect.objectContaining({ kind: "note", position: 1000, text: "hi" }));
+    expect(calls.putItem).toHaveBeenCalledWith("i1", expect.objectContaining({ kind: "note", position: 1000, text: "hi" }));
 
     const optimistic = actions[0]!;
     if (optimistic.type === "writeOptimistic" && optimistic.op.change === "put") {
@@ -44,9 +48,21 @@ describe("operations — optimistic writes", () => {
     }
   });
 
+  it("forwards the block's re-spaced positions with the confirmation", async () => {
+    const { calls, actions, ops } = makeHarness();
+    calls.putItem.mockResolvedValue({ row: {} as never, respaced: { i1: 2000, i0: 1000 } });
+
+    await ops.createItem({ id: "i1", blockId: "b1", kind: "note", position: 1000 });
+
+    const confirmed = actions[1]!;
+    if (confirmed.type === "writeConfirmed") {
+      expect(confirmed.respaced).toEqual({ i1: 2000, i0: 1000 });
+    }
+  });
+
   it("dispatches a rollback with the classified error when the write fails", async () => {
     const { calls, actions, ops } = makeHarness();
-    calls.put.mockRejectedValue({ kind: "http", status: 400, body: null });
+    calls.putItem.mockRejectedValue({ kind: "http", status: 400, body: null });
 
     await ops.createItem({ id: "i1", blockId: "b1", kind: "note", position: 1000 });
 
@@ -61,11 +77,11 @@ describe("operations — optimistic writes", () => {
 
   it("sends patch and delete through the right client methods", async () => {
     const { calls, actions, ops } = makeHarness();
-    calls.patch.mockResolvedValue({});
+    calls.patchItem.mockResolvedValue({ row: {} as never, respaced: null });
     calls.delete.mockResolvedValue(undefined);
 
     await ops.updateItem("i1", { done: true });
-    expect(calls.patch).toHaveBeenCalledWith("item", "i1", { done: true });
+    expect(calls.patchItem).toHaveBeenCalledWith("i1", { done: true });
 
     await ops.deleteSpace("s1");
     expect(calls.delete).toHaveBeenCalledWith("space", "s1");

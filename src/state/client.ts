@@ -1,4 +1,4 @@
-import type { ApiErrorBody, CalendarResponse, MirrorTask, PageResponse, SpacesResponse } from "../../shared/api.ts";
+import type { ApiErrorBody, CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SpacesResponse } from "../../shared/api.ts";
 import type { ClientError, EntityName, EntityRow } from "./state.ts";
 
 /** The typed surface of the phase-2b API. The only part of the frontend that
@@ -10,6 +10,9 @@ export interface ApiClient {
   getCalendar(from: string, to: string): Promise<CalendarResponse>;
   put(entity: EntityName, id: string, body: unknown): Promise<EntityRow>;
   patch(entity: EntityName, id: string, body: unknown): Promise<EntityRow>;
+  /** Item writes return the stored row plus a block re-space map, if any. */
+  putItem(id: string, body: unknown): Promise<ItemWriteResponse>;
+  patchItem(id: string, body: unknown): Promise<ItemWriteResponse>;
   delete(entity: EntityName, id: string): Promise<void>;
 }
 
@@ -71,6 +74,14 @@ export class FetchApiClient implements ApiClient {
 
   patch(entity: EntityName, id: string, body: unknown): Promise<EntityRow> {
     return this.write("PATCH", entity, id, body);
+  }
+
+  putItem(id: string, body: unknown): Promise<ItemWriteResponse> {
+    return this.perform("PUT", this.path("item", id), body, true).then((response) => this.parse(response));
+  }
+
+  patchItem(id: string, body: unknown): Promise<ItemWriteResponse> {
+    return this.perform("PATCH", this.path("item", id), body, true).then((response) => this.parse(response));
   }
 
   async delete(entity: EntityName, id: string): Promise<void> {

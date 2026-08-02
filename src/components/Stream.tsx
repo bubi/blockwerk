@@ -2,6 +2,7 @@ import type { SpaceWithPages } from "../../shared/api.ts";
 import type { BlockRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
 import type { MirrorGroup } from "../domain/mirror.ts";
+import type { ItemCreateInput } from "../state/operations.ts";
 import type { ViewStatus } from "../state/state.ts";
 import type { BlockView } from "../state/selectors.ts";
 import { BlockCard } from "./BlockCard.tsx";
@@ -20,12 +21,16 @@ interface StreamProps {
   templatesById: ReadonlyMap<string, TemplateRow>;
   spacesById: ReadonlyMap<string, SpaceRow>;
   blocksById: ReadonlyMap<string, BlockRow>;
+  spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
+  today: Date;
   pageView: ViewStatus;
   mirrorView: ViewStatus;
   pulseBlockId: string | null;
   onSelectPage: (pageId: string | "mirror") => void;
   onPatchBlock: (id: string, patch: BlockPatch) => void;
   onPatchItem: (id: string, patch: ItemPatch) => void;
+  onCreateItem: (input: ItemCreateInput) => void;
+  onDeleteItem: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
   onRetryPage: () => void;
   onRetryMirror: () => void;
@@ -41,12 +46,16 @@ export function Stream(props: StreamProps) {
     templatesById,
     spacesById,
     blocksById,
+    spaces,
+    today,
     pageView,
     mirrorView,
     pulseBlockId,
     onSelectPage,
     onPatchBlock,
     onPatchItem,
+    onCreateItem,
+    onDeleteItem,
     onJumpToBlock,
     onRetryPage,
     onRetryMirror,
@@ -100,8 +109,12 @@ export function Stream(props: StreamProps) {
           templatesById={templatesById}
           spacesById={spacesById}
           blocksById={blocksById}
+          spaces={spaces}
+          today={today}
           onPatchBlock={onPatchBlock}
           onPatchItem={onPatchItem}
+          onCreateItem={onCreateItem}
+          onDeleteItem={onDeleteItem}
           onJumpToBlock={onJumpToBlock}
           onRetry={onRetryPage}
         />
@@ -117,8 +130,12 @@ function PagePane({
   templatesById,
   spacesById,
   blocksById,
+  spaces,
+  today,
   onPatchBlock,
   onPatchItem,
+  onCreateItem,
+  onDeleteItem,
   onJumpToBlock,
   onRetry,
 }: {
@@ -128,8 +145,12 @@ function PagePane({
   templatesById: ReadonlyMap<string, TemplateRow>;
   spacesById: ReadonlyMap<string, SpaceRow>;
   blocksById: ReadonlyMap<string, BlockRow>;
+  spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
+  today: Date;
   onPatchBlock: (id: string, patch: BlockPatch) => void;
   onPatchItem: (id: string, patch: ItemPatch) => void;
+  onCreateItem: (input: ItemCreateInput) => void;
+  onDeleteItem: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
   onRetry: () => void;
 }) {
@@ -151,9 +172,13 @@ function PagePane({
           template={templatesById.get(block.templateId ?? "") ?? FALLBACK_TEMPLATE}
           spacesById={spacesById}
           blocksById={blocksById}
+          spaces={spaces}
+          today={today}
           pulse={pulseBlockId === block.id}
           onPatchBlock={onPatchBlock}
           onPatchItem={onPatchItem}
+          onCreateItem={onCreateItem}
+          onDeleteItem={onDeleteItem}
           onJumpToBlock={onJumpToBlock}
         />
       ))}

@@ -1,7 +1,7 @@
 import type { BlockRow, ItemKind, ItemRow, PageRow, SpaceKind, SpaceRow, TemplateRow } from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch, PagePatch, SpacePatch, TemplatePatch } from "../../shared/schemas.ts";
 import { asClientError, type ApiClient } from "./client.ts";
-import type { Dispatch } from "./reducer.ts";
+import type { Action, Dispatch } from "./reducer.ts";
 import type { OptimisticWrite } from "./state.ts";
 
 /**
@@ -135,8 +135,8 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
   const runWrite = async (op: OptimisticWrite, send: () => Promise<unknown>) => {
     dispatch({ type: "writeOptimistic", op, now: Date.now() });
     try {
-      await send();
-      dispatch({ type: "writeConfirmed", opKey: op.opKey });
+      const result = await send();
+      dispatch(confirmedAction(op.opKey, result));
     } catch (err) {
       dispatch({ type: "writeFailed", opKey: op.opKey, error: asClientError(err), now: Date.now() });
     }
@@ -177,10 +177,10 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
 
     createItem: (input) =>
       runWrite({ opKey: opKey("item", input.id, "put"), entity: "item", id: input.id, change: "put", row: toItemRow(input) }, () =>
-        client.put("item", input.id, toItemBody(input)),
+        client.putItem(input.id, toItemBody(input)),
       ),
     updateItem: (id, patch) =>
-      runWrite({ opKey: opKey("item", id, "patch"), entity: "item", id, change: "patch", patch }, () => client.patch("item", id, patch)),
+      runWrite({ opKey: opKey("item", id, "patch"), entity: "item", id, change: "patch", patch }, () => client.patchItem(id, patch)),
     deleteItem: (id) =>
       runWrite({ opKey: opKey("item", id, "delete"), entity: "item", id, change: "delete" }, () => client.delete("item", id)),
 
@@ -203,6 +203,24 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
 // ============================================================
 // Optimistic row building (id + client timestamp) and API bodies
 // ============================================================
+
+/**
+ * A confirmed item write may carry the block's re-spaced positions (the
+ * server's answer to an exhausted position gap). The confirmation action
+ * forwards them so the reducer can bring the local order in line.
+ */
+function confirmedAction(opKey: string, result: unknown): Extract<Action, { type: "writeConfirmed" }> {
+  const respaced = extractRespaced(result);
+  return respaced === null ? { type: "writeConfirmed", opKey } : { type: "writeConfirmed", opKey, respaced };
+}
+
+function extractRespaced(result: unknown): Record<string, number> | null {
+  if (typeof result === "object" && result !== null && "row" in result) {
+    const respaced = (result as { respaced?: unknown }).respaced;
+    if (respaced !== null && typeof respaced === "object") return respaced as Record<string, number>;
+  }
+  return null;
+}
 
 function now(): number {
   return Date.now();

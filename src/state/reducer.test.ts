@@ -21,6 +21,25 @@ describe("optimistic writes", () => {
     expect(state.pending.size).toBe(0);
   });
 
+  it("a confirmation with re-spaced positions adopts them without touching other fields", () => {
+    const newRow = item({ id: "i1", kind: "note", position: 1001, text: "neu" });
+    const neighbor = item({ id: "i0", kind: "note", position: 1001, text: "alt" });
+    let state = withData(initialState(), { items: [neighbor] });
+    state = reduce(state, { type: "writeOptimistic", op: { opKey: "k1", entity: "item", id: "i1", change: "put", row: newRow }, now: NOW });
+
+    state = reduce(state, {
+      type: "writeConfirmed",
+      opKey: "k1",
+      respaced: { i0: 1000, i1: 2000, i2: 3000 },
+    });
+
+    expect(state.items.get("i0")).toMatchObject({ id: "i0", position: 1000, text: "alt" });
+    expect(state.items.get("i1")).toMatchObject({ id: "i1", position: 2000, text: "neu" });
+    // Unknown ids in the map are ignored.
+    expect(state.items.has("i2")).toBe(false);
+    expect(state.pending.size).toBe(0);
+  });
+
   it("optimistic create then failure rolls back and records a visible error", () => {
     const row = item({ id: "i1", kind: "note" });
     const error: ClientError = { kind: "network", message: "offline" };

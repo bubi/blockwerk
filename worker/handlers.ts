@@ -1,5 +1,5 @@
-import type { BlockRow, ItemRow, PageRow, SpaceRow, TemplateRow } from "../shared/db.ts";
-import type { CalendarResponse, MirrorTask, PageResponse, SpacesResponse } from "../shared/api.ts";
+import type { BlockRow, PageRow, SpaceRow, TemplateRow } from "../shared/db.ts";
+import type { CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SpacesResponse } from "../shared/api.ts";
 import {
   blockPatchSchema,
   blockWriteSchema,
@@ -19,7 +19,7 @@ import { NotFoundError, ValidationError } from "./errors.ts";
 import type { D1Like } from "./db/d1-like.ts";
 import {
   createBlock,
-  createItem,
+  createItemWithRespace,
   createPage,
   createSpace,
   createTemplate,
@@ -255,7 +255,7 @@ function contentPatch(input: ItemWrite): ItemPatch {
   };
 }
 
-export async function putItem(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<ItemRow> {
+export async function putItem(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<ItemWriteResponse> {
   const input = itemWriteSchema.parse(body);
   logWrite("PUT", "item", id, email);
   const existing = await getItem(db, id);
@@ -263,11 +263,11 @@ export async function putItem(db: D1Like, id: string, body: unknown, now: number
     if (input.kind !== existing.kind) throw immutable("kind");
     if (input.blockId !== existing.blockId) throw immutable("blockId");
     await checkItemRefs(db, input);
-    return assertRow(await updateItem(db, id, contentPatch(input), now));
+    return { row: assertRow(await updateItem(db, id, contentPatch(input), now)), respaced: null };
   }
   await ensureExists(db, "block", input.blockId, "blockId");
   await checkItemRefs(db, input);
-  return createItem(db, toNewItemInput(input, id), now);
+  return createItemWithRespace(db, toNewItemInput(input, id), now);
 }
 
 function toNewItemInput(input: ItemWrite, id: string) {
@@ -313,7 +313,7 @@ function toNewItemInput(input: ItemWrite, id: string) {
   }
 }
 
-export async function patchItem(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<ItemRow> {
+export async function patchItem(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<ItemWriteResponse> {
   const patch = itemPatchSchema.parse(body);
   logWrite("PATCH", "item", id, email);
   const existing = await getItem(db, id);
@@ -330,7 +330,7 @@ export async function patchItem(db: D1Like, id: string, body: unknown, now: numb
   if (patch.refBlockId !== undefined && patch.refBlockId !== null) {
     await ensureExists(db, "block", patch.refBlockId, "refBlockId");
   }
-  return assertRow(await updateItem(db, id, patch, now));
+  return { row: assertRow(await updateItem(db, id, patch, now)), respaced: null };
 }
 
 // ============================================================

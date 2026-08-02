@@ -1,4 +1,5 @@
 import type { ItemRow } from "../../shared/db.ts";
+import { orderBlockItems } from "../../src/domain/order.ts";
 import type { D1Like } from "./d1-like.ts";
 import { mapItem, type RawItemRow } from "./mappers.ts";
 
@@ -32,12 +33,12 @@ export interface ItemPatch {
   refBlockId?: string | null;
 }
 
-export async function createItem(db: D1Like, input: NewItemInput, now: number): Promise<ItemRow> {
+export function buildItemRow(input: NewItemInput, position: number, now: number): ItemRow {
   const base: ItemRow = {
     id: input.id,
     blockId: input.blockId,
     kind: input.kind,
-    position: input.position,
+    position,
     text: "",
     heading: null,
     done: false,
@@ -49,15 +50,16 @@ export async function createItem(db: D1Like, input: NewItemInput, now: number): 
     createdAt: now,
     updatedAt: now,
   };
-  const row: ItemRow =
-    input.kind === "note"
-      ? { ...base, text: input.text, heading: input.heading }
-      : input.kind === "task"
-        ? { ...base, text: input.text, done: input.done ?? false, dueDate: input.dueDate, assigneeSpaceId: input.assigneeSpaceId }
-        : input.kind === "event"
-          ? { ...base, text: input.text, eventDate: input.eventDate, eventTime: input.eventTime }
-          : { ...base, refBlockId: input.refBlockId };
+  return input.kind === "note"
+    ? { ...base, text: input.text, heading: input.heading }
+    : input.kind === "task"
+      ? { ...base, text: input.text, done: input.done ?? false, dueDate: input.dueDate, assigneeSpaceId: input.assigneeSpaceId }
+      : input.kind === "event"
+        ? { ...base, text: input.text, eventDate: input.eventDate, eventTime: input.eventTime }
+        : { ...base, refBlockId: input.refBlockId };
+}
 
+async function insertItemRow(db: D1Like, row: ItemRow): Promise<void> {
   await db
     .prepare(
       `INSERT INTO items
@@ -77,10 +79,15 @@ export async function createItem(db: D1Like, input: NewItemInput, now: number): 
       row.eventDate,
       row.eventTime,
       row.refBlockId,
-      now,
-      now,
+      row.createdAt,
+      row.updatedAt,
     )
     .run();
+}
+
+export async function createItem(db: D1Like, input: NewItemInput, now: number): Promise<ItemRow> {
+  const row = buildItemRow(input, input.position, now);
+  await insertItemRow(db, row);
   return row;
 }
 
@@ -117,4 +124,64 @@ export async function updateItem(db: D1Like, id: string, patch: ItemPatch, now: 
 export async function deleteItem(db: D1Like, id: string): Promise<boolean> {
   const result = await db.prepare("DELETE FROM items WHERE id = ?").bind(id).run();
   return result.meta.changes > 0;
+}
+
+// ============================================================
+// Ordered insertion with block re-spacing
+// ============================================================
+
+export async function listBlockItems(db: D1Like, blockId: string): Promise<ItemRow[]> {
+  const { results } = await db.prepare("SELECT * FROM items WHERE block_id = ?").bind(blockId).all<RawItemRow>();
+  return results.map(mapItem);
+}
+
+export interface ItemCreateResult {
+  row: ItemRow;
+  /**
+   * Every item's position in the block after a re-space (including the new
+   * row), or null when no re-space was needed. The client applies these so
+   * its local order matches the server's truth (docs/adr/0009).
+   */
+  respaced: Record<string, number> | null;
+}
+
+/**
+ * Creates an item where the client asked for it, keeping the block's order
+ * intact. The client inserts at the midpoint of a gap; when that position
+ * already exists (the gap was exhausted) the whole block is re-spaced in ONE
+ * statement — step 1000, display order preserved, the new row right before
+ * the item it collided with. The re-space is a single UPDATE ... CASE, so a
+ * large block still costs one query, not one per row.
+ */
+export async function createItemWithRespace(db: D1Like, input: NewItemInput, now: number): Promise<ItemCreateResult> {
+  const blockItems = await listBlockItems(db, input.blockId);
+  const collides = blockItems.some((item) => item.position === input.position);
+  if (!collides) {
+    return { row: await createItem(db, input, now), respaced: null };
+  }
+
+  const ordered = orderBlockItems(blockItems);
+  const insertIndex = ordered.findIndex((item) => item.position >= input.position);
+  const index = insertIndex === -1 ? ordered.length : insertIndex;
+
+  const respaced: Record<string, number> = {};
+  const params: unknown[] = [];
+  let sql = "UPDATE items SET position = CASE id";
+  // The new row lands at 1000 * (index + 1); items at/after the insert point
+  // shift up by one step so it fits between its display neighbors.
+  ordered.forEach((item, positionIndex) => {
+    const position = 1000 * (positionIndex < index ? positionIndex + 1 : positionIndex + 2);
+    respaced[item.id] = position;
+    sql += " WHEN ? THEN ?";
+    params.push(item.id, position);
+  });
+  sql += " ELSE position END WHERE block_id = ?";
+  params.push(input.blockId);
+  await db.prepare(sql).bind(...params).run();
+
+  const rowPosition = 1000 * (index + 1);
+  respaced[input.id] = rowPosition;
+  const row = buildItemRow(input, rowPosition, now);
+  await insertItemRow(db, row);
+  return { row, respaced };
 }
