@@ -1,6 +1,6 @@
 import { ZodError } from "zod";
-import { calendarParamsSchema, searchParamsSchema } from "../shared/schemas.ts";
-import type { CalendarResponse, SearchResponse } from "../shared/api.ts";
+import { calendarParamsSchema, overviewParamsSchema, searchParamsSchema } from "../shared/schemas.ts";
+import type { CalendarResponse, OverviewResponse, SearchResponse } from "../shared/api.ts";
 import type { AccessIdentity } from "../shared/access.ts";
 import type { Env } from "./env.ts";
 import {
@@ -14,7 +14,7 @@ import {
 import {
   deleteEntity,
   getCalendar,
-  getMirror,
+  getOverview,
   getPageDetail,
   getSearch,
   getSpaces,
@@ -98,6 +98,12 @@ async function getSearchFromParams(db: D1Database, params: URLSearchParams): Pro
   return getSearch(db, parsed.data.q);
 }
 
+async function getOverviewFromParams(db: D1Database, params: URLSearchParams): Promise<OverviewResponse> {
+  const parsed = overviewParamsSchema.safeParse({ today: params.get("today") });
+  if (!parsed.success) throw new ValidationError(zodToFieldIssues(parsed.error));
+  return getOverview(db, parsed.data.today);
+}
+
 function putEntity(db: D1Database, entity: EntityName, id: string, body: unknown, email: string) {
   const now = Date.now();
   switch (entity) {
@@ -154,8 +160,8 @@ export async function handleApiRequest(
       if (method === "GET") return ok(await getSearchFromParams(env.DB, url.searchParams));
       throw new MethodNotAllowedError("GET");
     }
-    if (a === "spaces" && b && c === "mirror") {
-      if (method === "GET") return ok(await getMirror(env.DB, assertId(b)));
+    if (a === "overview" && !b) {
+      if (method === "GET") return ok(await getOverviewFromParams(env.DB, url.searchParams));
       throw new MethodNotAllowedError("GET");
     }
     if (b && !c && isUrlEntity(a)) {

@@ -49,9 +49,18 @@ export interface PageResponse {
   blocks: ApiBlock[];
 }
 
-export interface MirrorTask {
-  item: ItemRow;
-  block: Pick<BlockRow, "id" | "pageId" | "title" | "date">;
+/**
+ * The response of the overview route (docs/adr/0011): every open task, every
+ * event within the next days, and the blocks/pages behind them — the data
+ * load the "Heute" view and a person's assigned-tasks view render from. The
+ * worker loads it with a fixed number of queries; the per-person workload is
+ * derived client-side in src/domain/overview.ts, never by a per-person query.
+ */
+export interface OverviewResponse {
+  tasks: ItemRow[];
+  events: ItemRow[];
+  blocks: BlockRow[];
+  pages: PageRow[];
 }
 
 /** A block hit in the search response, with the context a result row shows. */

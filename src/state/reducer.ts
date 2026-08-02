@@ -1,4 +1,4 @@
-import type { ApiBlock, MirrorTask, SearchResponse } from "../../shared/api.ts";
+import type { ApiBlock, OverviewResponse, SearchResponse } from "../../shared/api.ts";
 import type { BlockRow, ItemRow, PageRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
 import type { AppState, ClientError, DeleteWrite, EntityName, EntityRow, OptimisticWrite, PendingOperation, UndoPlan, ViewStatus } from "./state.ts";
 
@@ -12,12 +12,12 @@ export type Action =
   | { type: "pageLoadStarted"; pageId: string }
   | { type: "pageLoaded"; page: PageRow; blocks: ApiBlock[] }
   | { type: "pageLoadFailed"; pageId: string; error: ClientError }
-  | { type: "mirrorLoadStarted"; spaceId: string }
-  | { type: "mirrorLoaded"; spaceId: string; tasks: MirrorTask[] }
-  | { type: "mirrorLoadFailed"; spaceId: string; error: ClientError }
   | { type: "calendarLoadStarted" }
   | { type: "calendarLoaded"; dueTasks: ItemRow[]; events: ItemRow[] }
   | { type: "calendarLoadFailed"; error: ClientError }
+  | { type: "overviewLoadStarted" }
+  | { type: "overviewLoaded"; response: OverviewResponse }
+  | { type: "overviewLoadFailed"; error: ClientError }
   | { type: "searchLoadStarted"; query: string }
   | { type: "searchLoaded"; response: SearchResponse }
   | { type: "searchLoadFailed"; query: string; error: ClientError }
@@ -48,12 +48,6 @@ export function reduce(state: AppState, action: Action): AppState {
       return applyPageLoaded(state, action);
     case "pageLoadFailed":
       return { ...state, pageViews: setView(state.pageViews, action.pageId, { status: "failed", error: action.error }) };
-    case "mirrorLoadStarted":
-      return { ...state, mirrorViews: setView(state.mirrorViews, action.spaceId, { status: "loading" }) };
-    case "mirrorLoaded":
-      return applyMirrorLoaded(state, action);
-    case "mirrorLoadFailed":
-      return { ...state, mirrorViews: setView(state.mirrorViews, action.spaceId, { status: "failed", error: action.error }) };
     case "calendarLoadStarted":
       return { ...state, calendarView: { status: "loading" } };
     case "calendarLoaded":
@@ -64,6 +58,12 @@ export function reduce(state: AppState, action: Action): AppState {
       };
     case "calendarLoadFailed":
       return { ...state, calendarView: { status: "failed", error: action.error } };
+    case "overviewLoadStarted":
+      return { ...state, overviewView: { status: "loading" } };
+    case "overviewLoaded":
+      return applyOverviewLoaded(state, action);
+    case "overviewLoadFailed":
+      return { ...state, overviewView: { status: "failed", error: action.error } };
     case "searchLoadStarted":
       return {
         ...state,
@@ -122,29 +122,17 @@ function applyPageLoaded(
   };
 }
 
-function applyMirrorLoaded(
+function applyOverviewLoaded(
   state: AppState,
-  action: Extract<Action, { type: "mirrorLoaded" }>,
+  action: Extract<Action, { type: "overviewLoaded" }>,
 ): AppState {
-  const { spaceId, tasks } = action;
-  const itemsMap = new Map(state.items);
-  const blocksMap = new Map(state.blocks);
-  for (const task of tasks) {
-    itemsMap.set(task.item.id, task.item);
-    const existing = blocksMap.get(task.block.id);
-    blocksMap.set(task.block.id, {
-      ...task.block,
-      templateId: existing?.templateId ?? null,
-      createdAt: existing?.createdAt ?? task.item.createdAt,
-      updatedAt: existing?.updatedAt ?? task.item.updatedAt,
-    });
-  }
+  const { tasks, events, blocks, pages } = action.response;
   return {
     ...state,
-    items: itemsMap,
-    blocks: blocksMap,
-    mirrorOrder: setMap(state.mirrorOrder, spaceId, tasks.map((task) => task.item.id)),
-    mirrorViews: setView(state.mirrorViews, spaceId, { status: "loaded" }),
+    items: mergeRows(state.items, [...tasks, ...events]),
+    blocks: mergeRows(state.blocks, blocks),
+    pages: mergeRows(state.pages, pages),
+    overviewView: { status: "loaded" },
   };
 }
 
@@ -285,18 +273,8 @@ function deleteSpace(state: AppState, op: Extract<DeleteWrite, { entity: "space"
   for (const entry of removedBlocks) blocksMap.delete(entry.id);
   for (const entry of removedItems) itemsMap.delete(entry.id);
 
-  // A deleted person space leaves no mirror state behind.
-  const mirrorOrder = new Map(state.mirrorOrder);
-  mirrorOrder.delete(op.id);
-  const mirrorViews = new Map(state.mirrorViews);
-  mirrorViews.delete(op.id);
-
   const undo: UndoPlan = { remove: [], restore };
-  return addPending(
-    { ...state, spaces: spacesMap, pages: pagesMap, blocks: blocksMap, items: itemsMap, mirrorOrder, mirrorViews },
-    op,
-    undo,
-  );
+  return addPending({ ...state, spaces: spacesMap, pages: pagesMap, blocks: blocksMap, items: itemsMap }, op, undo);
 }
 
 function deleteTemplate(state: AppState, op: Extract<DeleteWrite, { entity: "template" }>): AppState {

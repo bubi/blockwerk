@@ -13,8 +13,9 @@ import type { OptimisticWrite } from "./state.ts";
 export interface Operations {
   loadSpaces(): Promise<void>;
   loadPage(pageId: string): Promise<void>;
-  loadMirror(spaceId: string): Promise<void>;
   loadCalendar(from: string, to: string): Promise<void>;
+  /** Loads the task overview (all open tasks + next days' events). */
+  loadOverview(today: string): Promise<void>;
   /** Searches across all blocks and items; a blank query resets the view. */
   search(query: string): Promise<void>;
   /** Resets the search view and discards any in-flight request. */
@@ -113,13 +114,13 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
     }
   };
 
-  const loadMirror = async (spaceId: string) => {
-    dispatch({ type: "mirrorLoadStarted", spaceId });
+  const loadOverview = async (today: string) => {
+    dispatch({ type: "overviewLoadStarted" });
     try {
-      const tasks = await client.getMirror(spaceId);
-      dispatch({ type: "mirrorLoaded", spaceId, tasks });
+      const response = await client.getOverview(today);
+      dispatch({ type: "overviewLoaded", response });
     } catch (err) {
-      dispatch({ type: "mirrorLoadFailed", spaceId, error: asClientError(err) });
+      dispatch({ type: "overviewLoadFailed", error: asClientError(err) });
     }
   };
 
@@ -177,7 +178,7 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
   return {
     loadSpaces,
     loadPage,
-    loadMirror,
+    loadOverview,
     loadCalendar,
     search,
     clearSearch,

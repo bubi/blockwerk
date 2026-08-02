@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("composer: /task with @Person and !morgen creates a task, visible in the block and the mirror", async ({ page }) => {
+test("composer: /task with @Person and !morgen creates a task, visible in the block and the person's overview", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
   await page.getByRole("button", { name: "Planung", exact: true }).click();
@@ -20,11 +20,12 @@ test("composer: /task with @Person and !morgen creates a task, visible in the bl
   await expect(row.getByText("TK", { exact: true })).toBeVisible();
   await expect(row.getByText("morgen", { exact: true })).toBeVisible();
 
-  // The same row is mirrored in Tomas's space.
+  // The same row is shown in Tomas's assigned-tasks overview, with its
+  // source block as the origin.
   await page.getByRole("button", { name: /^Tomas Kirsch(?:\s+\d+)?$/ }).click();
-  const mirrored = page.locator("[data-item-id]").filter({ has: page.locator('input[value="Protokoll"]') });
+  const mirrored = page.locator("[data-item-id]").filter({ hasText: "Protokoll" });
   await expect(mirrored).toBeVisible();
-  await expect(mirrored.getByText("morgen", { exact: true })).toBeVisible();
+  await expect(mirrored.getByText("Quartalsplanung Q3", { exact: true })).toBeVisible();
 });
 
 test("typing # at the line start converts a note into a heading, indenting the following line", async ({ page }) => {

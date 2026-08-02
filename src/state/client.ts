@@ -1,4 +1,4 @@
-import type { ApiErrorBody, CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SearchResponse, SpacesResponse } from "../../shared/api.ts";
+import type { ApiErrorBody, CalendarResponse, ItemWriteResponse, OverviewResponse, PageResponse, SearchResponse, SpacesResponse } from "../../shared/api.ts";
 import type { ClientError, EntityName, EntityRow } from "./state.ts";
 
 /** The typed surface of the phase-2b API. The only part of the frontend that
@@ -6,8 +6,8 @@ import type { ClientError, EntityName, EntityRow } from "./state.ts";
 export interface ApiClient {
   getSpaces(): Promise<SpacesResponse>;
   getPage(id: string): Promise<PageResponse>;
-  getMirror(spaceId: string): Promise<MirrorTask[]>;
   getCalendar(from: string, to: string): Promise<CalendarResponse>;
+  getOverview(today: string): Promise<OverviewResponse>;
   search(query: string): Promise<SearchResponse>;
   put(entity: EntityName, id: string, body: unknown): Promise<EntityRow>;
   patch(entity: EntityName, id: string, body: unknown): Promise<EntityRow>;
@@ -61,12 +61,12 @@ export class FetchApiClient implements ApiClient {
     return this.read(`/api/pages/${encodeURIComponent(id)}`);
   }
 
-  getMirror(spaceId: string): Promise<MirrorTask[]> {
-    return this.read(`/api/spaces/${encodeURIComponent(spaceId)}/mirror`);
-  }
-
   getCalendar(from: string, to: string): Promise<CalendarResponse> {
     return this.read(`/api/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+  }
+
+  getOverview(today: string): Promise<OverviewResponse> {
+    return this.read(`/api/overview?today=${encodeURIComponent(today)}`);
   }
 
   search(query: string): Promise<SearchResponse> {

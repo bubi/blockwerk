@@ -286,6 +286,16 @@ export const searchParamsSchema = z
   .strict();
 
 // ============================================================
+// overview query params
+// ============================================================
+
+export const overviewParamsSchema = z
+  .object({
+    today: dateString,
+  })
+  .strict();
+
+// ============================================================
 // inferred payload types
 // ============================================================
 

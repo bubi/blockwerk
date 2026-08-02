@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { block, item, page, space, template } from "../domain/fixtures.ts";
 import { reduce } from "./reducer.ts";
-import { selectMirror, selectPageBlocks } from "./selectors.ts";
-import { initialState, type AppState, type ClientError, type ViewStatus } from "./state.ts";
+import { selectPageBlocks, selectPersonOpenCount, selectPersonOverview, selectSpaces } from "./selectors.ts";
+import { initialState, type AppState, type ClientError } from "./state.ts";
 
 const NOW = 1_700_000_000_000;
 
@@ -63,24 +63,22 @@ describe("optimistic writes", () => {
     expect(state.items.get("i1")).toBe(row);
   });
 
-  it("checking off a task updates the block view and the mirror — the same row", () => {
+  it("checking off a task updates the block view and the person overview — the same row", () => {
     const task = item({ id: "t1", kind: "task", blockId: "b1", text: "erledigen", assigneeSpaceId: "p1" });
     const blockRow = block({ id: "b1", pageId: "pg1", title: "Meeting" });
-    const base = withData(initialState(), {
-      blocks: [blockRow],
-      items: [task],
-      mirrorOrder: new Map([["p1", ["t1"]]]),
-    });
+    const person = space({ id: "p1", name: "Lena", kind: "person" });
+    const base = withData(initialState(), { spaces: [person], pages: [page({ id: "pg1", spaceId: "s1", title: "Planung" })], blocks: [blockRow], items: [task] });
 
-    // The mirror and the block view show the same row object.
-    expect(selectMirror(base, "p1")[0]!.item).toBe(base.items.get("t1"));
+    // The person overview and the block view show the same row object.
+    const view = selectPersonOverview(base, "2026-08-10", "p1", selectSpaces(base));
+    expect(view.undated.map((row) => row.item.id)).toEqual(["t1"]);
+    expect(view.undated[0]!.item).toBe(base.items.get("t1"));
     expect(selectPageBlocks(base, "pg1")[0]!.items[0]).toBe(base.items.get("t1"));
 
     const patched = reduce(base, { type: "writeOptimistic", op: { opKey: "k1", entity: "item", id: "t1", change: "patch", patch: { done: true } }, now: NOW });
 
     expect(patched.items.get("t1")?.done).toBe(true);
-    expect(selectPageBlocks(patched, "pg1")[0]!.items[0]).toBe(patched.items.get("t1"));
-    expect(selectMirror(patched, "p1")).toHaveLength(0);
+    expect(selectPersonOpenCount(patched, "p1")).toBe(0);
   });
 
   it("an optimistic update rollback restores the previous row", () => {
@@ -129,7 +127,6 @@ describe("deleting a space mirrors the server cascade locally", () => {
       pages: [page({ id: "pg", spaceId: "sp" })],
       blocks: [block({ id: "b", pageId: "pg" })],
       items: [item({ id: "i", kind: "note", blockId: "b" })],
-      mirrorViews: undefined,
     });
     const loaded = reduce(base, { type: "pageLoaded", page: base.pages.get("pg")!, blocks: [] });
     expect(loaded.pageViews.get("pg")?.status).toBe("loaded");
@@ -142,18 +139,19 @@ describe("deleting a space mirrors the server cascade locally", () => {
     expect(gone.pageViews.has("pg")).toBe(false);
   });
 
-  it("deleting a person space purges its mirror state", () => {
+  it("deleting a person space cascades its subtree", () => {
     const base = withData(initialState(), {
       spaces: [space({ id: "gone", name: "Gone", kind: "person" })],
       pages: [page({ id: "pg-gone", spaceId: "gone" })],
-      mirrorOrder: new Map([["gone", ["t1"]]]),
-      mirrorViews: new Map([["gone", { status: "loaded" }]]),
+      blocks: [block({ id: "b-gone", pageId: "pg-gone" })],
+      items: [item({ id: "t1", kind: "task", blockId: "b-gone", assigneeSpaceId: "gone" })],
     });
 
     const state = reduce(base, { type: "writeOptimistic", op: { opKey: "k1", entity: "space", id: "gone", change: "delete" }, now: NOW });
 
-    expect(state.mirrorOrder.has("gone")).toBe(false);
-    expect(state.mirrorViews.has("gone")).toBe(false);
+    expect(state.pages.has("pg-gone")).toBe(false);
+    expect(state.blocks.has("b-gone")).toBe(false);
+    expect(state.items.has("t1")).toBe(false);
   });
 
   it("rolls the whole subtree and the nulled assignment back", () => {
@@ -222,14 +220,18 @@ describe("load states", () => {
     expect(state.blocks.has("old")).toBe(false);
   });
 
-  it("mirror view stores the order and the rows, calendar view merges the window", () => {
+  it("overview view merges its rows into the normalized maps, calendar merges the window", () => {
     const task = item({ id: "t1", kind: "task", blockId: "b1", assigneeSpaceId: "p1" });
-    let state = reduce(initialState(), { type: "mirrorLoadStarted", spaceId: "p1" });
-    state = reduce(state, { type: "mirrorLoaded", spaceId: "p1", tasks: [{ item: task, block: { id: "b1", pageId: "pg1", title: "M", date: "2026-08-10" } }] });
+    const blockRow = block({ id: "b1", pageId: "pg1", title: "M", date: "2026-08-10" });
+    const pageRow = page({ id: "pg1", spaceId: "s1", title: "P" });
+    let state = reduce(initialState(), { type: "overviewLoadStarted" });
+    expect(state.overviewView.status).toBe("loading");
 
-    expect(state.mirrorViews.get("p1")?.status).toBe("loaded");
-    expect(state.mirrorOrder.get("p1")).toEqual(["t1"]);
+    state = reduce(state, { type: "overviewLoaded", response: { tasks: [task], events: [], blocks: [blockRow], pages: [pageRow] } });
+    expect(state.overviewView.status).toBe("loaded");
     expect(state.items.get("t1")).toBe(task);
+    expect(state.blocks.get("b1")).toBe(blockRow);
+    expect(state.pages.get("pg1")).toBe(pageRow);
 
     state = reduce(state, { type: "calendarLoaded", dueTasks: [task], events: [] });
     expect(state.calendarView.status).toBe("loaded");
@@ -297,8 +299,6 @@ interface Seed {
   blocks?: ReturnType<typeof block>[];
   items?: ReturnType<typeof item>[];
   templates?: ReturnType<typeof template>[];
-  mirrorOrder?: Map<string, string[]>;
-  mirrorViews?: Map<string, ViewStatus>;
   spacesOther?: ReturnType<typeof space>[];
   pagesOther?: ReturnType<typeof page>[];
   blocksOther?: ReturnType<typeof block>[];
@@ -315,7 +315,5 @@ function withData(state: AppState, seed: Seed): AppState {
     blocks,
     items: new Map((seed.items ?? []).map((row) => [row.id, row])),
     templates: new Map((seed.templates ?? []).map((row) => [row.id, row])),
-    mirrorOrder: seed.mirrorOrder ?? new Map(),
-    mirrorViews: seed.mirrorViews ?? new Map(),
   };
 }

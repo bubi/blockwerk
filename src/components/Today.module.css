@@ -1,0 +1,15 @@
+.today {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.head {
+  padding: 14px 22px 4px;
+}
+
+.head strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}

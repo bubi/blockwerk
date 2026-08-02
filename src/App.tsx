@@ -8,6 +8,7 @@ import { Notifications } from "./components/Notifications.tsx";
 import { SearchResults } from "./components/SearchResults.tsx";
 import { Sidebar } from "./components/Sidebar.tsx";
 import { Stream } from "./components/Stream.tsx";
+import { Today } from "./components/Today.tsx";
 import { formatError } from "./components/errorText.ts";
 import { LoadError, Loading } from "./components/status.tsx";
 import { monthLedger } from "./domain/calendar.ts";
@@ -15,18 +16,21 @@ import { toISODate } from "./domain/dates.ts";
 import { detectHeading } from "./domain/headings.ts";
 import { newBlockId, newItemId, newPageId, newSpaceId, newTemplateId } from "./domain/ids.ts";
 import { deriveShort } from "./domain/naming.ts";
+import { readScope, writeScope, type TodayScope } from "./domain/preferences.ts";
 import type { ItemCreateInput } from "./state/operations.ts";
 import {
   selectCalendar,
   selectCalendarView,
-  selectMirror,
-  selectMirrorGroups,
-  selectMirrorView,
+  selectMeSpaceId,
+  selectOpenTaskCounts,
+  selectOverviewView,
   selectPageBlocks,
   selectPageView,
+  selectPersonOverview,
   selectSearch,
   selectSpaces,
   selectSpacesView,
+  selectTeamOverview,
   selectTemplates,
 } from "./state/selectors.ts";
 import { useApp } from "./state/useApp.ts";
@@ -37,12 +41,14 @@ export function App() {
 
   const [spaceId, setSpaceId] = useState<string | null>(null);
   const [pageId, setPageId] = useState<string | "mirror" | null>(null);
-  const [pane, setPane] = useState<"spaces" | "stream" | "dates">("stream");
+  const [pane, setPane] = useState<"today" | "spaces" | "stream" | "dates">("today");
   const todayDate = new Date();
+  const today = toISODate(todayDate);
   const [month, setMonth] = useState({ year: todayDate.getFullYear(), month: todayDate.getMonth() });
   const [jump, setJump] = useState<{ blockId: string; pageId: string; focusComposer?: boolean } | null>(null);
   const [bootRetries, setBootRetries] = useState(0);
   const [query, setQuery] = useState("");
+  const [scope, setScope] = useState<TodayScope>(() => readScope());
   const MAX_BOOT_RETRIES = 10;
 
   const spaces = selectSpaces(state);
@@ -76,12 +82,18 @@ export function App() {
     void ops.loadSpaces();
   }, [ops]);
 
-  // Load the active page or mirror.
+  // The task overview is the start view and backs the person view — loaded
+  // once, refreshed when the local date rolls over.
   useEffect(() => {
-    if (activeSpaceId === null) return;
-    if (mirrorMode) void ops.loadMirror(activeSpaceId);
-    else if (activePageId !== null) void ops.loadPage(activePageId);
-  }, [activeSpaceId, activePageId, mirrorMode, ops]);
+    void ops.loadOverview(today);
+  }, [today, ops]);
+
+  // Load the active page. The person view ("Zugewiesen") needs no per-space
+  // load — it renders from the overview.
+  useEffect(() => {
+    if (pane === "today") return;
+    if (activePageId !== null) void ops.loadPage(activePageId);
+  }, [pane, activePageId, ops]);
 
   // Load the calendar window for the displayed month.
   useEffect(() => {
@@ -103,6 +115,8 @@ export function App() {
 
   const spacesView = selectSpacesView(state);
   const calendarView = selectCalendarView(state);
+  const overviewView = selectOverviewView(state);
+  const meSpaceId = selectMeSpaceId();
 
   // Boot resilience: in dev the worker comes up a few seconds after Vite, so
   // the first requests can be lost while it is still starting. Retry any view
@@ -112,18 +126,19 @@ export function App() {
   useEffect(() => {
     if (bootRetries >= MAX_BOOT_RETRIES) return;
     const page = activePageId !== null ? selectPageView(state, activePageId) : null;
-    const mirror = mirrorMode && activeSpaceId !== null ? selectMirrorView(state, activeSpaceId) : null;
     const pending =
       spacesView.status !== "loaded" ||
-      (page !== null && page.status !== "loaded") ||
-      (mirror !== null && mirror.status !== "loaded") ||
+      overviewView.status !== "loaded" ||
+      (pane !== "today" && page !== null && page.status !== "loaded") ||
       calendarView.status !== "loaded";
     if (!pending) return;
 
     const timer = window.setTimeout(() => {
       if (spacesView.status !== "loaded") void ops.loadSpaces();
-      if (activePageId !== null && page !== null && page.status !== "loaded") void ops.loadPage(activePageId);
-      if (activeSpaceId !== null && mirror !== null && mirror.status !== "loaded") void ops.loadMirror(activeSpaceId);
+      if (overviewView.status !== "loaded") void ops.loadOverview(today);
+      if (pane !== "today" && activePageId !== null && page !== null && page.status !== "loaded") {
+        void ops.loadPage(activePageId);
+      }
       if (calendarView.status !== "loaded") void ops.loadCalendar(monthFrom, monthTo);
       setBootRetries((n) => n + 1);
     }, 1500);
@@ -132,9 +147,10 @@ export function App() {
     bootRetries,
     spacesView,
     calendarView,
+    overviewView,
     activePageId,
-    activeSpaceId,
-    mirrorMode,
+    pane,
+    today,
     monthFrom,
     monthTo,
     state,
@@ -173,25 +189,22 @@ export function App() {
   };
 
   const pageBlocks = activePageId !== null ? selectPageBlocks(state, activePageId) : [];
-  const mirrorGroups = isPerson && activeSpaceId !== null ? selectMirrorGroups(state, activeSpaceId) : [];
-  const mirrorView = isPerson && activeSpaceId !== null ? selectMirrorView(state, activeSpaceId) : null;
+  const teamView = selectTeamOverview(state, today, scope, meSpaceId, spaces);
+  const personView =
+    isPerson && activeSpaceId !== null ? selectPersonOverview(state, today, activeSpaceId, spaces) : null;
   const calendar = selectCalendar(state, monthFrom, monthTo);
   const ledger = monthLedger(calendar, monthFrom, monthTo);
-  const today = toISODate(new Date());
 
   // A non-blank search query replaces the stream column with its results
-  // (prototype behavior); clearing it hands the column back to the page.
+  // (prototype behavior); clearing it hands the column back to the pane.
   const searchActive = query.trim() !== "";
   const searchView = selectSearch(state);
 
   const people = spaces.filter((entry) => entry.kind === "person");
   const topics = spaces.filter((entry) => entry.kind === "topic");
 
-  const openCounts = new Map<string, number>();
-  for (const entry of spaces) {
-    const view = state.mirrorViews.get(entry.id);
-    if (view?.status === "loaded") openCounts.set(entry.id, selectMirror(state, entry.id).length);
-  }
+  const openCounts = selectOpenTaskCounts(state);
+  const overdueCount = teamView.overdue.length;
 
   const templatesById = new Map(templates.map((entry) => [entry.id, entry]));
   const spacesById = new Map(spaces.map((entry) => [entry.id, entry]));
@@ -209,6 +222,12 @@ export function App() {
     setPageId(id);
     setJump(null);
     setPane("stream");
+  };
+
+  const goHome = () => {
+    setPane("today");
+    setJump(null);
+    setQuery("");
   };
 
   const patchBlock = (id: string, patch: BlockPatch) => void ops.updateBlock(id, patch);
@@ -310,9 +329,10 @@ export function App() {
     setQuery("");
   };
 
-  // A search hit points into pages that are usually not loaded yet, so the
-  // jump navigates by the hit's own ids instead of resolving through state.
-  const jumpToSearchHit = (blockId: string, pageId: string, spaceId: string) => {
+  // A search hit or an overview row points into pages that are usually not
+  // loaded yet, so the jump navigates by the row's own ids instead of
+  // resolving through state.
+  const jumpToTarget = (blockId: string, pageId: string, spaceId: string) => {
     setSpaceId(spaceId);
     setPageId(pageId);
     setPane("stream");
@@ -324,6 +344,11 @@ export function App() {
     setQuery(value);
     // On narrow screens the panes are mutually exclusive; show the results.
     if (value.trim() !== "") setPane("stream");
+  };
+
+  const handleScopeChange = (next: TodayScope) => {
+    setScope(next);
+    writeScope(next);
   };
 
   const shiftMonth = (delta: number) =>
@@ -347,7 +372,10 @@ export function App() {
               people={people}
               topics={topics}
               openCounts={openCounts}
-              selectedSpaceId={activeSpaceId}
+              selectedSpaceId={pane === "today" ? null : activeSpaceId}
+              overdueCount={overdueCount}
+              homeActive={pane === "today"}
+              onHome={goHome}
               onSelectSpace={selectSpace}
               onCreateSpace={createSpace}
               onDeleteSpace={deleteSpace}
@@ -355,15 +383,28 @@ export function App() {
           )}
         </aside>
 
-        <main className={`${styles.col} ${styles.stream} ${pane === "stream" ? styles.open : ""}`}>
+        <main className={`${styles.col} ${styles.stream} ${pane === "stream" || pane === "today" ? styles.open : ""}`}>
           {searchActive ? (
             searchView.view.status === "failed" ? (
               <LoadError message={formatError(searchView.view.error)} onRetry={() => void ops.search(searchView.query)} />
             ) : searchView.results ? (
-              <SearchResults response={searchView.results} onJumpToBlock={jumpToSearchHit} onClear={() => setQuery("")} />
+              <SearchResults response={searchView.results} onJumpToBlock={jumpToTarget} onClear={() => setQuery("")} />
             ) : (
               <Loading label="Suche läuft…" />
             )
+          ) : pane === "today" ? (
+            <Today
+              viewStatus={overviewView}
+              taskView={teamView}
+              today={today}
+              scope={scope}
+              meSpaceId={meSpaceId}
+              spacesById={spacesById}
+              onScopeChange={handleScopeChange}
+              onToggle={(id, done) => patchItem(id, { done })}
+              onJumpToBlock={jumpToTarget}
+              onRetry={() => void ops.loadOverview(today)}
+            />
           ) : spacesView.status === "failed" ? (
             <LoadError message={formatError(spacesView.error)} onRetry={() => void ops.loadSpaces()} />
           ) : spacesView.status === "idle" || spacesView.status === "loading" ? (
@@ -378,15 +419,17 @@ export function App() {
               selectedPageId={resolvedPageId}
               isPerson={isPerson}
               pageBlocks={pageBlocks}
-              mirrorGroups={mirrorGroups}
+              personView={personView}
+              overviewView={overviewView}
+              today={today}
+              meSpaceId={meSpaceId}
               templates={templates}
               templatesById={templatesById}
               spacesById={spacesById}
               blocksById={state.blocks}
               spaces={spaces}
-              today={todayDate}
+              todayDate={todayDate}
               pageView={selectPageView(state, resolvedPageId)}
-              mirrorView={mirrorView ?? { status: "idle" }}
               pulseBlockId={jump?.blockId ?? null}
               onSelectPage={selectPage}
               onPatchBlock={patchBlock}
@@ -394,8 +437,9 @@ export function App() {
               onCreateItem={createItem}
               onDeleteItem={deleteItem}
               onJumpToBlock={jumpToBlock}
-              onRetryPage={() => resolvedPageId !== "mirror" && void ops.loadPage(resolvedPageId)}
-              onRetryMirror={() => activeSpaceId !== null && void ops.loadMirror(activeSpaceId)}
+              onJumpToOverviewRow={jumpToTarget}
+              onRetryPage={() => void ops.loadPage(resolvedPageId)}
+              onRetryOverview={() => void ops.loadOverview(today)}
               onCreatePage={createPage}
               onRenamePage={renamePage}
               onDeletePage={deletePage}
@@ -425,6 +469,9 @@ export function App() {
       </div>
 
       <nav className={styles.panebar} aria-label="Ansicht wählen">
+        <button type="button" className={pane === "today" ? styles.paneOn : undefined} onClick={goHome}>
+          Heute
+        </button>
         <button type="button" className={pane === "spaces" ? styles.paneOn : undefined} onClick={() => setPane("spaces")}>
           Bereiche
         </button>

@@ -67,8 +67,18 @@ Regeln, die im Code gelten müssen:
 - **Überschriften:** Ein Item mit `heading` ist eine Überschrift; alle folgenden Notiz- und
   Verweiszeilen bis zur nächsten Überschrift werden eingerückt dargestellt. Die Einrückung
   ist reine Darstellung, es gibt keine Baumstruktur in den Daten.
-- **Spiegel:** Der Bereich einer Person zeigt `SELECT … WHERE assignee_space_id = ?`.
-  Niemals ein zweiter Datensatz.
+- **Aufgabenüberblick statt Spiegel (ADR 0011):** Offene Tasks erscheinen an genau einer
+  Stelle — dem Überblick, einer Komponente mit zwei Modi (Team „Heute" und die Person im
+  Tab „Zugewiesen"). Der Überblick ist `SELECT … WHERE kind = 'task' AND done = 0` mit
+  Kontext (Ursprungsblock), projiziert in `/src/domain/overview.ts`. Die Auslastung entsteht
+  im Speicher aus den geladenen Tasks, nie per Abfrage pro Person. Ein Task, der einer
+  Person zugewiesen wird, ist weiterhin **kein** Duplikat — er bleibt in seinem
+  Ursprungsblock und erscheint nur in der Ansicht. Abhaken wirkt überall, weil es dasselbe
+  Objekt ist.
+- **Bewusste Gruppierung:** Der Überblick gruppiert nach Fälligkeit
+  (Überfällig · nächste 8 Tage · Später fällig · Ohne Datum), der Blocktitel steht als
+  Herkunft in der Zeile. Der frühere Spiegel gruppierte nach Ursprungsblock — das wird
+  nicht zurückgebaut.
 
 **Löschregeln:** Kaskadiert wird ausschließlich entlang der Besitzkette
 Bereich → Seite → Block → Item. Jeder Querbezug wird dagegen genullt, nie gelöscht.
@@ -230,6 +240,9 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 2b | API, Prototyp-Logik, State/Client, Oberfläche | erledigt |
 | 3 | Rest von 2b (Verwaltung), Tests, ADRs, Aufräumen | in Arbeit |
 | 4 | Features: Volltextsuche (erledigt), Rückverweise, Terminserien | in Arbeit |
+| 5 | Aufgabenüberblick (ADR 0011): Übersichtsroute, Team-/Personen-Ansicht, „Heute" als Einstieg | in Arbeit |
+| 6 | Mobile Gestalt: Tab-Leiste Heute/Notizen/Suche unter 860px | geplant |
+| 7 | Identität (E-Mail am Personenbereich), @-Auswahl, Checkbox in der Datumsspalte, Aufräumen | geplant |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
 Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.
@@ -240,11 +253,13 @@ Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.
 
 `/prototype/blockwerk.jsx` ist eine lauffähige Einzeldatei mit dem vollständigen
 Interaktionsmodell: Slash-Befehle, `#`-Überschriften mit Einrückung, Tastaturbedienung
-(Pfeiltasten wählen Zeilen, Leertaste hakt ab), Task-Spiegel, Datumsleiste,
-Bereichs- und Template-Verwaltung. In der echten Anwendung ist davon alles umgesetzt:
+(Pfeiltasten wählen Zeilen, Leertaste hakt ab), Aufgabenüberblick („Heute" mit
+Auslastung), Datumsleiste, Bereichs- und Template-Verwaltung. In der echten Anwendung
+ist davon alles umgesetzt:
 Composer mit Slash-Menü, `#`-Umwandlung, Zeilen einfügen/löschen, zwei Tastaturmodi
 über den DOM-Fokus (ADR 0008), Position-Respace (ADR 0009), die Volltextsuche
-im Kopf (ADR 0010) sowie die Verwaltung (Bereiche anlegen/löschen mit Rückfrage,
+im Kopf (ADR 0010), der Aufgabenüberblick als Startansicht und Personen-Sicht
+(ADR 0011) sowie die Verwaltung (Bereiche anlegen/löschen mit Rückfrage,
 Seiten anlegen/umbenennen, Block anlegen, Templates bearbeiten).
 
 Er ist **Referenz für das Verhalten, nicht für die Struktur.** Eine bewusste Abweichung:

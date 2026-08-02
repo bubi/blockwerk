@@ -5,7 +5,7 @@ import type { Env } from "../env.ts";
 import { countingD1 } from "./testing/counting-d1.ts";
 import { getTestDb } from "./testing/get-test-db.ts";
 import { createBlock, createItem, createPage, createSpace, createTemplate, loadPageBlocks } from "./index.ts";
-import type { CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SearchResponse, SpacesResponse } from "../../shared/api.ts";
+import type { CalendarResponse, ItemWriteResponse, OverviewResponse, PageResponse, SearchResponse, SpacesResponse } from "../../shared/api.ts";
 import { insertPositionBetween } from "../../src/domain/position.ts";
 
 const NOW = 1_700_000_000_000;
@@ -112,33 +112,36 @@ describe("GET /api/pages/:id", () => {
   });
 });
 
-describe("GET /api/spaces/:id/mirror", () => {
-  it("returns a person's open assigned tasks with block context, excluding done tasks", async () => {
+describe("GET /api/overview", () => {
+  it("returns open tasks, window events, and the blocks and pages behind them", async () => {
     const db = await getTestDb();
-    await seedSpace(db, "mir-person", "person");
-    await seedSpace(db, "mir-other", "person");
-    await seedSpace(db, "mir-topic");
-    await seedPage(db, "mir-page", "mir-topic");
-    await seedBlock(db, "mir-block", "mir-page");
-    await createItem(db, { id: "mir-open", blockId: "mir-block", position: 1000, kind: "task", text: "open", dueDate: null, assigneeSpaceId: "mir-person" }, NOW);
-    await createItem(db, { id: "mir-done", blockId: "mir-block", position: 2000, kind: "task", text: "done", dueDate: null, assigneeSpaceId: "mir-person", done: true }, NOW);
-    await createItem(db, { id: "mir-other", blockId: "mir-block", position: 3000, kind: "task", text: "other", dueDate: null, assigneeSpaceId: "mir-other" }, NOW);
+    await seedSpace(db, "ov-person", "person");
+    await seedSpace(db, "ov-topic");
+    await seedPage(db, "ov-page", "ov-topic");
+    await seedBlock(db, "ov-block", "ov-page");
+    await createItem(db, { id: "ov-open", blockId: "ov-block", position: 1000, kind: "task", text: "open", dueDate: "2026-08-10", assigneeSpaceId: "ov-person" }, NOW);
+    await createItem(db, { id: "ov-done", blockId: "ov-block", position: 2000, kind: "task", text: "done", dueDate: "2026-08-10", assigneeSpaceId: "ov-person", done: true }, NOW);
+    await createItem(db, { id: "ov-event", blockId: "ov-block", position: 3000, kind: "event", text: "e", eventDate: "2026-08-12", eventTime: "14:00" }, NOW);
 
-    const { status, body } = await json<MirrorTask[]>("GET", "/api/spaces/mir-person/mirror");
+    const { status, body } = await json<OverviewResponse>("GET", "/api/overview?today=2026-08-10");
 
     expect(status).toBe(200);
-    expect(body).toEqual([
-      {
-        item: expect.objectContaining({ id: "mir-open", done: false, assigneeSpaceId: "mir-person" }),
-        block: { id: "mir-block", pageId: "mir-page", title: "mir-block", date: "2026-08-01" },
-      },
-    ]);
+    const taskIds = body.tasks.map((task) => task.id);
+    expect(taskIds).toContain("ov-open");
+    expect(taskIds).not.toContain("ov-done");
+    expect(body.events.map((event) => event.id)).toContain("ov-event");
+    expect(body.blocks.map((block) => block.id)).toContain("ov-block");
+    expect(body.pages.map((page) => page.id)).toContain("ov-page");
   });
 
-  it("returns 404 for a missing space", async () => {
-    const { status, body } = await json<ErrorBody>("GET", "/api/spaces/no-such-space/mirror");
-    expect(status).toBe(404);
-    expect(body.error.code).toBe("not_found");
+  it("rejects a missing or malformed today", async () => {
+    const missing = await json<ErrorBody>("GET", "/api/overview");
+    expect(missing.status).toBe(400);
+    expect(missing.body.error.code).toBe("validation");
+
+    const malformed = await json<ErrorBody>("GET", "/api/overview?today=nope");
+    expect(malformed.status).toBe(400);
+    expect(malformed.body.error.issues?.[0]?.path).toBe("today");
   });
 });
 
@@ -401,9 +404,6 @@ describe("DELETE /api/:entity/:id", () => {
     expect(kept.status).toBe(200);
     const keptTask = kept.body.blocks[0]?.items[0];
     expect(keptTask).toMatchObject({ id: "kept-task", kind: "task", assigneeSpaceId: null });
-
-    const mirror = await json<ErrorBody>("GET", "/api/spaces/gone-space/mirror");
-    expect(mirror.status).toBe(404);
   });
 
   it("returns 404 when deleting a missing row", async () => {
@@ -458,7 +458,7 @@ describe("routing and methods", () => {
 });
 
 describe("query budget per read route", () => {
-  it("stays fixed for /api/spaces, /api/pages/:id, /api/spaces/:id/mirror, /api/calendar, and /api/search", async () => {
+  it("stays fixed for /api/spaces, /api/pages/:id, /api/overview, /api/calendar, and /api/search", async () => {
     const raw = await getTestDb();
 
     await seedSpace(raw, "budget-space-a");
@@ -489,10 +489,10 @@ describe("query budget per read route", () => {
     expect(page.status).toBe(200);
     expect(count() - beforePage).toBe(3);
 
-    const beforeMirror = count();
-    const mirror = await json<MirrorTask[]>("GET", "/api/spaces/budget-person/mirror", undefined, db);
-    expect(mirror.status).toBe(200);
-    expect(count() - beforeMirror).toBe(2);
+    const beforeOverview = count();
+    const overview = await json<OverviewResponse>("GET", "/api/overview?today=2026-08-10", undefined, db);
+    expect(overview.status).toBe(200);
+    expect(count() - beforeOverview).toBe(3);
 
     const beforeCalendar = count();
     const calendar = await json<CalendarResponse>("GET", "/api/calendar?from=2026-08-01&to=2026-08-31", undefined, db);

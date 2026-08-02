@@ -2,13 +2,18 @@ import { describe, expect, it } from "vitest";
 import { block, item, page, space, template } from "../domain/fixtures.ts";
 import {
   selectCalendar,
-  selectMirror,
-  selectMirrorGroups,
+  selectMeSpaceId,
+  selectOpenTaskCounts,
   selectPageBlocks,
+  selectPersonOpenCount,
+  selectPersonOverview,
   selectSpaces,
+  selectTeamOverview,
   selectTemplates,
 } from "./selectors.ts";
 import { initialState, type AppState } from "./state.ts";
+
+const TODAY = "2026-08-10";
 
 function withData(seed: {
   spaces?: ReturnType<typeof space>[];
@@ -16,7 +21,6 @@ function withData(seed: {
   blocks?: ReturnType<typeof block>[];
   items?: ReturnType<typeof item>[];
   templates?: ReturnType<typeof template>[];
-  mirrorOrder?: Map<string, string[]>;
 }): AppState {
   const state = initialState();
   return {
@@ -26,7 +30,6 @@ function withData(seed: {
     blocks: new Map((seed.blocks ?? []).map((row) => [row.id, row])),
     items: new Map((seed.items ?? []).map((row) => [row.id, row])),
     templates: new Map((seed.templates ?? []).map((row) => [row.id, row])),
-    mirrorOrder: seed.mirrorOrder ?? new Map(),
   };
 }
 
@@ -54,37 +57,88 @@ describe("selectPageBlocks", () => {
   });
 });
 
-describe("selectMirror / selectMirrorGroups", () => {
-  it("returns the person's open tasks in the stored server order, referencing the same rows", () => {
-    const t1 = item({ id: "t1", kind: "task", blockId: "b1", assigneeSpaceId: "p1" });
-    const t2 = item({ id: "t2", kind: "task", blockId: "b1", assigneeSpaceId: "p1" });
+describe("selectTeamOverview / selectPersonOverview", () => {
+  const spaces = () => [
+    space({ id: "lena", name: "Lena Brandt", kind: "person" }),
+    space({ id: "tomas", name: "Tomas Kirsch", kind: "person" }),
+    space({ id: "road", name: "Roadmap", kind: "topic" }),
+  ];
+
+  it("team view sections all open tasks and scopes to mine", () => {
     const state = withData({
-      blocks: [block({ id: "b1", pageId: "pg1", title: "Meeting", date: "2026-08-10" })],
-      items: [t1, t2, item({ id: "done", kind: "task", blockId: "b1", assigneeSpaceId: "p1", done: true })],
-      mirrorOrder: new Map([["p1", ["t2", "t1"]]]),
+      spaces: spaces(),
+      blocks: [block({ id: "b1", pageId: "pg1", title: "Meeting", date: "2026-08-01" })],
+      pages: [page({ id: "pg1", spaceId: "road", title: "Planung" })],
+      items: [
+        item({ id: "mine-late", kind: "task", blockId: "b1", dueDate: "2026-08-09", assigneeSpaceId: "lena" }),
+        item({ id: "other-open", kind: "task", blockId: "b1", dueDate: "2026-08-12", assigneeSpaceId: "tomas" }),
+        item({ id: "done", kind: "task", blockId: "b1", dueDate: "2026-08-09", assigneeSpaceId: "lena", done: true }),
+      ],
     });
 
-    const mirror = selectMirror(state, "p1");
-    expect(mirror.map((entry) => entry.item.id)).toEqual(["t2", "t1"]);
-    expect(mirror[0]!.item).toBe(state.items.get("t2"));
-    expect(mirror[1]!.item).toBe(state.items.get("t1"));
-    expect(mirror[0]!.block).toMatchObject({ id: "b1", pageId: "pg1", title: "Meeting", date: "2026-08-10" });
+    const all = selectTeamOverview(state, TODAY, "team", null, selectSpaces(state));
+    expect(all.overdue.map((row) => row.item.id)).toEqual(["mine-late"]);
+    expect(all.days.map((day) => day.tasks.map((row) => row.item.id))).toEqual([["other-open"]]);
 
-    const groups = selectMirrorGroups(state, "p1");
-    expect(groups).toHaveLength(1);
-    expect(groups[0]!.tasks.map((entry) => entry.id)).toEqual(["t2", "t1"]);
+    const mine = selectTeamOverview(state, TODAY, "mine", "lena", selectSpaces(state));
+    expect(mine.overdue.map((row) => row.item.id)).toEqual(["mine-late"]);
+    expect(mine.days).toEqual([]);
+    expect(mine.workload).toEqual([
+      { space: expect.objectContaining({ id: "lena" }), open: 1, late: 1 },
+      { space: expect.objectContaining({ id: "tomas" }), open: 1, late: 0 },
+    ]);
   });
 
-  it("hides tasks that were checked off or reassigned away", () => {
+  it("person view shows only that person's tasks, no events", () => {
     const state = withData({
+      spaces: spaces(),
+      blocks: [block({ id: "b1", pageId: "pg1", title: "Meeting", date: "2026-08-01" })],
+      pages: [page({ id: "pg1", spaceId: "road", title: "Planung" })],
       items: [
-        item({ id: "open", kind: "task", blockId: "b1", assigneeSpaceId: "p1" }),
-        item({ id: "done", kind: "task", blockId: "b1", assigneeSpaceId: "p1", done: true }),
-        item({ id: "reassigned", kind: "task", blockId: "b1", assigneeSpaceId: "other" }),
+        item({ id: "l1", kind: "task", blockId: "b1", dueDate: "2026-08-12", assigneeSpaceId: "lena" }),
+        item({ id: "t1", kind: "task", blockId: "b1", dueDate: "2026-08-12", assigneeSpaceId: "tomas" }),
+        item({ id: "e1", kind: "event", blockId: "b1", eventDate: "2026-08-12" }),
       ],
-      mirrorOrder: new Map([["p1", ["open", "done", "reassigned"]]]),
     });
-    expect(selectMirror(state, "p1").map((entry) => entry.item.id)).toEqual(["open"]);
+
+    const view = selectPersonOverview(state, TODAY, "lena", selectSpaces(state));
+    const day = view.days[0]!;
+    expect(day.tasks.map((row) => row.item.id)).toEqual(["l1"]);
+    expect(day.events).toEqual([]);
+    expect(view.overdue).toEqual([]);
+  });
+
+  it('"nur meine" without a known identity shows nothing, never everything', () => {
+    const state = withData({
+      spaces: spaces(),
+      blocks: [block({ id: "b1", pageId: "pg1", title: "Meeting", date: "2026-08-01" })],
+      pages: [page({ id: "pg1", spaceId: "road", title: "Planung" })],
+      items: [item({ id: "l1", kind: "task", blockId: "b1", dueDate: "2026-08-12", assigneeSpaceId: "lena" })],
+    });
+
+    const unknown = selectTeamOverview(state, TODAY, "mine", null, selectSpaces(state));
+    expect(unknown.overdue).toEqual([]);
+    expect(unknown.days).toEqual([]);
+
+    const known = selectTeamOverview(state, TODAY, "mine", "lena", selectSpaces(state));
+    expect(known.days[0]!.tasks.map((row) => row.item.id)).toEqual(["l1"]);
+  });
+
+  it("open counts derive from the normalized rows, identity is not yet known", () => {
+    const state = withData({
+      spaces: spaces(),
+      blocks: [block({ id: "b1", pageId: "pg1", date: "2026-08-01" })],
+      pages: [page({ id: "pg1", spaceId: "road", title: "Planung" })],
+      items: [
+        item({ id: "l1", kind: "task", blockId: "b1", assigneeSpaceId: "lena" }),
+        item({ id: "l2", kind: "task", blockId: "b1", assigneeSpaceId: "lena" }),
+        item({ id: "ldone", kind: "task", blockId: "b1", assigneeSpaceId: "lena", done: true }),
+      ],
+    });
+
+    expect(selectPersonOpenCount(state, "lena")).toBe(2);
+    expect(selectOpenTaskCounts(state).get("lena")).toBe(2);
+    expect(selectMeSpaceId()).toBeNull();
   });
 });
 

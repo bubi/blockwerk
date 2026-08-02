@@ -5,7 +5,7 @@ import type { BlockPatch, ItemPatch, PagePatch, SpacePatch, TemplatePatch } from
 
 /**
  * The normalized application state. Every row lives exactly once in one of
- * the five maps; views (block stream, mirror, calendar) are derived by
+ * the five maps; views (block stream, task overview, calendar) are derived by
  * selectors.ts and never stored. A task appears in two views by referring to
  * the same row in `items` — never as a copy.
  */
@@ -84,13 +84,9 @@ export interface AppState {
 
   spacesView: ViewStatus;
   pageViews: Map<string, ViewStatus>;
-  mirrorViews: Map<string, ViewStatus>;
   calendarView: ViewStatus;
+  overviewView: ViewStatus;
   search: SearchView;
-
-  /** Open tasks of a person in the order the server delivered them — ids
-   * only, never copies of the rows. */
-  mirrorOrder: Map<string, string[]>;
 
   /** Optimistic writes in flight, with their rollback plans. */
   pending: Map<string, PendingOperation>;
@@ -107,10 +103,9 @@ export function initialState(): AppState {
     templates: new Map(),
     spacesView: { status: "idle" },
     pageViews: new Map(),
-    mirrorViews: new Map(),
     calendarView: { status: "idle" },
+    overviewView: { status: "idle" },
     search: { query: "", results: null, view: { status: "idle" } },
-    mirrorOrder: new Map(),
     pending: new Map(),
     notifications: [],
   };

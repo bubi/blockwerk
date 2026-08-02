@@ -8,9 +8,13 @@ import styles from "./Sidebar.module.css";
 interface SidebarProps {
   people: SpaceWithPages[];
   topics: SpaceWithPages[];
-  /** Open-task counts, only for spaces whose mirror has been loaded. */
+  /** Open-task counts, only for spaces whose tasks are loaded. */
   openCounts: ReadonlyMap<string, number>;
   selectedSpaceId: string | null;
+  /** The overdue badge of the "Heute" entry. */
+  overdueCount: number;
+  homeActive: boolean;
+  onHome: () => void;
   onSelectSpace: (spaceId: string) => void;
   onCreateSpace: (kind: SpaceRow["kind"], name: string) => void;
   onDeleteSpace: (spaceId: string) => void;
@@ -21,12 +25,25 @@ export function Sidebar({
   topics,
   openCounts,
   selectedSpaceId,
+  overdueCount,
+  homeActive,
+  onHome,
   onSelectSpace,
   onCreateSpace,
   onDeleteSpace,
 }: SidebarProps) {
   return (
     <div className={styles.rail}>
+      <button
+        type="button"
+        className={homeActive ? styles.homeOn : styles.home}
+        aria-current={homeActive ? "page" : undefined}
+        onClick={onHome}
+      >
+        <span className={styles.name}>Heute</span>
+        {overdueCount > 0 && <span className={styles.open}>{overdueCount}</span>}
+      </button>
+
       <h2 className={styles.colhead}>Bereiche</h2>
       <SpaceGroup
         kind="person"

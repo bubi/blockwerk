@@ -8,8 +8,8 @@ function makeHarness() {
   const calls = {
     getSpaces: vi.fn(),
     getPage: vi.fn(),
-    getMirror: vi.fn(),
     getCalendar: vi.fn(),
+    getOverview: vi.fn(),
     search: vi.fn(),
     put: vi.fn(),
     patch: vi.fn(),
@@ -20,8 +20,8 @@ function makeHarness() {
   const client: ApiClient = {
     getSpaces: calls.getSpaces,
     getPage: calls.getPage,
-    getMirror: calls.getMirror,
     getCalendar: calls.getCalendar,
+    getOverview: calls.getOverview,
     search: calls.search,
     put: calls.put,
     patch: calls.patch,
@@ -121,18 +121,19 @@ describe("operations — loads", () => {
     if (failed.type === "spacesLoadFailed") expect(failed.error).toEqual({ kind: "network", message: "down" });
   });
 
-  it("loads page, mirror, and calendar", async () => {
+  it("loads page, overview, and calendar", async () => {
     const { calls, actions, ops } = makeHarness();
     calls.getPage.mockResolvedValue({ page: { id: "p1", spaceId: "s1", title: "P", createdAt: 1, updatedAt: 1 }, blocks: [] });
-    calls.getMirror.mockResolvedValue([]);
+    calls.getOverview.mockResolvedValue({ tasks: [], events: [], blocks: [], pages: [] });
     calls.getCalendar.mockResolvedValue({ dueTasks: [], events: [] });
 
     await ops.loadPage("p1");
-    await ops.loadMirror("person1");
+    await ops.loadOverview("2026-08-10");
     await ops.loadCalendar("2026-08-01", "2026-08-31");
 
     const types = actions.map((action) => action.type);
-    expect(types).toEqual(["pageLoadStarted", "pageLoaded", "mirrorLoadStarted", "mirrorLoaded", "calendarLoadStarted", "calendarLoaded"]);
+    expect(types).toEqual(["pageLoadStarted", "pageLoaded", "overviewLoadStarted", "overviewLoaded", "calendarLoadStarted", "calendarLoaded"]);
+    expect(calls.getOverview).toHaveBeenCalledWith("2026-08-10");
     expect(calls.getCalendar).toHaveBeenCalledWith("2026-08-01", "2026-08-31");
   });
 });

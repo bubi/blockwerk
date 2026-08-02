@@ -1,5 +1,5 @@
 import type { BlockRow, PageRow, SpaceRow, TemplateRow } from "../shared/db.ts";
-import type { CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SearchResponse, SpacesResponse } from "../shared/api.ts";
+import type { CalendarResponse, ItemWriteResponse, OverviewResponse, PageResponse, SearchResponse, SpacesResponse } from "../shared/api.ts";
 import {
   blockPatchSchema,
   blockWriteSchema,
@@ -36,7 +36,7 @@ import {
   listSpaces,
   listTemplates,
   loadCalendarWindow,
-  loadMirror,
+  loadOverview,
   loadPageBlocks,
   loadSearch,
   updateBlock,
@@ -90,10 +90,8 @@ export async function getPageDetail(db: D1Database, id: string): Promise<PageRes
   return { page, blocks };
 }
 
-export async function getMirror(db: D1Database, spaceId: string): Promise<MirrorTask[]> {
-  const space = await getSpace(db, spaceId);
-  if (!space) throw new NotFoundError(`Space '${spaceId}' does not exist`);
-  return loadMirror(db, spaceId);
+export async function getOverview(db: D1Database, today: string): Promise<OverviewResponse> {
+  return loadOverview(db, today);
 }
 
 export async function getCalendar(db: D1Database, from: string, to: string): Promise<CalendarResponse> {

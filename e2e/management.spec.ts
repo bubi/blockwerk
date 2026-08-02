@@ -42,8 +42,11 @@ test("deleting a person space keeps foreign tasks and only drops the assignment"
   await page.getByRole("button", { name: "Anlegen", exact: true }).dispatchEvent("click");
   await expect(spaceButton(page, "Kim Lee")).toBeVisible();
 
-  // A block in the host topic, with a task assigned to Kim.
+  // A block in the host topic, with a task assigned to Kim. Wait for the page
+  // view to settle first — a late page GET could otherwise drop the block
+  // that "Block anlegen" is about to create.
   await spaceButton(page, "Host Raum").dispatchEvent("click");
+  await expect(page.getByRole("button", { name: "Block anlegen" })).toBeVisible();
   await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
   await expect(page.getByRole("menuitem", { name: /Meeting/ })).toBeVisible();
   await page.getByRole("menuitem", { name: /Meeting/ }).dispatchEvent("click");
@@ -102,6 +105,10 @@ test("pages can be created and renamed", async ({ page }) => {
 
 test("templates can be added, edited, and deleted", async ({ page }) => {
   await page.goto("/");
+  // The start view is the "Heute" overview; open a page so the block bar
+  // (and with it "Block anlegen") is rendered.
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
   await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
   await expect(page.getByRole("menuitem", { name: /Templates bearbeiten/ })).toBeVisible();
   await page.getByRole("menuitem", { name: /Templates bearbeiten/ }).dispatchEvent("click");
@@ -141,6 +148,7 @@ test("a block is created from a template with its seed lines", async ({ page }) 
   await page.getByRole("button", { name: "Anlegen", exact: true }).dispatchEvent("click");
 
   const blocksBefore = await page.locator("[data-block-id]").count();
+  await expect(page.getByRole("button", { name: "Block anlegen" })).toBeVisible();
   await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
   await expect(page.getByRole("menuitem", { name: /Meeting/ })).toBeVisible();
   await page.getByRole("menuitem", { name: /Meeting/ }).dispatchEvent("click");
@@ -167,6 +175,7 @@ test("rows and blocks can be deleted, with an in-line block confirmation", async
   await page.getByLabel("Name des Bereichs").fill("Del Test");
   await page.getByRole("button", { name: "Anlegen", exact: true }).dispatchEvent("click");
 
+  await expect(page.getByRole("button", { name: "Block anlegen" })).toBeVisible();
   await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
   await expect(page.getByRole("menuitem", { name: /Meeting/ })).toBeVisible();
   await page.getByRole("menuitem", { name: /Meeting/ }).dispatchEvent("click");
