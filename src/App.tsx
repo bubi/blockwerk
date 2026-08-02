@@ -34,6 +34,8 @@ export function App() {
   const todayDate = new Date();
   const [month, setMonth] = useState({ year: todayDate.getFullYear(), month: todayDate.getMonth() });
   const [jump, setJump] = useState<{ blockId: string; pageId: string } | null>(null);
+  const [bootRetries, setBootRetries] = useState(0);
+  const MAX_BOOT_RETRIES = 10;
 
   const spaces = selectSpaces(state);
   const templates = selectTemplates(state);
@@ -78,6 +80,46 @@ export function App() {
     void ops.loadCalendar(monthFrom, monthTo);
   }, [monthFrom, monthTo, ops]);
 
+  const spacesView = selectSpacesView(state);
+  const calendarView = selectCalendarView(state);
+
+  // Boot resilience: in dev the worker comes up a few seconds after Vite, so
+  // the first requests can be lost while it is still starting. Retry any view
+  // that is not loaded yet, a few times with a delay; the app heals itself
+  // once the API is reachable. Gives up after the cap — the manual
+  // "Erneut versuchen" buttons remain the last resort.
+  useEffect(() => {
+    if (bootRetries >= MAX_BOOT_RETRIES) return;
+    const page = activePageId !== null ? selectPageView(state, activePageId) : null;
+    const mirror = mirrorMode && activeSpaceId !== null ? selectMirrorView(state, activeSpaceId) : null;
+    const pending =
+      spacesView.status !== "loaded" ||
+      (page !== null && page.status !== "loaded") ||
+      (mirror !== null && mirror.status !== "loaded") ||
+      calendarView.status !== "loaded";
+    if (!pending) return;
+
+    const timer = window.setTimeout(() => {
+      if (spacesView.status !== "loaded") void ops.loadSpaces();
+      if (activePageId !== null && page !== null && page.status !== "loaded") void ops.loadPage(activePageId);
+      if (activeSpaceId !== null && mirror !== null && mirror.status !== "loaded") void ops.loadMirror(activeSpaceId);
+      if (calendarView.status !== "loaded") void ops.loadCalendar(monthFrom, monthTo);
+      setBootRetries((n) => n + 1);
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [
+    bootRetries,
+    spacesView,
+    calendarView,
+    activePageId,
+    activeSpaceId,
+    mirrorMode,
+    monthFrom,
+    monthTo,
+    state,
+    ops,
+  ]);
+
   // After a jump, scroll to the block once its page is loaded.
   const pageViewStatus = activePageId !== null ? selectPageView(state, activePageId).status : "idle";
   useEffect(() => {
@@ -90,8 +132,6 @@ export function App() {
     return () => window.clearTimeout(timer);
   }, [jump, resolvedPageId, pageViewStatus]);
 
-  const spacesView = selectSpacesView(state);
-  const calendarView = selectCalendarView(state);
   const pageBlocks = activePageId !== null ? selectPageBlocks(state, activePageId) : [];
   const mirrorGroups = isPerson && activeSpaceId !== null ? selectMirrorGroups(state, activeSpaceId) : [];
   const mirrorView = isPerson && activeSpaceId !== null ? selectMirrorView(state, activeSpaceId) : null;
