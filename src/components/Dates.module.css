@@ -160,20 +160,31 @@
   width: 18px;
   height: 18px;
   margin-top: 1px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
+  border-radius: 3px;
+  border: 1.5px solid #b6bcc3;
   background: var(--white);
   display: grid;
   place-items: center;
   cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
 }
 
 .cardcheck:hover {
   border-color: var(--green);
+  background: var(--green-soft);
 }
 
 .cardcheck span {
-  display: none;
+  width: 5px;
+  height: 9px;
+  border: 2px solid transparent;
+  border-top: 0;
+  border-left: 0;
+  transform: rotate(42deg) translateY(-1px);
+}
+
+.cardcheck:hover span {
+  border-color: var(--green);
 }
 
 .cardcheckDone {
@@ -182,12 +193,7 @@
 }
 
 .cardcheckDone span {
-  display: block;
-  width: 8px;
-  height: 4px;
-  border-left: 2px solid #fff;
-  border-bottom: 2px solid #fff;
-  transform: rotate(-45deg) translate(1px, -1px);
+  border-color: #fff;
 }
 
 .cardtitle {

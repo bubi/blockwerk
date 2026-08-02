@@ -114,21 +114,32 @@
 .check,
 .checkDone {
   flex: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1.5px solid #b6bcc3;
   background: var(--white);
   display: grid;
   place-items: center;
+  transition: border-color 0.12s, background 0.12s;
 }
 
 .check:hover {
   border-color: var(--green);
+  background: var(--green-soft);
 }
 
 .check span {
-  display: none;
+  width: 5px;
+  height: 9px;
+  border: 2px solid transparent;
+  border-top: 0;
+  border-left: 0;
+  transform: rotate(42deg) translateY(-1px);
+}
+
+.check:hover span {
+  border-color: var(--green);
 }
 
 .checkDone {
@@ -137,12 +148,7 @@
 }
 
 .checkDone span {
-  display: block;
-  width: 9px;
-  height: 5px;
-  border-left: 2px solid #fff;
-  border-bottom: 2px solid #fff;
-  transform: rotate(-45deg) translate(1px, -1px);
+  border-color: #fff;
 }
 
 .rowMine {
