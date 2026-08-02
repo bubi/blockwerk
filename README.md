@@ -1,7 +1,7 @@
 # Blockwerk
 
 Interne Team-Software, die Notizen, Aufgaben und Termine auf ein Objektmodell legt.
-Details zum Domänenmodell und den Randbedingungen stehen in [`CLAUDE.md`](./CLAUDE.md).
+Details zum Domänenmodell und den Randbedingungen stehen in [`PROJECT.md`](./PROJECT.md).
 
 ## Setup
 

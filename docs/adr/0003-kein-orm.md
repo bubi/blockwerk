@@ -5,7 +5,7 @@
 `worker/db` braucht eine Zugriffsschicht auf D1: eine Seite laden, den Task-Spiegel einer
 Person laden, die Kalenderprojektion für ein Datumsfenster laden, sowie Anlegen/Ändern/
 Löschen für die fünf Entitäten. Der Free-Plan erlaubt maximal 50 D1-Abfragen pro
-Worker-Aufruf (siehe CLAUDE.md) — eine harte Grenze, kein Performance-Ziel.
+Worker-Aufruf (siehe PROJECT.md) — eine harte Grenze, kein Performance-Ziel.
 
 ## Entscheidung
 
