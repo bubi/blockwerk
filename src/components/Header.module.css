@@ -45,6 +45,34 @@
   color: var(--text3);
 }
 
+.searchwrap {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 240px;
+  max-width: 460px;
+}
+
+.search {
+  width: 100%;
+  padding: 7px 13px;
+  background: var(--side);
+  border: 1px solid transparent;
+  border-radius: 18px;
+}
+
+.search:focus {
+  background: var(--white);
+  border-color: var(--line);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+
+.search::placeholder {
+  color: var(--text3);
+}
+
 @media (max-width: 640px) {
   .top {
     gap: 10px;

@@ -1,4 +1,4 @@
-import type { ApiBlock, MirrorTask } from "../../shared/api.ts";
+import type { ApiBlock, MirrorTask, SearchResponse } from "../../shared/api.ts";
 import type { BlockRow, ItemRow, PageRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
 import type { AppState, ClientError, DeleteWrite, EntityName, EntityRow, OptimisticWrite, PendingOperation, UndoPlan, ViewStatus } from "./state.ts";
 
@@ -18,6 +18,10 @@ export type Action =
   | { type: "calendarLoadStarted" }
   | { type: "calendarLoaded"; dueTasks: ItemRow[]; events: ItemRow[] }
   | { type: "calendarLoadFailed"; error: ClientError }
+  | { type: "searchLoadStarted"; query: string }
+  | { type: "searchLoaded"; response: SearchResponse }
+  | { type: "searchLoadFailed"; query: string; error: ClientError }
+  | { type: "searchCleared" }
   // ---- optimistic writes ----
   | { type: "writeOptimistic"; op: OptimisticWrite; now: number }
   | { type: "writeConfirmed"; opKey: string; respaced?: Record<string, number> }
@@ -60,6 +64,19 @@ export function reduce(state: AppState, action: Action): AppState {
       };
     case "calendarLoadFailed":
       return { ...state, calendarView: { status: "failed", error: action.error } };
+    case "searchLoadStarted":
+      return {
+        ...state,
+        // Keep the previous results while the new query loads, so live
+        // search does not flicker on every keystroke.
+        search: { query: action.query, results: state.search.results, view: { status: "loading" } },
+      };
+    case "searchLoaded":
+      return { ...state, search: { query: action.response.query, results: action.response, view: { status: "loaded" } } };
+    case "searchLoadFailed":
+      return { ...state, search: { query: action.query, results: null, view: { status: "failed", error: action.error } } };
+    case "searchCleared":
+      return { ...state, search: { query: "", results: null, view: { status: "idle" } } };
     case "writeOptimistic":
       return applyWrite(state, action.op, action.now);
     case "writeConfirmed":

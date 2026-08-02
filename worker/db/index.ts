@@ -6,3 +6,4 @@ export * from "./items.ts";
 export * from "./page.ts";
 export * from "./mirror.ts";
 export * from "./calendar.ts";
+export * from "./search.ts";

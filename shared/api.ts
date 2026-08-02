@@ -54,6 +54,33 @@ export interface MirrorTask {
   block: Pick<BlockRow, "id" | "pageId" | "title" | "date">;
 }
 
+/** A block hit in the search response, with the context a result row shows. */
+export interface SearchBlockHit {
+  block: Pick<BlockRow, "id" | "title" | "date">;
+  templateLabel: string | null;
+  page: Pick<PageRow, "id" | "title">;
+  space: Pick<SpaceRow, "id" | "name">;
+}
+
+/** An item hit in the search response, with the context a result row shows. */
+export interface SearchItemHit {
+  item: Pick<ItemRow, "id" | "kind" | "text">;
+  block: Pick<BlockRow, "id" | "title">;
+  page: Pick<PageRow, "id" | "title">;
+  space: Pick<SpaceRow, "id" | "name">;
+}
+
+/**
+ * The response of the search route. The client renders it as-is; the hits
+ * carry only the fields a result row shows and are never merged into the
+ * normalized state (a search is a transient view, not a data load).
+ */
+export interface SearchResponse {
+  query: string;
+  blocks: SearchBlockHit[];
+  items: SearchItemHit[];
+}
+
 /**
  * The response of an item write (PUT/PATCH). `row` is the stored item;
  * `respaced` carries every item's position in the block when the server had

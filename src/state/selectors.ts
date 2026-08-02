@@ -4,7 +4,7 @@ import { buildBlockView, type BlockSection } from "../domain/blockView.ts";
 import { projectCalendar } from "../domain/calendar.ts";
 import { groupMirrorTasks, type MirrorGroup } from "../domain/mirror.ts";
 import { orderBlockItems, orderPageBlocks } from "../domain/order.ts";
-import type { AppState, ViewStatus } from "./state.ts";
+import type { AppState, SearchView, ViewStatus } from "./state.ts";
 
 /**
  * Derived views over the normalized state. Views are assembled here at read
@@ -76,6 +76,10 @@ export function selectMirrorView(state: AppState, spaceId: string): ViewStatus {
 
 export function selectCalendarView(state: AppState): ViewStatus {
   return state.calendarView;
+}
+
+export function selectSearch(state: AppState): SearchView {
+  return state.search;
 }
 
 function blockContext(state: AppState, item: ItemRow): Pick<BlockRow, "id" | "pageId" | "title" | "date"> {

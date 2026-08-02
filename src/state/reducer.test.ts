@@ -250,6 +250,43 @@ describe("load states", () => {
   });
 });
 
+describe("search view", () => {
+  const response = { query: "plan", blocks: [], items: [] };
+
+  it("keeps previous results while a new query loads", () => {
+    const base = reduce(initialState(), { type: "searchLoaded", response });
+    const started = reduce(base, { type: "searchLoadStarted", query: "plane" });
+
+    expect(started.search.view).toEqual({ status: "loading" });
+    expect(started.search.query).toBe("plane");
+    expect(started.search.results).toEqual(response);
+  });
+
+  it("replaces the results once the response arrives", () => {
+    const next = { query: "plane", blocks: [], items: [] };
+    const state = reduce(initialState(), { type: "searchLoaded", response: next });
+
+    expect(state.search).toEqual({ query: "plane", results: next, view: { status: "loaded" } });
+  });
+
+  it("clears the results on failure and remembers the failed query", () => {
+    const error: ClientError = { kind: "network", message: "down" };
+    const base = reduce(initialState(), { type: "searchLoaded", response });
+    const state = reduce(base, { type: "searchLoadFailed", query: "plane", error });
+
+    expect(state.search.results).toBeNull();
+    expect(state.search.query).toBe("plane");
+    expect(state.search.view).toEqual({ status: "failed", error });
+  });
+
+  it("searchCleared resets to the idle view", () => {
+    const base = reduce(initialState(), { type: "searchLoaded", response });
+    const state = reduce(base, { type: "searchCleared" });
+
+    expect(state.search).toEqual({ query: "", results: null, view: { status: "idle" } });
+  });
+});
+
 // ============================================================
 // Test helpers
 // ============================================================

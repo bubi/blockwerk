@@ -229,7 +229,7 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 2a | D1-Schema | erledigt |
 | 2b | API, Prototyp-Logik, State/Client, Oberfläche | erledigt |
 | 3 | Rest von 2b (Verwaltung), Tests, ADRs, Aufräumen | in Arbeit |
-| 4 | Features: Volltextsuche, Rückverweise, Terminserien | offen |
+| 4 | Features: Volltextsuche (erledigt), Rückverweise, Terminserien | in Arbeit |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
 Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.
@@ -243,9 +243,9 @@ Interaktionsmodell: Slash-Befehle, `#`-Überschriften mit Einrückung, Tastaturb
 (Pfeiltasten wählen Zeilen, Leertaste hakt ab), Task-Spiegel, Datumsleiste,
 Bereichs- und Template-Verwaltung. In der echten Anwendung ist davon alles umgesetzt:
 Composer mit Slash-Menü, `#`-Umwandlung, Zeilen einfügen/löschen, zwei Tastaturmodi
-über den DOM-Fokus (ADR 0008), Position-Respace (ADR 0009), sowie die Verwaltung
-(Bereiche anlegen/löschen mit Rückfrage, Seiten anlegen/umbenennen, Block anlegen,
-Templates bearbeiten).
+über den DOM-Fokus (ADR 0008), Position-Respace (ADR 0009), die Volltextsuche
+im Kopf (ADR 0010) sowie die Verwaltung (Bereiche anlegen/löschen mit Rückfrage,
+Seiten anlegen/umbenennen, Block anlegen, Templates bearbeiten).
 
 Er ist **Referenz für das Verhalten, nicht für die Struktur.** Eine bewusste Abweichung:
 In der Datumsleiste des Prototyps stehen noch Block-Karten; die echte Anwendung zeigt dort

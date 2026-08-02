@@ -1,5 +1,5 @@
 import type { BlockRow, PageRow, SpaceRow, TemplateRow } from "../shared/db.ts";
-import type { CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SpacesResponse } from "../shared/api.ts";
+import type { CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SearchResponse, SpacesResponse } from "../shared/api.ts";
 import {
   blockPatchSchema,
   blockWriteSchema,
@@ -38,6 +38,7 @@ import {
   loadCalendarWindow,
   loadMirror,
   loadPageBlocks,
+  loadSearch,
   updateBlock,
   updateItem,
   updatePage,
@@ -97,6 +98,10 @@ export async function getMirror(db: D1Database, spaceId: string): Promise<Mirror
 
 export async function getCalendar(db: D1Database, from: string, to: string): Promise<CalendarResponse> {
   return loadCalendarWindow(db, from, to);
+}
+
+export async function getSearch(db: D1Database, query: string): Promise<SearchResponse> {
+  return loadSearch(db, query);
 }
 
 // ============================================================

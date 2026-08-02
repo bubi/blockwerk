@@ -1,4 +1,5 @@
 import type { ApiErrorBody } from "../../shared/api.ts";
+import type { SearchResponse } from "../../shared/api.ts";
 import type { BlockRow, ItemRow, PageRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch, PagePatch, SpacePatch, TemplatePatch } from "../../shared/schemas.ts";
 
@@ -62,6 +63,18 @@ export interface UiNotification {
   createdAt: number;
 }
 
+/**
+ * The search view for one query. Self-contained: the hits carry only the
+ * fields a result row shows and are never merged into the normalized maps —
+ * a search is a transient navigation aid, not a data load.
+ */
+export interface SearchView {
+  /** The trimmed query the current results (or error) belong to. */
+  query: string;
+  results: SearchResponse | null;
+  view: ViewStatus;
+}
+
 export interface AppState {
   spaces: Map<string, SpaceRow>;
   pages: Map<string, PageRow>;
@@ -73,6 +86,7 @@ export interface AppState {
   pageViews: Map<string, ViewStatus>;
   mirrorViews: Map<string, ViewStatus>;
   calendarView: ViewStatus;
+  search: SearchView;
 
   /** Open tasks of a person in the order the server delivered them — ids
    * only, never copies of the rows. */
@@ -95,6 +109,7 @@ export function initialState(): AppState {
     pageViews: new Map(),
     mirrorViews: new Map(),
     calendarView: { status: "idle" },
+    search: { query: "", results: null, view: { status: "idle" } },
     mirrorOrder: new Map(),
     pending: new Map(),
     notifications: [],

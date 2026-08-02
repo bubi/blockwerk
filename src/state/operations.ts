@@ -15,6 +15,10 @@ export interface Operations {
   loadPage(pageId: string): Promise<void>;
   loadMirror(spaceId: string): Promise<void>;
   loadCalendar(from: string, to: string): Promise<void>;
+  /** Searches across all blocks and items; a blank query resets the view. */
+  search(query: string): Promise<void>;
+  /** Resets the search view and discards any in-flight request. */
+  clearSearch(): void;
 
   createSpace(input: SpaceCreateInput): Promise<void>;
   updateSpace(id: string, patch: SpacePatch): Promise<void>;
@@ -132,6 +136,34 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
   let opSeq = 0;
   const opKey = (entity: string, id: string, change: string) => `${entity}:${id}:${change}:${++opSeq}`;
 
+  // Search is a live view: each keystroke may fire a request, and responses
+  // can arrive out of order. Only the request for the newest query may touch
+  // the state — older responses are dropped by the sequence guard below.
+  let searchSeq = 0;
+  const search = async (rawQuery: string) => {
+    const query = rawQuery.trim();
+    if (query === "") {
+      searchSeq++;
+      dispatch({ type: "searchCleared" });
+      return;
+    }
+    const seq = ++searchSeq;
+    dispatch({ type: "searchLoadStarted", query });
+    try {
+      const response = await client.search(query);
+      if (seq !== searchSeq) return;
+      dispatch({ type: "searchLoaded", response });
+    } catch (err) {
+      if (seq !== searchSeq) return;
+      dispatch({ type: "searchLoadFailed", query, error: asClientError(err) });
+    }
+  };
+
+  const clearSearch = () => {
+    searchSeq++;
+    dispatch({ type: "searchCleared" });
+  };
+
   const runWrite = async (op: OptimisticWrite, send: () => Promise<unknown>) => {
     dispatch({ type: "writeOptimistic", op, now: Date.now() });
     try {
@@ -147,6 +179,8 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
     loadPage,
     loadMirror,
     loadCalendar,
+    search,
+    clearSearch,
 
     createSpace: (input) =>
       runWrite({ opKey: opKey("space", input.id, "put"), entity: "space", id: input.id, change: "put", row: toSpaceRow(input) }, () =>

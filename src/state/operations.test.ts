@@ -10,6 +10,7 @@ function makeHarness() {
     getPage: vi.fn(),
     getMirror: vi.fn(),
     getCalendar: vi.fn(),
+    search: vi.fn(),
     put: vi.fn(),
     patch: vi.fn(),
     putItem: vi.fn(),
@@ -21,6 +22,7 @@ function makeHarness() {
     getPage: calls.getPage,
     getMirror: calls.getMirror,
     getCalendar: calls.getCalendar,
+    search: calls.search,
     put: calls.put,
     patch: calls.patch,
     putItem: calls.putItem,
@@ -132,5 +134,71 @@ describe("operations — loads", () => {
     const types = actions.map((action) => action.type);
     expect(types).toEqual(["pageLoadStarted", "pageLoaded", "mirrorLoadStarted", "mirrorLoaded", "calendarLoadStarted", "calendarLoaded"]);
     expect(calls.getCalendar).toHaveBeenCalledWith("2026-08-01", "2026-08-31");
+  });
+});
+
+describe("operations — search", () => {
+  it("searches with the trimmed query and reports the response", async () => {
+    const { calls, actions, ops } = makeHarness();
+    const payload = { query: "plan", blocks: [], items: [] };
+    calls.search.mockResolvedValue(payload);
+
+    await ops.search("  plan  ");
+
+    expect(calls.search).toHaveBeenCalledWith("plan");
+    expect(actions.map((action) => action.type)).toEqual(["searchLoadStarted", "searchLoaded"]);
+    const loaded = actions[1]!;
+    if (loaded.type === "searchLoaded") expect(loaded.response).toEqual(payload);
+  });
+
+  it("resets the view for a blank query without a request", async () => {
+    const { calls, actions, ops } = makeHarness();
+
+    await ops.search("   ");
+
+    expect(calls.search).not.toHaveBeenCalled();
+    expect(actions.map((action) => action.type)).toEqual(["searchCleared"]);
+  });
+
+  it("classifies a failed search as a load failure", async () => {
+    const { calls, actions, ops } = makeHarness();
+    calls.search.mockRejectedValue({ kind: "http", status: 500, body: null });
+
+    await ops.search("plan");
+
+    expect(actions.map((action) => action.type)).toEqual(["searchLoadStarted", "searchLoadFailed"]);
+    const failed = actions[1]!;
+    if (failed.type === "searchLoadFailed") expect(failed.error).toEqual({ kind: "http", status: 500, body: null });
+  });
+
+  it("drops a stale response when a newer query is in flight", async () => {
+    const { calls, actions, ops } = makeHarness();
+    let resolveOld: (value: never) => void = () => {};
+    calls.search.mockReturnValueOnce(new Promise((resolve) => (resolveOld = resolve)));
+    calls.search.mockResolvedValue({ query: "neuer", blocks: [], items: [] });
+
+    const old = ops.search("alter");
+    const next = ops.search("neuer");
+    await next;
+    resolveOld({ query: "alter", blocks: [], items: [] } as never);
+    await old;
+
+    expect(calls.search).toHaveBeenNthCalledWith(1, "alter");
+    expect(calls.search).toHaveBeenNthCalledWith(2, "neuer");
+    // The old response must not overwrite the view — only one searchLoaded.
+    expect(actions.filter((action) => action.type === "searchLoaded")).toHaveLength(1);
+  });
+
+  it("clearSearch discards an in-flight response", async () => {
+    const { calls, actions, ops } = makeHarness();
+    let resolveOld: (value: never) => void = () => {};
+    calls.search.mockReturnValueOnce(new Promise((resolve) => (resolveOld = resolve)));
+
+    const pending = ops.search("alter");
+    ops.clearSearch();
+    resolveOld({ query: "alter", blocks: [], items: [] } as never);
+    await pending;
+
+    expect(actions.map((action) => action.type)).toEqual(["searchLoadStarted", "searchCleared"]);
   });
 });

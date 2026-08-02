@@ -5,6 +5,7 @@ import type { BlockPatch, ItemPatch, TemplatePatch } from "../shared/schemas.ts"
 import { Dates } from "./components/Dates.tsx";
 import { Header } from "./components/Header.tsx";
 import { Notifications } from "./components/Notifications.tsx";
+import { SearchResults } from "./components/SearchResults.tsx";
 import { Sidebar } from "./components/Sidebar.tsx";
 import { Stream } from "./components/Stream.tsx";
 import { formatError } from "./components/errorText.ts";
@@ -23,6 +24,7 @@ import {
   selectMirrorView,
   selectPageBlocks,
   selectPageView,
+  selectSearch,
   selectSpaces,
   selectSpacesView,
   selectTemplates,
@@ -40,6 +42,7 @@ export function App() {
   const [month, setMonth] = useState({ year: todayDate.getFullYear(), month: todayDate.getMonth() });
   const [jump, setJump] = useState<{ blockId: string; pageId: string; focusComposer?: boolean } | null>(null);
   const [bootRetries, setBootRetries] = useState(0);
+  const [query, setQuery] = useState("");
   const MAX_BOOT_RETRIES = 10;
 
   const spaces = selectSpaces(state);
@@ -84,6 +87,19 @@ export function App() {
   useEffect(() => {
     void ops.loadCalendar(monthFrom, monthTo);
   }, [monthFrom, monthTo, ops]);
+
+  // Debounced live search: fire a request once the input has settled, and a
+  // blank input resets the view immediately. Out-of-order responses are
+  // dropped inside ops.search, so rapid typing cannot show stale results.
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed === "") {
+      ops.clearSearch();
+      return;
+    }
+    const timer = window.setTimeout(() => void ops.search(trimmed), 200);
+    return () => window.clearTimeout(timer);
+  }, [query, ops]);
 
   const spacesView = selectSpacesView(state);
   const calendarView = selectCalendarView(state);
@@ -162,6 +178,11 @@ export function App() {
   const calendar = selectCalendar(state, monthFrom, monthTo);
   const ledger = monthLedger(calendar, monthFrom, monthTo);
   const today = toISODate(new Date());
+
+  // A non-blank search query replaces the stream column with its results
+  // (prototype behavior); clearing it hands the column back to the page.
+  const searchActive = query.trim() !== "";
+  const searchView = selectSearch(state);
 
   const people = spaces.filter((entry) => entry.kind === "person");
   const topics = spaces.filter((entry) => entry.kind === "topic");
@@ -286,6 +307,23 @@ export function App() {
     }
     setPane("stream");
     setJump({ blockId, pageId: block.pageId });
+    setQuery("");
+  };
+
+  // A search hit points into pages that are usually not loaded yet, so the
+  // jump navigates by the hit's own ids instead of resolving through state.
+  const jumpToSearchHit = (blockId: string, pageId: string, spaceId: string) => {
+    setSpaceId(spaceId);
+    setPageId(pageId);
+    setPane("stream");
+    setJump({ blockId, pageId });
+    setQuery("");
+  };
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    // On narrow screens the panes are mutually exclusive; show the results.
+    if (value.trim() !== "") setPane("stream");
   };
 
   const shiftMonth = (delta: number) =>
@@ -296,7 +334,7 @@ export function App() {
 
   return (
     <div className={styles.app}>
-      <Header />
+      <Header query={query} onQueryChange={handleQueryChange} />
 
       <div className={styles.grid}>
         <aside className={`${styles.col} ${pane === "spaces" ? styles.open : ""}`}>
@@ -318,7 +356,15 @@ export function App() {
         </aside>
 
         <main className={`${styles.col} ${styles.stream} ${pane === "stream" ? styles.open : ""}`}>
-          {spacesView.status === "failed" ? (
+          {searchActive ? (
+            searchView.view.status === "failed" ? (
+              <LoadError message={formatError(searchView.view.error)} onRetry={() => void ops.search(searchView.query)} />
+            ) : searchView.results ? (
+              <SearchResults response={searchView.results} onJumpToBlock={jumpToSearchHit} onClear={() => setQuery("")} />
+            ) : (
+              <Loading label="Suche läuft…" />
+            )
+          ) : spacesView.status === "failed" ? (
             <LoadError message={formatError(spacesView.error)} onRetry={() => void ops.loadSpaces()} />
           ) : spacesView.status === "idle" || spacesView.status === "loading" ? (
             <Loading />

@@ -5,7 +5,7 @@ import type { Env } from "../env.ts";
 import { countingD1 } from "./testing/counting-d1.ts";
 import { getTestDb } from "./testing/get-test-db.ts";
 import { createBlock, createItem, createPage, createSpace, createTemplate, loadPageBlocks } from "./index.ts";
-import type { CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SpacesResponse } from "../../shared/api.ts";
+import type { CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SearchResponse, SpacesResponse } from "../../shared/api.ts";
 import { insertPositionBetween } from "../../src/domain/position.ts";
 
 const NOW = 1_700_000_000_000;
@@ -172,6 +172,72 @@ describe("GET /api/calendar", () => {
     const reversed = await json<ErrorBody>("GET", "/api/calendar?from=2026-08-11&to=2026-08-10");
     expect(reversed.status).toBe(400);
     expect(reversed.body.error.issues).toEqual([{ path: "from", code: "from_after_to" }]);
+  });
+});
+
+describe("GET /api/search", () => {
+  it("finds block titles and item text with context for a result row", async () => {
+    const db = await getTestDb();
+    await createTemplate(db, { id: "s-meeting", label: "Meeting", hue: "steel", seed: [] }, NOW);
+    await seedSpace(db, "s-road", "topic");
+    await seedPage(db, "s-plan", "s-road");
+    await createBlock(db, { id: "s-b1", pageId: "s-plan", templateId: "s-meeting", title: "Quartalsplanung Q3", date: "2026-07-31" }, NOW);
+    await createItem(db, { id: "s-task", blockId: "s-b1", position: 1000, kind: "task", text: "Kapazitätsplan für Q3 aufstellen", dueDate: null, assigneeSpaceId: null }, NOW);
+
+    const { status, body } = await json<SearchResponse>("GET", "/api/search?q=Q3");
+
+    expect(status).toBe(200);
+    expect(body.query).toBe("Q3");
+    expect(body.blocks).toEqual([
+      {
+        block: { id: "s-b1", title: "Quartalsplanung Q3", date: "2026-07-31" },
+        templateLabel: "Meeting",
+        page: { id: "s-plan", title: "s-plan" },
+        space: { id: "s-road", name: "s-road" },
+      },
+    ]);
+    expect(body.items).toEqual([
+      {
+        item: { id: "s-task", kind: "task", text: "Kapazitätsplan für Q3 aufstellen" },
+        block: { id: "s-b1", title: "Quartalsplanung Q3" },
+        page: { id: "s-plan", title: "s-plan" },
+        space: { id: "s-road", name: "s-road" },
+      },
+    ]);
+  });
+
+  it("matches case-insensitively and reports no template as null", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "s-case-space");
+    await seedPage(db, "s-case-page", "s-case-space");
+    await createBlock(db, { id: "s-case-b1", pageId: "s-case-page", templateId: null, title: "Interview Nordbau GmbH", date: "2026-08-03" }, NOW);
+
+    const { status, body } = await json<SearchResponse>("GET", "/api/search?q=nordbau");
+    expect(status).toBe(200);
+    expect(body.blocks[0]).toMatchObject({ block: { id: "s-case-b1" }, templateLabel: null });
+  });
+
+  it("returns an empty result for a query without hits", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "s-empty-space");
+    await seedPage(db, "s-empty-page", "s-empty-space");
+    await createBlock(db, { id: "s-empty-b1", pageId: "s-empty-page", templateId: null, title: "X", date: "2026-08-03" }, NOW);
+
+    const { status, body } = await json<SearchResponse>("GET", "/api/search?q=nirgendwo");
+    expect(status).toBe(200);
+    expect(body.blocks).toEqual([]);
+    expect(body.items).toEqual([]);
+  });
+
+  it("rejects a missing or blank query", async () => {
+    const missing = await json<ErrorBody>("GET", "/api/search");
+    expect(missing.status).toBe(400);
+    expect(missing.body.error.code).toBe("validation");
+    expect(missing.body.error.issues).toEqual([{ path: "q", code: "invalid_type" }]);
+
+    const blank = await json<ErrorBody>("GET", "/api/search?q=%20%20");
+    expect(blank.status).toBe(400);
+    expect(blank.body.error.issues).toEqual(expect.arrayContaining([{ path: "q", code: "too_small" }]));
   });
 });
 
@@ -392,7 +458,7 @@ describe("routing and methods", () => {
 });
 
 describe("query budget per read route", () => {
-  it("stays fixed for /api/spaces, /api/pages/:id, /api/spaces/:id/mirror, and /api/calendar", async () => {
+  it("stays fixed for /api/spaces, /api/pages/:id, /api/spaces/:id/mirror, /api/calendar, and /api/search", async () => {
     const raw = await getTestDb();
 
     await seedSpace(raw, "budget-space-a");
@@ -432,6 +498,11 @@ describe("query budget per read route", () => {
     const calendar = await json<CalendarResponse>("GET", "/api/calendar?from=2026-08-01&to=2026-08-31", undefined, db);
     expect(calendar.status).toBe(200);
     expect(count() - beforeCalendar).toBe(1);
+
+    const beforeSearch = count();
+    const search = await json<SearchResponse>("GET", "/api/search?q=t", undefined, db);
+    expect(search.status).toBe(200);
+    expect(count() - beforeSearch).toBe(5);
   });
 
   it("stays fixed for a respace-triggering item write, regardless of block size", async () => {

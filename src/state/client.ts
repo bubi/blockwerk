@@ -1,4 +1,4 @@
-import type { ApiErrorBody, CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SpacesResponse } from "../../shared/api.ts";
+import type { ApiErrorBody, CalendarResponse, ItemWriteResponse, MirrorTask, PageResponse, SearchResponse, SpacesResponse } from "../../shared/api.ts";
 import type { ClientError, EntityName, EntityRow } from "./state.ts";
 
 /** The typed surface of the phase-2b API. The only part of the frontend that
@@ -8,6 +8,7 @@ export interface ApiClient {
   getPage(id: string): Promise<PageResponse>;
   getMirror(spaceId: string): Promise<MirrorTask[]>;
   getCalendar(from: string, to: string): Promise<CalendarResponse>;
+  search(query: string): Promise<SearchResponse>;
   put(entity: EntityName, id: string, body: unknown): Promise<EntityRow>;
   patch(entity: EntityName, id: string, body: unknown): Promise<EntityRow>;
   /** Item writes return the stored row plus a block re-space map, if any. */
@@ -66,6 +67,10 @@ export class FetchApiClient implements ApiClient {
 
   getCalendar(from: string, to: string): Promise<CalendarResponse> {
     return this.read(`/api/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+  }
+
+  search(query: string): Promise<SearchResponse> {
+    return this.read(`/api/search?q=${encodeURIComponent(query)}`);
   }
 
   put(entity: EntityName, id: string, body: unknown): Promise<EntityRow> {

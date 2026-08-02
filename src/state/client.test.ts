@@ -53,6 +53,14 @@ describe("FetchApiClient reads", () => {
     await expect(client.getSpaces()).rejects.toEqual({ kind: "network", message: "Failed to fetch" });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
+
+  it("searches with the query encoded into the URL", async () => {
+    const fetchImpl = vi.fn().mockResolvedValue(jsonResponse({ query: "a & b", blocks: [], items: [] }));
+    const client = makeClient(fetchImpl as unknown as typeof fetch);
+
+    await expect(client.search("a & b")).resolves.toEqual({ query: "a & b", blocks: [], items: [] });
+    expect(fetchImpl).toHaveBeenCalledWith(expect.stringContaining("/api/search?q=a%20%26%20b"), expect.objectContaining({ method: "GET" }));
+  });
 });
 
 describe("FetchApiClient writes", () => {
