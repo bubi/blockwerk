@@ -372,6 +372,7 @@ export function App() {
             onPrevMonth={() => shiftMonth(-1)}
             onNextMonth={() => shiftMonth(1)}
             onJumpToBlock={jumpToBlock}
+            onReschedule={(id, patch) => patchItem(id, patch)}
             onRetry={() => void ops.loadCalendar(monthFrom, monthTo)}
           />
         </aside>
