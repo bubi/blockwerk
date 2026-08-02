@@ -13,8 +13,10 @@ export interface PageBlock extends BlockRow {
  * query-budget test in worker/db/page.test.ts.
  *
  * Item order is decided here, not by the client (see docs/adr/0005):
- * notes (position, id) → tasks (position, id) → events (chronological
- * by event_date/event_time, then position, id) → refs (position, id).
+ * notes and refs (position, id) → tasks (position, id) → events
+ * (chronological by event_date/event_time, then position, id). Refs are
+ * stream lines like notes — the prototype renders them among the note rows,
+ * indented under headings — so they order by position with the notes.
  */
 export async function loadPageBlocks(db: D1Like, pageId: string): Promise<PageBlock[]> {
   const { results: blockRows } = await db
@@ -30,7 +32,7 @@ export async function loadPageBlocks(db: D1Like, pageId: string): Promise<PageBl
       `SELECT * FROM items WHERE block_id IN (${placeholders})
        ORDER BY
          block_id ASC,
-         CASE kind WHEN 'note' THEN 0 WHEN 'task' THEN 1 WHEN 'event' THEN 2 ELSE 3 END ASC,
+         CASE WHEN kind IN ('note', 'ref') THEN 0 WHEN kind = 'task' THEN 1 ELSE 2 END ASC,
          CASE WHEN kind = 'event' THEN event_date ELSE '' END ASC,
          CASE WHEN kind = 'event' THEN event_time ELSE '' END ASC,
          position ASC,

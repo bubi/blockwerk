@@ -76,7 +76,7 @@ describe("GET /api/spaces", () => {
 });
 
 describe("GET /api/pages/:id", () => {
-  it("returns the page with blocks, items grouped notes → tasks → events (chronological) → refs", async () => {
+  it("returns the page with blocks, items grouped notes+refs → tasks → events (chronological)", async () => {
     const db = await getTestDb();
     await seedSpace(db, "order-space");
     await seedPage(db, "order-page", "order-space");
@@ -95,13 +95,13 @@ describe("GET /api/pages/:id", () => {
     expect(status).toBe(200);
     expect(body.page.id).toBe("order-page");
     expect(body.blocks[0]?.items.map((item) => item.id)).toEqual([
+      "o-ref",
       "o-note-a",
       "o-note-b",
       "o-task-a",
       "o-task-z",
       "o-event-early",
       "o-event-late",
-      "o-ref",
     ]);
   });
 

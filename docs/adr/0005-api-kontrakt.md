@@ -41,8 +41,10 @@ Feldpfad (`{ path: "spaceId", code: "not_found" }`) statt roher FK-Fehler.
 500 `internal` (Details nur ins Log).
 
 **Ordering entscheidet der Server.** `loadPageBlocks` sortiert in der
-Abfrage: Notizen (position, id) → Tasks (position, id) → Termine
-(event_date, event_time, position, id) → Refs (position, id). Blöcke einer
+Abfrage: Notizen und Refs (position, id) → Tasks (position, id) → Termine
+(event_date, event_time, position, id). Refs sind Stream-Zeilen wie Notizen —
+der Prototyp rendert sie zwischen den Notizzeilen und rückt sie unter
+Überschriften ein (PROJECT.md kennt drei Gruppen, keine vierte). Blöcke einer
 Seite: date DESC, id. Spiegel: Fälligkeit, `null` zuletzt.
 
 **Zod an der Systemgrenze, Schemata in `/shared`** (direct dependency
