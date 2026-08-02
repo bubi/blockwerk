@@ -24,6 +24,12 @@ export interface OverviewRow {
     title: string;
     date: string;
   };
+  /**
+   * The task's own notes (docs/adr/0014), position-sorted — the reason the
+   * overview shows them without a jump into the block. Empty for events and
+   * for tasks without notes.
+   */
+  notes: ItemRow[];
 }
 
 export interface OverviewDay {

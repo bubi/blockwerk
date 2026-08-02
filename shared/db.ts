@@ -61,6 +61,12 @@ export interface ItemRow {
   eventTime: string | null;
   /** Set only when kind is "ref". */
   refBlockId: string | null;
+  /**
+   * The task this note belongs to (docs/adr/0014). Set only when kind is
+   * "note"; the parent must be a task, and a child note is never itself a
+   * parent. One level only — no task-under-task tree.
+   */
+  parentItemId: string | null;
   createdAt: number;
   updatedAt: number;
 }

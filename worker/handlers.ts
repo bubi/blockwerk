@@ -136,6 +136,33 @@ async function checkItemRefs(db: D1Database, input: { assigneeSpaceId: string | 
   }
 }
 
+/**
+ * The task-note rules SQLite cannot express (docs/adr/0014): the parent
+ * must be a task, and a task note is the only nesting level there is. Both
+ * need the parent row, so they are checked here — like the reference
+ * checks above — never in the per-row schema.
+ */
+async function checkParentItem(db: D1Database, parentItemId: string | null) {
+  if (parentItemId === null) return;
+  const parent = await getItem(db, parentItemId);
+  if (!parent) {
+    throw new ValidationError([{ path: "parentItemId", code: "not_found" }], `Item '${parentItemId}' does not exist`);
+  }
+  // The more specific diagnosis first: a child note is never a valid parent.
+  if (parent.parentItemId !== null) {
+    throw new ValidationError(
+      [{ path: "parentItemId", code: "parent_must_not_be_child" }],
+      "A task note cannot be the parent of another task note",
+    );
+  }
+  if (parent.kind !== "task") {
+    throw new ValidationError(
+      [{ path: "parentItemId", code: "parent_must_be_task" }],
+      "A task note's parent must be a task",
+    );
+  }
+}
+
 // ============================================================
 // Writes — space
 // ============================================================
@@ -272,6 +299,7 @@ export async function putItem(db: D1Database, id: string, body: unknown, now: nu
   }
   await ensureExists(db, "block", input.blockId, "blockId");
   await checkItemRefs(db, input);
+  await checkParentItem(db, input.parentItemId);
   return createItemWithRespace(db, toNewItemInput(input, id), now);
 }
 
@@ -285,6 +313,7 @@ function toNewItemInput(input: ItemWrite, id: string) {
         position: input.position,
         text: input.text,
         heading: input.heading,
+        parentItemId: input.parentItemId,
       };
     case "task":
       return {
@@ -324,7 +353,9 @@ export async function patchItem(db: D1Database, id: string, body: unknown, now: 
   const existing = await getItem(db, id);
   if (!existing) throw new NotFoundError(`Item '${id}' does not exist`);
 
-  const violations = itemKindRuleViolations({ kind: existing.kind, ...patch });
+  // The stored row's parentItemId is part of the rules, so a child note can
+  // never gain a heading (docs/adr/0014). parentItemId itself is immutable.
+  const violations = itemKindRuleViolations({ kind: existing.kind, parentItemId: existing.parentItemId, ...patch });
   if (violations.length > 0) {
     throw new ValidationError(violations.map(({ path, code }) => ({ path, code })), "Fields conflict with the item's kind");
   }

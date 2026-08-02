@@ -134,4 +134,51 @@ describe("schema", () => {
       .first<{ id: string; ref_block_id: string | null }>();
     expect(ref).toEqual({ id: "ref-1", ref_block_id: null });
   });
+
+  it("cascades a task's notes with the task — an ownership chain, not a reference", async () => {
+    const db = await getTestDb();
+
+    await insertSpace(db, "space-e");
+    await insertPage(db, "page-e", "space-e");
+    await insertBlock(db, "block-e", "page-e");
+    await db
+      .prepare(
+        "INSERT INTO items (id, block_id, kind, position, text, created_at, updated_at) VALUES (?, ?, 'task', ?, ?, ?, ?)",
+      )
+      .bind("task-e", "block-e", 1000, "t", NOW, NOW)
+      .run();
+    await db
+      .prepare(
+        "INSERT INTO items (id, block_id, kind, position, text, parent_item_id, created_at, updated_at) VALUES (?, ?, 'note', ?, ?, ?, ?, ?)",
+      )
+      .bind("note-e", "block-e", 2000, "Kontext", "task-e", NOW, NOW)
+      .run();
+
+    await db.prepare("DELETE FROM items WHERE id = ?").bind("task-e").run();
+
+    expect(await db.prepare("SELECT id FROM items WHERE id = ?").bind("task-e").first()).toBeNull();
+    expect(await db.prepare("SELECT id FROM items WHERE id = ?").bind("note-e").first()).toBeNull();
+  });
+
+  it("rejects a parent on a task or event, and a heading on a child note", async () => {
+    const db = await getTestDb();
+
+    await insertSpace(db, "space-f");
+    await insertPage(db, "page-f", "space-f");
+    await insertBlock(db, "block-f", "page-f");
+
+    const parentOnTask = db
+      .prepare(
+        "INSERT INTO items (id, block_id, kind, position, text, parent_item_id, created_at, updated_at) VALUES (?, ?, 'task', ?, ?, ?, ?, ?)",
+      )
+      .bind("bad-task", "block-f", 1000, "t", "some-parent", NOW, NOW);
+    await expect(parentOnTask.run()).rejects.toThrow();
+
+    const childHeading = db
+      .prepare(
+        "INSERT INTO items (id, block_id, kind, position, text, heading, parent_item_id, created_at, updated_at) VALUES (?, ?, 'note', ?, ?, ?, ?, ?, ?)",
+      )
+      .bind("bad-heading", "block-f", 1000, "x", 1, "some-parent", NOW, NOW);
+    await expect(childHeading.run()).rejects.toThrow();
+  });
 });

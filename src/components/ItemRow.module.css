@@ -21,6 +21,18 @@
   border-left: 2px solid var(--line2);
 }
 
+/* A task's own note (docs/adr/0014): sits under the task, clearly attached. */
+.child {
+  margin-left: 44px;
+  padding-left: 11px;
+  border-left: 2px solid var(--green-soft);
+}
+
+.child .text {
+  font-size: 13.5px;
+  color: var(--text2);
+}
+
 .text,
 .headingInput {
   order: 1;
@@ -129,6 +141,24 @@
   border-radius: 10px;
   padding: 1px 7px;
   flex: none;
+}
+
+/* The task row's "+" — visible, not hover-only: adds a note under the task. */
+.noteAdd {
+  order: 2;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--green);
+  background: var(--green-soft);
+  border-radius: 4px;
+}
+
+.noteAdd:hover {
+  background: var(--green);
+  color: #fff;
 }
 
 .due,

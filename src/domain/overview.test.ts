@@ -15,6 +15,7 @@ function taskRow(id: string, due: string | null, assignee: string | null): Overv
   return {
     item: item({ id, kind: "task", text: id, dueDate: due, assigneeSpaceId: assignee }),
     block: { id: "blk", pageId: "pg", spaceId: "sp", title: "Block", date: "2026-08-01" },
+    notes: [],
   };
 }
 
@@ -22,6 +23,7 @@ function eventRow(id: string, date: string, time: string | null): OverviewRow {
   return {
     item: item({ id, kind: "event", text: id, eventDate: date, eventTime: time }),
     block: { id: "blk", pageId: "pg", spaceId: "sp", title: "Block", date: "2026-08-01" },
+    notes: [],
   };
 }
 
@@ -154,5 +156,26 @@ describe("person mode", () => {
     expect(withoutEvents.overdue.map((row) => row.item.id)).toEqual(["l1"]);
     expect(withoutEvents.days).toEqual([]);
     expect(withEvents.days[0]!.events.map((row) => row.item.id)).toEqual(["e1"]);
+  });
+});
+
+describe("task notes", () => {
+  it("keeps each task's notes attached through the sections", () => {
+    const row = (id: string, due: string | null): OverviewRow => ({
+      item: item({ id, kind: "task", text: id, dueDate: due, assigneeSpaceId: null }),
+      block: { id: "blk", pageId: "pg", spaceId: "sp", title: "Block", date: "2026-08-01" },
+      // The selector attaches them already position-sorted (taskChildrenByParent).
+      notes: [
+        item({ id: `${id}-note-1`, kind: "note", text: "erste", parentItemId: id }),
+        item({ id: `${id}-note-2`, kind: "note", text: "zweite", parentItemId: id }),
+      ],
+    });
+
+    const view = buildTaskOverview([row("late", "2026-08-20"), row("today", "2026-08-10")], [], [], spaces, TODAY);
+
+    const late = view.later[0]!;
+    expect(late.notes.map((note) => note.id)).toEqual(["late-note-1", "late-note-2"]);
+    const today = view.days[0]!.tasks[0]!;
+    expect(today.notes.map((note) => note.id)).toEqual(["today-note-1", "today-note-2"]);
   });
 });

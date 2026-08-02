@@ -57,6 +57,39 @@ describe("orderBlockItems", () => {
     orderBlockItems(items);
     expect(items.map((entry) => entry.id)).toEqual(["b", "a"]);
   });
+
+  it("sits a task's notes directly under it, not in the notes group", () => {
+    const items = [
+      item({ id: "event", kind: "event", position: 9000, eventDate: "2026-08-10", eventTime: "09:00" }),
+      item({ id: "task-b", kind: "task", position: 5000, text: "b" }),
+      item({ id: "note-b2", kind: "note", position: 5200, text: "b2", parentItemId: "task-b" }),
+      item({ id: "note-1", kind: "note", position: 1000, text: "1" }),
+      item({ id: "task-a", kind: "task", position: 4000, text: "a" }),
+      item({ id: "note-b1", kind: "note", position: 5100, text: "b1", parentItemId: "task-b" }),
+      item({ id: "note-a", kind: "note", position: 4100, text: "a-note", parentItemId: "task-a" }),
+      item({ id: "note-2", kind: "note", position: 2000, text: "2" }),
+    ];
+
+    expect(orderBlockItems(items).map((entry) => entry.id)).toEqual([
+      "note-1",
+      "note-2",
+      "task-a",
+      "note-a",
+      "task-b",
+      "note-b1",
+      "note-b2",
+      "event",
+    ]);
+  });
+
+  it("sorts a task's notes by position among themselves, regardless of their parent's position", () => {
+    const items = [
+      item({ id: "task", kind: "task", position: 1000, text: "t" }),
+      item({ id: "child-late", kind: "note", position: 9000, text: "late", parentItemId: "task" }),
+      item({ id: "child-early", kind: "note", position: 1100, text: "early", parentItemId: "task" }),
+    ];
+    expect(orderBlockItems(items).map((entry) => entry.id)).toEqual(["task", "child-early", "child-late"]);
+  });
 });
 
 describe("groupBlockItems", () => {

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import type { BlockRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
 import type { ComposerItemFields } from "../domain/composer.ts";
@@ -82,6 +82,33 @@ export function BlockCard({
   };
 
   const insertAfter = (itemId: string) => {
+    // Enter in a task's field: a note under the task (docs/adr/0014).
+    if (block.sections.tasks.some((task) => task.id === itemId)) {
+      addTaskNote(itemId);
+      return;
+    }
+    // A task's note: Enter creates the next note of the same task. The
+    // position only orders it among its siblings — display groups children
+    // under the task, it never reads the raw gap to the task.
+    for (const [parentId, siblings] of block.sections.taskNotes) {
+      const index = siblings.findIndex((note) => note.id === itemId);
+      if (index === -1) continue;
+      const after = siblings[index] ?? null;
+      const before = siblings[index + 1] ?? null;
+      const id = newItemId();
+      onCreateItem({
+        id,
+        blockId: block.id,
+        kind: "note",
+        position: insertPositionBetween(after ? after.position : null, before ? before.position : null),
+        text: "",
+        heading: null,
+        parentItemId: parentId,
+      });
+      focusInput(id);
+      return;
+    }
+
     const notes = block.sections.notes;
     const index = notes.findIndex((row) => row.item.id === itemId);
     const after = notes[index]?.item ?? null;
@@ -96,6 +123,30 @@ export function BlockCard({
       heading: null,
     });
     focusInput(id);
+  };
+
+  /** The task row's "+": creates the first note of the task, like Enter. */
+  const addTaskNote = (taskId: string) => {
+    const siblings = block.sections.taskNotes.get(taskId) ?? [];
+    const after = siblings[siblings.length - 1] ?? null;
+    const id = newItemId();
+    onCreateItem({
+      id,
+      blockId: block.id,
+      kind: "note",
+      position: insertPositionBetween(after ? after.position : null, null),
+      text: "",
+      heading: null,
+      parentItemId: taskId,
+    });
+    focusInput(id);
+  };
+
+  /** The row directly before `itemId` in display order, for focus after a delete. */
+  const displayPrevId = (itemId: string) => {
+    const order = block.sections.order;
+    const index = order.indexOf(itemId);
+    return index > 0 ? order[index - 1] ?? null : null;
   };
 
   const deleteRow = (itemId: string, prevId: string | null) => {
@@ -185,19 +236,37 @@ export function BlockCard({
             Tasks <span>{doneCount}/{block.sections.tasks.length}</span>
           </h4>
           <ul className={styles.items}>
-            {block.sections.tasks.map((task, index) => (
-              <ItemRow
-                key={task.id}
-                item={task}
-                prevId={index > 0 ? block.sections.tasks[index - 1]!.id : null}
-                assignee={task.assigneeSpaceId ? (spacesById.get(task.assigneeSpaceId) ?? null) : null}
-                onPatch={onPatchItem}
-                onJumpToBlock={onJumpToBlock}
-                onDeleteRow={deleteRow}
-                onNav={nav}
-                onRowRef={(el) => registerRow(task.id, el)}
-                onInputRef={(el) => registerInput(task.id, el)}
-              />
+            {block.sections.tasks.map((task) => (
+              <Fragment key={task.id}>
+                <ItemRow
+                  item={task}
+                  prevId={displayPrevId(task.id)}
+                  assignee={task.assigneeSpaceId ? (spacesById.get(task.assigneeSpaceId) ?? null) : null}
+                  onPatch={onPatchItem}
+                  onJumpToBlock={onJumpToBlock}
+                  onInsertAfter={insertAfter}
+                  onAddNote={addTaskNote}
+                  onDeleteRow={deleteRow}
+                  onNav={nav}
+                  onRowRef={(el) => registerRow(task.id, el)}
+                  onInputRef={(el) => registerInput(task.id, el)}
+                />
+                {(block.sections.taskNotes.get(task.id) ?? []).map((note) => (
+                  <ItemRow
+                    key={note.id}
+                    item={note}
+                    isChild
+                    prevId={displayPrevId(note.id)}
+                    onPatch={onPatchItem}
+                    onJumpToBlock={onJumpToBlock}
+                    onInsertAfter={insertAfter}
+                    onDeleteRow={deleteRow}
+                    onNav={nav}
+                    onRowRef={(el) => registerRow(note.id, el)}
+                    onInputRef={(el) => registerInput(note.id, el)}
+                  />
+                ))}
+              </Fragment>
             ))}
           </ul>
         </section>

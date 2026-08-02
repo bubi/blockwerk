@@ -181,3 +181,95 @@ test("a task can be checked off from its date-column card and stays visible", as
   await expect(card.getByRole("checkbox")).toHaveAttribute("aria-checked", "true");
   await expect(card).toBeVisible();
 });
+
+test("Enter in a task adds a note under it; arrow keys walk task → notes → next task", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
+
+  const b1 = page.locator("[data-block-id='b1']");
+  const row = (id: string) => b1.locator(`[data-item-id='${id}']`);
+  const noteInputs = b1.locator("input[aria-label='Notiz']");
+  const notesBefore = await noteInputs.count();
+
+  // Enter in the task's field adds a note under it and puts the cursor there.
+  await row("b1-t1").locator("input").focus();
+  await page.keyboard.press("Enter");
+  // Wait for the new note to actually hold the cursor before typing into it.
+  await expect(page.locator(":focus").locator("..")).not.toHaveAttribute("data-item-id", "b1-t1");
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", "Notiz");
+  await expect(noteInputs).toHaveCount(notesBefore + 1);
+  const firstNoteId = (await page.locator(":focus").locator("..").getAttribute("data-item-id"))!;
+  const firstNote = row(firstNoteId);
+  await page.keyboard.type("wartet auf Freigabe");
+
+  // The child note sits under its task — between the task and the next task.
+  const t1Box = (await row("b1-t1").boundingBox())!;
+  const firstBox = (await firstNote.boundingBox())!;
+  const t2Box = (await row("b1-t2").boundingBox())!;
+  expect(firstBox.y).toBeGreaterThan(t1Box.y);
+  expect(firstBox.y).toBeLessThan(t2Box.y);
+
+  // Enter in a child note adds the next note of the same task.
+  await firstNote.locator("input").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(":focus").locator("..")).not.toHaveAttribute("data-item-id", firstNoteId);
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", "Notiz");
+  await expect(noteInputs).toHaveCount(notesBefore + 2);
+  const secondNoteId = (await page.locator(":focus").locator("..").getAttribute("data-item-id"))!;
+  await page.keyboard.type("dann Teilnehmer");
+
+  // Selection mode walks the display order: task → its notes → next task.
+  await page.keyboard.press("Escape");
+  await expect(page.locator(":focus")).toHaveAttribute("data-item-id", secondNoteId!);
+  await page.keyboard.press("ArrowUp");
+  await expect(page.locator(":focus")).toHaveAttribute("data-item-id", firstNoteId!);
+  await page.keyboard.press("ArrowUp");
+  await expect(row("b1-t1")).toBeFocused();
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator(":focus")).toHaveAttribute("data-item-id", firstNoteId!);
+  await page.keyboard.press("ArrowDown");
+  await expect(page.locator(":focus")).toHaveAttribute("data-item-id", secondNoteId!);
+  await page.keyboard.press("ArrowDown");
+  await expect(row("b1-t2")).toBeFocused();
+});
+
+test("Backspace in an empty child note removes it and returns to the previous row", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
+
+  const b1 = page.locator("[data-block-id='b1']");
+  const row = (id: string) => b1.locator(`[data-item-id='${id}']`);
+  const noteInputs = b1.locator("input[aria-label='Notiz']");
+  const notesBefore = await noteInputs.count();
+
+  // Two notes under b1-t1, the second one left empty.
+  await row("b1-t1").locator("input").focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(":focus").locator("..")).not.toHaveAttribute("data-item-id", "b1-t1");
+  const firstNoteId = (await page.locator(":focus").locator("..").getAttribute("data-item-id"))!;
+  await page.keyboard.type("erste");
+  await page.keyboard.press("Enter");
+  await expect(page.locator(":focus").locator("..")).not.toHaveAttribute("data-item-id", firstNoteId);
+  await expect(noteInputs).toHaveCount(notesBefore + 2);
+
+  // Backspace in the empty child note deletes it and jumps back a row.
+  await page.keyboard.press("Backspace");
+  await expect(noteInputs).toHaveCount(notesBefore + 1);
+  await expect(row(firstNoteId).locator("input")).toBeFocused();
+});
+
+test("the visible plus on a task row adds a note under it", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
+
+  const b1 = page.locator("[data-block-id='b1']");
+  const noteInputs = b1.locator("input[aria-label='Notiz']");
+  const notesBefore = await noteInputs.count();
+
+  await b1.locator("[data-item-id='b1-t2']").getByRole("button", { name: /Notiz zu/ }).click();
+  await expect(noteInputs).toHaveCount(notesBefore + 1);
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", "Notiz");
+});

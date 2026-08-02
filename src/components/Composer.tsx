@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { BlockRow, SpaceRow } from "../../shared/db.ts";
 import {
   commandHint,
@@ -49,6 +49,19 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
   const [mentionSuppressed, setMentionSuppressed] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Keep the DOM caret in sync with the caret state after every render. A
+   * controlled input resets its caret when the value changes, so after a
+   * pick the desired position must be re-applied — synchronously, before
+   * paint. This is what makes `pickMention` deterministic: the next
+   * keystroke lands exactly where the pick put the caret, with no rAF
+   * timing to race against.
+   */
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    if (el && el.selectionStart !== caret) el.setSelectionRange(caret, caret);
+  });
+
   const menu = matchComposerCommands(value.startsWith("/") ? value.slice(1) : "");
   const menuOpen = value.startsWith("/") && menu.length > 0;
   const menuId = `composer-menu-${blockId}`;
@@ -85,9 +98,6 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
     setMentionId(person.id);
     setMentionIndex(0);
     inputRef.current?.focus();
-    window.requestAnimationFrame(() => {
-      if (inputRef.current) inputRef.current.setSelectionRange(pos, pos);
-    });
   };
 
   const commit = () => {

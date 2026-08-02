@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import type { SpaceRow } from "../../shared/db.ts";
 import { formatShort, fromISODate, monthName, weekdayShort } from "../domain/dates.ts";
 import type { OverviewRow, TaskOverviewView } from "../domain/overview.ts";
@@ -283,32 +283,39 @@ function TaskRow({
   const who = isMine ? "ich" : assignee ? assignee.name.split(" ")[0] : "ohne Zuständigkeit";
 
   return (
-    <li className={isMine ? styles.rowMine : undefined} data-item-id={row.item.id}>
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={row.item.done}
-        aria-label={`${row.item.text || "Aufgabe"} — ${row.item.done ? "wieder öffnen" : "als erledigt markieren"}`}
-        className={row.item.done ? styles.checkDone : styles.check}
-        onClick={() => onToggle(row.item.id, !row.item.done)}
-      >
-        <span aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        className={styles.body}
-        onClick={() => onJumpToBlock(row.block.id, row.block.pageId, row.block.spaceId)}
-      >
-        <span className={styles.title}>{row.item.text}</span>
-        <span className={styles.sub}>
-          {team && (
-            <span className={isMine ? styles.whoMine : assigneeId === null ? styles.whoOrphan : undefined}>{who}</span>
-          )}
-          {showDue && row.item.dueDate && <span className={styles.due}>{formatShort(row.item.dueDate)}</span>}
-          {row.block.title && <span className={styles.from}>{row.block.title}</span>}
-        </span>
-      </button>
-    </li>
+    <Fragment key={row.item.id}>
+      <li className={isMine ? styles.rowMine : undefined} data-item-id={row.item.id}>
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={row.item.done}
+          aria-label={`${row.item.text || "Aufgabe"} — ${row.item.done ? "wieder öffnen" : "als erledigt markieren"}`}
+          className={row.item.done ? styles.checkDone : styles.check}
+          onClick={() => onToggle(row.item.id, !row.item.done)}
+        >
+          <span aria-hidden="true" />
+        </button>
+        <button
+          type="button"
+          className={styles.body}
+          onClick={() => onJumpToBlock(row.block.id, row.block.pageId, row.block.spaceId)}
+        >
+          <span className={styles.title}>{row.item.text}</span>
+          <span className={styles.sub}>
+            {team && (
+              <span className={isMine ? styles.whoMine : assigneeId === null ? styles.whoOrphan : undefined}>{who}</span>
+            )}
+            {showDue && row.item.dueDate && <span className={styles.due}>{formatShort(row.item.dueDate)}</span>}
+            {row.block.title && <span className={styles.from}>{row.block.title}</span>}
+          </span>
+        </button>
+      </li>
+      {row.notes.map((note) => (
+        <li key={note.id} className={styles.childRow}>
+          <span className={styles.childText}>{note.text || " "}</span>
+        </li>
+      ))}
+    </Fragment>
   );
 }
 

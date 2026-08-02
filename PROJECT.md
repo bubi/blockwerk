@@ -49,7 +49,7 @@ Space (Bereich)     Person oder Thema
 | `space`  | `id`, `name`, `kind` (`person` \| `topic`), `short` (Kürzel), `email` (nur Person, eindeutig, für „ich" — ADR 0013) |
 | `page`   | `id`, `space_id`, `title` |
 | `block`  | `id`, `page_id`, `template_id`, `title`, `date` (jeder Block ist datiert) |
-| `item`   | `id`, `block_id`, `kind`, `position`, `text`, `heading` (1\|2\|null), `done`, `due_date`, `event_date`, `event_time`, `assignee_space_id`, `ref_block_id` |
+| `item`   | `id`, `block_id`, `kind`, `position`, `text`, `heading` (1\|2\|null), `done`, `due_date`, `event_date`, `event_time`, `assignee_space_id`, `ref_block_id`, `parent_item_id` (nur `note`, verweist auf einen `task` — ADR 0014) |
 | `template` | `id`, `label`, `hue`, `seed` (Zeilen zur Vorbelegung) |
 
 Regeln, die im Code gelten müssen:
@@ -57,16 +57,22 @@ Regeln, die im Code gelten müssen:
 - **Reihenfolge im Block:** Notizen und Verweise → Tasks → Folgetermine. Verweise sind
   Stream-Zeilen wie Notizen: sie stehen in `position`-Reihenfolge zwischen den Notizzeilen
   und werden unter Überschriften eingerückt — es gibt keine vierte Gruppe. Innerhalb der
-  Notizen und Verweise zählt `position`, Termine werden chronologisch sortiert. Diese Regel
-  ist **genau einmal** definiert (in `/src/domain`, `orderBlockItems`); der Worker ruft sie
-  von dort auf und sortiert nicht zusätzlich in SQL. Dasselbe gilt für die Block-Reihenfolge
-  einer Seite (neuestes Datum zuerst): `orderPageBlocks` ist die einzige Definition, Worker
-  und Client rufen sie beide auf.
+  Notizen und Verweise zählt `position`, Termine werden chronologisch sortiert. Eine
+  Notiz mit `parent_item_id` gehört zu ihrem Task (ADR 0014): sie erscheint direkt unter
+  ihm innerhalb der Task-Gruppe, untereinander nach `position` sortiert — die drei
+  Gruppen bleiben drei. Diese Regel ist **genau einmal** definiert (in `/src/domain`,
+  `orderBlockItems`); der Worker ruft sie von dort auf und sortiert nicht zusätzlich in
+  SQL. Dasselbe gilt für die Block-Reihenfolge einer Seite (neuestes Datum zuerst):
+  `orderPageBlocks` ist die einzige Definition, Worker und Client rufen sie beide auf.
 - **Positionen:** Lücken zulassen (Schritt 1000), bei Erschöpfung Respace des Blocks
   (eine Anweisung, Reihenfolge bleibt erhalten — siehe [ADR 0009](docs/adr/0009-position-respace.md)).
 - **Überschriften:** Ein Item mit `heading` ist eine Überschrift; alle folgenden Notiz- und
   Verweiszeilen bis zur nächsten Überschrift werden eingerückt dargestellt. Die Einrückung
-  ist reine Darstellung, es gibt keine Baumstruktur in den Daten.
+  ist reine Darstellung, es gibt keine Baumstruktur in den Daten — **mit genau einer
+  Ausnahme:** eine Notiz kann einem Task gehören (`parent_item_id`, ADR 0014) und wird
+  unter ihm eingerückt dargestellt. Ein Task unter einem Task ist ausgeschlossen; das wäre
+  der Anfang eines Baums, den man nicht wieder los wird, und die Gruppenreihenfolge im
+  Block würde mehrdeutig.
 - **Aufgabenüberblick statt Spiegel (ADR 0011):** Offene Tasks erscheinen an genau einer
   Stelle — dem Überblick, einer Komponente mit zwei Modi (Team „Heute" und die Person im
   Tab „Zugewiesen"). Der Überblick ist `SELECT … WHERE kind = 'task' AND done = 0` mit
@@ -89,7 +95,8 @@ Regeln, die im Code gelten müssen:
   bleibt Rückfall für getipptes `@Name` ohne Menüauswahl.
 
 **Löschregeln:** Kaskadiert wird ausschließlich entlang der Besitzkette
-Bereich → Seite → Block → Item. Jeder Querbezug wird dagegen genullt, nie gelöscht.
+Bereich → Seite → Block → Item — und von einem Task zu seinen Notizen
+(`parent_item_id`, ADR 0014). Jeder Querbezug wird dagegen genullt, nie gelöscht.
 Eine Zeile darf nicht verschwinden, weil jemand an anderer Stelle etwas gelöscht hat.
 
 - **Löschen eines Bereichs:** Seiten, Blöcke und deren Items werden mitgelöscht. Tasks in
@@ -251,6 +258,7 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 5 | Aufgabenüberblick (ADR 0011): Übersichtsroute, Team-/Personen-Ansicht, „Heute" als Einstieg | erledigt |
 | 6 | Mobile Gestalt (ADR 0012): Tab-Leiste Heute/Notizen/Suche unter 860px, Drill-down mit Verlauf, keine Datumsspalte | erledigt |
 | 7 | Identität (ADR 0013), @-Auswahl im Composer, Checkbox in der Datumsspalte, Aufräumen, Mitternachts-Fix | erledigt |
+| 8 | Notizen an Tasks (ADR 0014): eine Verschachtelungsebene, Kindnotizen unter dem Task, auch in der Übersicht | erledigt |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
 Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.
@@ -274,7 +282,9 @@ mit Rückfrage, Seiten anlegen/umbenennen, Block anlegen, Templates bearbeiten).
 Er ist **Referenz für das Verhalten, nicht für die Struktur.** Eine bewusste Abweichung:
 In der Datumsleiste des Prototyps stehen noch Block-Karten; die echte Anwendung zeigt dort
 nur Termine und Fälligkeiten (siehe „Die eine Idee" — ein Blockdatum ist automatisch, keine
-Zeitangabe). Der Prototyp bleibt in diesem Punkt bewusst stehen. Der Zustand liegt dort in
+Zeitangabe). Der Prototyp bleibt in diesem Punkt bewusst stehen. Eine bewusste Erweiterung:
+Notizen an Tasks (ADR 0014) — ein Task kann eigene, unter ihm eingerückte Notizzeilen
+tragen; der Prototyp kennt diese eine Verschachtelungsebene nicht. Der Zustand liegt dort in
 einem einzigen Objekt und wird über einen Key-Value-Speicher persistiert. Diese Grenze
 (`window.storage`) ist inzwischen ersetzt: `/src/state` (typisierter Client + Reducer,
 siehe [ADR 0006](docs/adr/0006-state-und-optimistische-updates.md)) übernimmt den

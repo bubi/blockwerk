@@ -158,6 +158,7 @@ export interface ItemKindFields {
   eventTime?: unknown;
   assigneeSpaceId?: unknown;
   refBlockId?: unknown;
+  parentItemId?: unknown;
 }
 
 export interface ItemRuleViolation {
@@ -217,6 +218,23 @@ export function itemKindRuleViolations(item: ItemKindFields): ItemRuleViolation[
       message: "refBlockId is only allowed when kind is 'ref'",
     });
   }
+  // A parent is only ever set on a note — mirrors the migration CHECK.
+  if (item.parentItemId != null && item.kind !== "note") {
+    violations.push({
+      path: "parentItemId",
+      code: "parent_only_on_note",
+      message: "parentItemId is only allowed when kind is 'note'",
+    });
+  }
+  // A child note is plain text — a heading under a task would be a heading
+  // in the wrong place, so it is forbidden (docs/adr/0014).
+  if (item.parentItemId != null && item.heading != null) {
+    violations.push({
+      path: "heading",
+      code: "heading_forbidden_on_child",
+      message: "a child note cannot be a heading",
+    });
+  }
   return violations;
 }
 
@@ -233,6 +251,7 @@ export const itemWriteSchema = z
     eventTime: timeString.nullable().default(null),
     assigneeSpaceId: idString.nullable().default(null),
     refBlockId: idString.nullable().default(null),
+    parentItemId: idString.nullable().default(null),
   })
   .strict()
   .superRefine((item, ctx) => {
@@ -242,9 +261,10 @@ export const itemWriteSchema = z
   });
 
 /**
- * PATCH body for an item: any subset of the mutable fields. `blockId` and
- * `kind` are deliberately absent — they are set at creation and immutable.
- * Cross-field rules are checked against the stored row's kind (see handlers).
+ * PATCH body for an item: any subset of the mutable fields. `blockId`,
+ * `kind`, and `parentItemId` are deliberately absent — they are set at
+ * creation and immutable (a note is never re-parented). Cross-field rules
+ * are checked against the stored row's kind (see handlers).
  */
 export const itemPatchSchema = z
   .object({

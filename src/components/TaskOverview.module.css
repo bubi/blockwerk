@@ -149,6 +149,26 @@
   box-shadow: inset 3px 0 0 var(--green);
 }
 
+/* A task's own note (docs/adr/0014): a plain, indented line under the task. */
+.childRow {
+  padding-left: 48px;
+  background: #fafbfc;
+}
+
+.childRow:last-child {
+  border-bottom: none;
+}
+
+.childText {
+  display: block;
+  font-size: 13.5px;
+  color: var(--text2);
+  padding: 7px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Scope bar */
 .scopebar {
   display: flex;

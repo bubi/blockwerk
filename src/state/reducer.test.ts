@@ -228,7 +228,7 @@ describe("load states", () => {
     let state = reduce(initialState(), { type: "overviewLoadStarted" });
     expect(state.overviewView.status).toBe("loading");
 
-    state = reduce(state, { type: "overviewLoaded", response: { tasks: [task], events: [], blocks: [blockRow], pages: [pageRow] } });
+    state = reduce(state, { type: "overviewLoaded", response: { tasks: [task], events: [], notes: [], blocks: [blockRow], pages: [pageRow] } });
     expect(state.overviewView.status).toBe("loaded");
     expect(state.items.get("t1")).toBe(task);
     expect(state.blocks.get("b1")).toBe(blockRow);

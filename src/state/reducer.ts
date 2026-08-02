@@ -127,10 +127,10 @@ function applyOverviewLoaded(
   state: AppState,
   action: Extract<Action, { type: "overviewLoaded" }>,
 ): AppState {
-  const { tasks, events, blocks, pages } = action.response;
+  const { tasks, events, notes, blocks, pages } = action.response;
   return {
     ...state,
-    items: mergeRows(state.items, [...tasks, ...events]),
+    items: mergeRows(state.items, [...tasks, ...events, ...notes]),
     blocks: mergeRows(state.blocks, blocks),
     pages: mergeRows(state.pages, pages),
     overviewView: { status: "loaded" },
@@ -183,8 +183,22 @@ function applyDelete(state: AppState, op: DeleteWrite): AppState {
 function deleteItem(state: AppState, op: Extract<DeleteWrite, { entity: "item" }>): AppState {
   const existing = state.items.get(op.id);
   if (!existing) return state;
-  const undo: UndoPlan = { remove: [], restore: [{ entity: "item", id: op.id, row: existing }] };
-  return addPending(removeRow(state, "item", op.id), op, undo);
+
+  // Deleting a task takes its notes with it — the server's ON DELETE
+  // CASCADE (docs/adr/0014), mirrored optimistically so the children do not
+  // linger until the next reload.
+  let next = removeRow(state, "item", op.id);
+  const restore: UndoPlan["restore"] = [{ entity: "item", id: op.id, row: existing }];
+  if (existing.kind === "task") {
+    for (const item of state.items.values()) {
+      if (item.parentItemId !== op.id) continue;
+      next = removeRow(next, "item", item.id);
+      restore.push({ entity: "item", id: item.id, row: item });
+    }
+  }
+
+  const undo: UndoPlan = { remove: [], restore };
+  return addPending(next, op, undo);
 }
 
 function deleteBlock(state: AppState, op: Extract<DeleteWrite, { entity: "block" }>): AppState {

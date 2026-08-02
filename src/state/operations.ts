@@ -80,6 +80,8 @@ export interface ItemCreateInput {
   eventDate?: string | null;
   eventTime?: string | null;
   refBlockId?: string | null;
+  /** The task a note belongs to (docs/adr/0014); notes only, immutable. */
+  parentItemId?: string | null;
 }
 
 export interface TemplateCreateInput {
@@ -301,6 +303,7 @@ function toItemRow(input: ItemCreateInput): ItemRow {
     eventDate: input.eventDate ?? null,
     eventTime: input.eventTime ?? null,
     refBlockId: input.refBlockId ?? null,
+    parentItemId: input.parentItemId ?? null,
     createdAt: ts,
     updatedAt: ts,
   };
@@ -336,6 +339,7 @@ function toItemBody(input: ItemCreateInput) {
     eventDate: input.eventDate ?? null,
     eventTime: input.eventTime ?? null,
     refBlockId: input.refBlockId ?? null,
+    parentItemId: input.parentItemId ?? null,
   };
 }
 

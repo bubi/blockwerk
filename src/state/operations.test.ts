@@ -126,7 +126,7 @@ describe("operations — loads", () => {
   it("loads page, overview, and calendar", async () => {
     const { calls, actions, ops } = makeHarness();
     calls.getPage.mockResolvedValue({ page: { id: "p1", spaceId: "s1", title: "P", createdAt: 1, updatedAt: 1 }, blocks: [] });
-    calls.getOverview.mockResolvedValue({ tasks: [], events: [], blocks: [], pages: [] });
+    calls.getOverview.mockResolvedValue({ tasks: [], events: [], notes: [], blocks: [], pages: [] });
     calls.getCalendar.mockResolvedValue({ dueTasks: [], events: [] });
 
     await ops.loadPage("p1");

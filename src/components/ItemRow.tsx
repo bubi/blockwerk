@@ -9,6 +9,8 @@ interface ItemRowProps {
   item: ItemRow;
   /** Note/ref rows under a heading are rendered indented (display only). */
   indent?: boolean;
+  /** A task's own note (docs/adr/0014): rendered indented under its task. */
+  isChild?: boolean;
   assignee?: Pick<SpaceRow, "short"> | null;
   /** The ref's target block, when it still exists. */
   targetBlock?: Pick<BlockRow, "id" | "title" | "date"> | null;
@@ -18,6 +20,8 @@ interface ItemRowProps {
   onJumpToBlock: (blockId: string) => void;
   /** Enter in a note's field inserts a new note directly below it. */
   onInsertAfter?: (itemId: string) => void;
+  /** The task's "+": adds a note under the task (docs/adr/0014). */
+  onAddNote?: (taskId: string) => void;
   onDeleteRow?: (itemId: string, prevId: string | null) => void;
   /** Arrow keys move the row selection through the block's display order. */
   onNav?: (itemId: string, dir: -1 | 1) => void;
@@ -50,12 +54,14 @@ const KIND_LABEL: Record<ItemRow["kind"], string> = {
 export function ItemRow({
   item,
   indent,
+  isChild,
   assignee,
   targetBlock,
   prevId,
   onPatch,
   onJumpToBlock,
   onInsertAfter,
+  onAddNote,
   onDeleteRow,
   onNav,
   onRowRef,
@@ -94,12 +100,17 @@ export function ItemRow({
         focusRow();
         return;
       }
-      if (item.kind === "note") {
+      // Enter in a note inserts a note below it; Enter in a task adds a
+      // note under the task (docs/adr/0014). Both route through
+      // onInsertAfter — the caller knows which row kind it is.
+      if (item.kind === "note" || item.kind === "task") {
         if (event.key === "Enter") {
           event.preventDefault();
           onInsertAfter?.(item.id);
           return;
         }
+      }
+      if (item.kind === "note") {
         if (event.key === "Backspace" && item.text === "") {
           if (isHeading) {
             // First step: back to normal text, second Backspace deletes.
@@ -151,6 +162,7 @@ export function ItemRow({
     styles.item,
     kindClass,
     indent ? styles.indented : "",
+    isChild ? styles.child : "",
     item.done ? styles.done : "",
     isHeading ? styles.heading : "",
   ]
@@ -209,6 +221,19 @@ export function ItemRow({
 
       {item.kind === "task" && item.dueDate && <DueChip dueDate={item.dueDate} />}
       {item.kind === "task" && assignee && <span className={styles.who}>{assignee.short}</span>}
+
+      {item.kind === "task" && onAddNote && (
+        <button
+          type="button"
+          className={styles.noteAdd}
+          tabIndex={-1}
+          onClick={() => onAddNote(item.id)}
+          aria-label={`Notiz zu „${item.text || "Aufgabe"}" hinzufügen`}
+          title="Notiz hinzufügen"
+        >
+          +
+        </button>
+      )}
 
       {item.kind === "event" && <span className={styles.eventTime}>{item.eventTime ?? "—"}</span>}
 

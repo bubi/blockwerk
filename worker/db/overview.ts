@@ -10,6 +10,11 @@ import { mapBlock, mapItem, mapPage, type RawBlockRow, type RawItemRow, type Raw
  * per-person workload is derived in src/domain/overview.ts from the loaded
  * rows, never by a per-person query. Same load-all-and-project pattern as the
  * calendar route.
+ *
+ * Task notes (docs/adr/0014) ride along in the same items scan: the notes
+ * of the returned open tasks travel in `notes`, so the overview never loads
+ * a note per task — the budget stays at three queries no matter how many
+ * notes a task carries.
  */
 export async function loadOverview(db: D1Database, today: string): Promise<OverviewResponse> {
   const { results: itemRows } = await db.prepare("SELECT * FROM items").all<RawItemRow>();
@@ -18,6 +23,8 @@ export async function loadOverview(db: D1Database, today: string): Promise<Overv
 
   const items = itemRows.map(mapItem);
   const tasks = items.filter((item) => item.kind === "task" && !item.done);
+  const taskIds = new Set(tasks.map((item) => item.id));
+  const notes = items.filter((item) => item.kind === "note" && item.parentItemId !== null && taskIds.has(item.parentItemId));
   const events = items.filter(
     (item) => item.kind === "event" && item.eventDate !== null && inOverviewWindow(item.eventDate, today),
   );
@@ -33,5 +40,5 @@ export async function loadOverview(db: D1Database, today: string): Promise<Overv
   }
   const pages: PageRow[] = pageRows.filter((row) => pageIds.has(row.id)).map(mapPage);
 
-  return { tasks, events, blocks, pages };
+  return { tasks, events, notes, blocks, pages };
 }

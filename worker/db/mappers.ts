@@ -52,6 +52,7 @@ export interface RawItemRow {
   event_time: string | null;
   assignee_space_id: string | null;
   ref_block_id: string | null;
+  parent_item_id: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -115,6 +116,7 @@ export function mapItem(row: RawItemRow): ItemRow {
     eventDate: row.event_date,
     eventTime: row.event_time,
     refBlockId: row.ref_block_id,
+    parentItemId: row.parent_item_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

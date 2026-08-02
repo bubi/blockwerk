@@ -2,7 +2,7 @@ import type { ApiBlock, SpaceWithPages } from "../../shared/api.ts";
 import type { CalendarWindow, ItemRow, TemplateRow } from "../../shared/db.ts";
 import { buildBlockView, type BlockSection } from "../domain/blockView.ts";
 import { projectCalendar } from "../domain/calendar.ts";
-import { orderBlockItems, orderPageBlocks } from "../domain/order.ts";
+import { orderBlockItems, orderPageBlocks, taskChildrenByParent } from "../domain/order.ts";
 import {
   buildTaskOverview,
   inOverviewWindow,
@@ -135,9 +135,10 @@ export function selectOpenTaskCounts(state: AppState): Map<string, number> {
 
 function openTaskRows(state: AppState): OverviewRow[] {
   const rows: OverviewRow[] = [];
+  const childrenByParent = taskChildrenByParent([...state.items.values()]);
   for (const item of state.items.values()) {
     if (item.kind !== "task" || item.done) continue;
-    const row = toOverviewRow(state, item);
+    const row = toOverviewRow(state, item, childrenByParent);
     if (row) rows.push(row);
   }
   return rows;
@@ -147,18 +148,23 @@ function eventRows(state: AppState, today: string): OverviewRow[] {
   const rows: OverviewRow[] = [];
   for (const item of state.items.values()) {
     if (item.kind !== "event" || item.eventDate === null || !inOverviewWindow(item.eventDate, today)) continue;
-    const row = toOverviewRow(state, item);
+    const row = toOverviewRow(state, item, new Map());
     if (row) rows.push(row);
   }
   return rows;
 }
 
-function toOverviewRow(state: AppState, item: ItemRow): OverviewRow | null {
+function toOverviewRow(
+  state: AppState,
+  item: ItemRow,
+  childrenByParent: ReadonlyMap<string, ItemRow[]>,
+): OverviewRow | null {
   const block = state.blocks.get(item.blockId);
   if (!block) return null;
   const page = state.pages.get(block.pageId);
   return {
     item,
     block: { id: block.id, pageId: block.pageId, spaceId: page?.spaceId ?? "", title: block.title, date: block.date },
+    notes: item.kind === "task" ? (childrenByParent.get(item.id) ?? []) : [],
   };
 }

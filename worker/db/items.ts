@@ -12,10 +12,12 @@ interface NewItemBase {
  * A discriminated union, not a flat object: which fields are meaningful
  * depends on `kind` (see the items CHECK constraints in
  * migrations/0001_initial.sql), so this makes it a type error to set e.g.
- * a due date on a note.
+ * a due date on a note. A note's `parentItemId` links it to a task
+ * (docs/adr/0014); the handler validates that the parent is a task and is
+ * itself a top-level row.
  */
 export type NewItemInput =
-  | (NewItemBase & { kind: "note"; text: string; heading: 1 | 2 | null })
+  | (NewItemBase & { kind: "note"; text: string; heading: 1 | 2 | null; parentItemId?: string | null })
   | (NewItemBase & { kind: "task"; text: string; done?: boolean; dueDate: string | null; assigneeSpaceId: string | null })
   | (NewItemBase & { kind: "event"; text: string; eventDate: string | null; eventTime: string | null })
   | (NewItemBase & { kind: "ref"; refBlockId: string | null });
@@ -46,11 +48,12 @@ export function buildItemRow(input: NewItemInput, position: number, now: number)
     eventDate: null,
     eventTime: null,
     refBlockId: null,
+    parentItemId: null,
     createdAt: now,
     updatedAt: now,
   };
   return input.kind === "note"
-    ? { ...base, text: input.text, heading: input.heading }
+    ? { ...base, text: input.text, heading: input.heading, parentItemId: input.parentItemId ?? null }
     : input.kind === "task"
       ? { ...base, text: input.text, done: input.done ?? false, dueDate: input.dueDate, assigneeSpaceId: input.assigneeSpaceId }
       : input.kind === "event"
@@ -62,8 +65,8 @@ async function insertItemRow(db: D1Database, row: ItemRow): Promise<void> {
   await db
     .prepare(
       `INSERT INTO items
-        (id, block_id, kind, position, text, heading, done, due_date, assignee_space_id, event_date, event_time, ref_block_id, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (id, block_id, kind, position, text, heading, done, due_date, assignee_space_id, event_date, event_time, ref_block_id, parent_item_id, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       row.id,
@@ -78,6 +81,7 @@ async function insertItemRow(db: D1Database, row: ItemRow): Promise<void> {
       row.eventDate,
       row.eventTime,
       row.refBlockId,
+      row.parentItemId,
       row.createdAt,
       row.updatedAt,
     )

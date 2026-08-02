@@ -53,14 +53,17 @@ export interface PageResponse {
 
 /**
  * The response of the overview route (docs/adr/0011): every open task, every
- * event within the next days, and the blocks/pages behind them — the data
- * load the "Heute" view and a person's assigned-tasks view render from. The
- * worker loads it with a fixed number of queries; the per-person workload is
- * derived client-side in src/domain/overview.ts, never by a per-person query.
+ * event within the next days, the blocks/pages behind them, and the notes
+ * belonging to the returned open tasks (docs/adr/0014) — the data load the
+ * "Heute" view and a person's assigned-tasks view render from. The worker
+ * loads it with a fixed number of queries; the per-person workload and the
+ * task→notes pairing are derived client-side, never by a per-task query.
  */
 export interface OverviewResponse {
   tasks: ItemRow[];
   events: ItemRow[];
+  /** Child notes of the returned open tasks, for the task's own context. */
+  notes: ItemRow[];
   blocks: BlockRow[];
   pages: PageRow[];
 }

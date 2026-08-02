@@ -393,6 +393,171 @@ describe("PATCH /api/:entity/:id", () => {
   });
 });
 
+describe("task notes (docs/adr/0014)", () => {
+  it("rejects a task or event carrying a parentItemId (400)", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "tn-space");
+    await seedPage(db, "tn-page", "tn-space");
+    await seedBlock(db, "tn-block", "tn-page");
+    await createItem(db, { id: "tn-task", blockId: "tn-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+
+    const task = await json<ErrorBody>("PUT", "/api/items/tn-task-child", {
+      blockId: "tn-block",
+      kind: "task",
+      position: 2000,
+      text: "child?",
+      dueDate: null,
+      assigneeSpaceId: null,
+      parentItemId: "tn-task",
+    });
+    expect(task.status).toBe(400);
+    expect(task.body.error.issues).toEqual([{ path: "parentItemId", code: "parent_only_on_note" }]);
+
+    const event = await json<ErrorBody>("PUT", "/api/items/tn-event-child", {
+      blockId: "tn-block",
+      kind: "event",
+      position: 2000,
+      text: "child?",
+      eventDate: "2026-08-10",
+      eventTime: null,
+      parentItemId: "tn-task",
+    });
+    expect(event.status).toBe(400);
+    expect(event.body.error.issues).toEqual([{ path: "parentItemId", code: "parent_only_on_note" }]);
+  });
+
+  it("rejects a heading on a child note (400)", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "tnh-space");
+    await seedPage(db, "tnh-page", "tnh-space");
+    await seedBlock(db, "tnh-block", "tnh-page");
+    await createItem(db, { id: "tnh-task", blockId: "tnh-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+
+    const { status, body } = await json<ErrorBody>("PUT", "/api/items/tnh-child", {
+      blockId: "tnh-block",
+      kind: "note",
+      position: 2000,
+      text: "x",
+      heading: 1,
+      parentItemId: "tnh-task",
+    });
+    expect(status).toBe(400);
+    expect(body.error.issues).toEqual([{ path: "heading", code: "heading_forbidden_on_child" }]);
+  });
+
+  it("rejects a note whose parent is a note (400)", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "tno-space");
+    await seedPage(db, "tno-page", "tno-space");
+    await seedBlock(db, "tno-block", "tno-page");
+    await createItem(db, { id: "tno-note", blockId: "tno-block", position: 1000, kind: "note", text: "n", heading: null }, NOW);
+
+    const { status, body } = await json<ErrorBody>("PUT", "/api/items/tno-child", {
+      blockId: "tno-block",
+      kind: "note",
+      position: 2000,
+      text: "x",
+      heading: null,
+      parentItemId: "tno-note",
+    });
+    expect(status).toBe(400);
+    expect(body.error.issues).toEqual([{ path: "parentItemId", code: "parent_must_be_task" }]);
+  });
+
+  it("rejects a note under a child note — one level only (400)", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "tn2-space");
+    await seedPage(db, "tn2-page", "tn2-space");
+    await seedBlock(db, "tn2-block", "tn2-page");
+    await createItem(db, { id: "tn2-task", blockId: "tn2-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(db, { id: "tn2-child", blockId: "tn2-block", position: 2000, kind: "note", text: "c", heading: null, parentItemId: "tn2-task" }, NOW);
+
+    const { status, body } = await json<ErrorBody>("PUT", "/api/items/tn2-grandchild", {
+      blockId: "tn2-block",
+      kind: "note",
+      position: 3000,
+      text: "x",
+      heading: null,
+      parentItemId: "tn2-child",
+    });
+    expect(status).toBe(400);
+    expect(body.error.issues).toEqual([{ path: "parentItemId", code: "parent_must_not_be_child" }]);
+  });
+
+  it("rejects a child note whose parent does not exist (400)", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "tnm-space");
+    await seedPage(db, "tnm-page", "tnm-space");
+    await seedBlock(db, "tnm-block", "tnm-page");
+
+    const { status, body } = await json<ErrorBody>("PUT", "/api/items/tnm-child", {
+      blockId: "tnm-block",
+      kind: "note",
+      position: 1000,
+      text: "x",
+      heading: null,
+      parentItemId: "no-such-task",
+    });
+    expect(status).toBe(400);
+    expect(body.error.issues).toEqual([{ path: "parentItemId", code: "not_found" }]);
+  });
+
+  it("a child note sits directly under its task, not in the notes group", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "tno2-space");
+    await seedPage(db, "tno2-page", "tno2-space");
+    await seedBlock(db, "tno2-block", "tno2-page");
+    await createItem(db, { id: "tno2-note", blockId: "tno2-block", position: 500, kind: "note", text: "top", heading: null }, NOW);
+    await createItem(db, { id: "tno2-task", blockId: "tno2-block", position: 4000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+
+    const put = await json<ItemWriteResponse>("PUT", "/api/items/tno2-child", {
+      blockId: "tno2-block",
+      kind: "note",
+      position: 1500,
+      text: "Kontext",
+      heading: null,
+      parentItemId: "tno2-task",
+    });
+    expect(put.status).toBe(200);
+
+    const page = await json<PageResponse>("GET", "/api/pages/tno2-page");
+    const items = page.body.blocks[0]!.items;
+    // A top-level note would sort before the task; the child follows its task.
+    expect(items.map((entry) => entry.id)).toEqual(["tno2-note", "tno2-task", "tno2-child"]);
+    expect(items.find((entry) => entry.id === "tno2-child")).toMatchObject({ kind: "note", parentItemId: "tno2-task" });
+  });
+
+  it("deleting a task takes its notes with it, and only them", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "tnd-space");
+    await seedPage(db, "tnd-page", "tnd-space");
+    await seedBlock(db, "tnd-block", "tnd-page");
+    await createItem(db, { id: "tnd-task", blockId: "tnd-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(db, { id: "tnd-child", blockId: "tnd-block", position: 2000, kind: "note", text: "Kontext", heading: null, parentItemId: "tnd-task" }, NOW);
+    await createItem(db, { id: "tnd-note", blockId: "tnd-block", position: 500, kind: "note", text: "top", heading: null }, NOW);
+
+    const deleted = await call("DELETE", "/api/items/tnd-task");
+    expect(deleted.status).toBe(204);
+
+    const page = await json<PageResponse>("GET", "/api/pages/tnd-page");
+    const items = page.body.blocks[0]!.items;
+    expect(items.map((entry) => entry.id)).toEqual(["tnd-note"]);
+  });
+
+  it("forbids adding a heading to a child note via PATCH", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "tnp-space");
+    await seedPage(db, "tnp-page", "tnp-space");
+    await seedBlock(db, "tnp-block", "tnp-page");
+    await createItem(db, { id: "tnp-task", blockId: "tnp-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(db, { id: "tnp-child", blockId: "tnp-block", position: 2000, kind: "note", text: "c", heading: null, parentItemId: "tnp-task" }, NOW);
+
+    const { status, body } = await json<ErrorBody>("PATCH", "/api/items/tnp-child", { heading: 1 });
+    expect(status).toBe(400);
+    expect(body.error.issues).toEqual([{ path: "heading", code: "heading_forbidden_on_child" }]);
+  });
+});
+
 describe("DELETE /api/:entity/:id", () => {
   it("deleting a space cascades its ownership chain and only nulls the assignee elsewhere", async () => {
     const db = await getTestDb();
@@ -543,6 +708,39 @@ describe("query budget per read route", () => {
     // getItem + getBlock + listBlockItems + respace UPDATE + INSERT — one
     // UPDATE for the whole block, never one per row.
     expect(count() - before).toBe(5);
+  });
+
+  it("keeps the overview at three queries no matter how many notes a task carries", async () => {
+    const raw = await getTestDb();
+    await seedSpace(raw, "bn-space", "person");
+    await seedPage(raw, "bn-page", "bn-space");
+    await seedBlock(raw, "bn-block", "bn-page");
+    // Many open tasks, each with several notes — the notes ride in the same
+    // items scan, never one query per task.
+    for (let t = 0; t < 30; t++) {
+      const taskId = `bn-task-${t}`;
+      await createItem(raw, { id: taskId, blockId: "bn-block", position: (t + 1) * 1000, kind: "task", text: taskId, dueDate: "2026-08-10", assigneeSpaceId: "bn-space" }, NOW);
+      for (let n = 0; n < 4; n++) {
+        await createItem(raw, { id: `bn-${taskId}-note-${n}`, blockId: "bn-block", position: (t + 1) * 1000 + (n + 1) * 100, kind: "note", text: `Kontext ${n}`, heading: null, parentItemId: taskId }, NOW);
+      }
+    }
+
+    const { db, count } = countingD1(raw);
+    const before = count();
+    const overview = await json<OverviewResponse>("GET", "/api/overview?today=2026-08-10", undefined, db);
+    expect(overview.status).toBe(200);
+    // All seeded tasks are returned, each with all four of its notes, and the
+    // route still cost exactly three queries — the notes ride in the same
+    // items scan, never one query per task.
+    expect(overview.body.tasks.map((row) => row.id)).toEqual(
+      expect.arrayContaining(Array.from({ length: 30 }, (_, t) => `bn-task-${t}`)),
+    );
+    expect(overview.body.notes.map((row) => row.id)).toEqual(
+      expect.arrayContaining(
+        Array.from({ length: 30 }, (_, t) => Array.from({ length: 4 }, (_, n) => `bn-bn-task-${t}-note-${n}`)).flat(),
+      ),
+    );
+    expect(count() - before).toBe(3);
   });
 });
 
