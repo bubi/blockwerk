@@ -240,8 +240,8 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 2b | API, Prototyp-Logik, State/Client, Oberfläche | erledigt |
 | 3 | Rest von 2b (Verwaltung), Tests, ADRs, Aufräumen | in Arbeit |
 | 4 | Features: Volltextsuche (erledigt), Rückverweise, Terminserien | in Arbeit |
-| 5 | Aufgabenüberblick (ADR 0011): Übersichtsroute, Team-/Personen-Ansicht, „Heute" als Einstieg | in Arbeit |
-| 6 | Mobile Gestalt: Tab-Leiste Heute/Notizen/Suche unter 860px | geplant |
+| 5 | Aufgabenüberblick (ADR 0011): Übersichtsroute, Team-/Personen-Ansicht, „Heute" als Einstieg | erledigt |
+| 6 | Mobile Gestalt (ADR 0012): Tab-Leiste Heute/Notizen/Suche unter 860px, Drill-down mit Verlauf, keine Datumsspalte | erledigt |
 | 7 | Identität (E-Mail am Personenbereich), @-Auswahl, Checkbox in der Datumsspalte, Aufräumen | geplant |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
@@ -259,8 +259,9 @@ ist davon alles umgesetzt:
 Composer mit Slash-Menü, `#`-Umwandlung, Zeilen einfügen/löschen, zwei Tastaturmodi
 über den DOM-Fokus (ADR 0008), Position-Respace (ADR 0009), die Volltextsuche
 im Kopf (ADR 0010), der Aufgabenüberblick als Startansicht und Personen-Sicht
-(ADR 0011) sowie die Verwaltung (Bereiche anlegen/löschen mit Rückfrage,
-Seiten anlegen/umbenennen, Block anlegen, Templates bearbeiten).
+(ADR 0011), die mobile Gestalt unter 860px mit Tab-Leiste Heute/Notizen/Suche
+und Drill-down mit Verlauf (ADR 0012) sowie die Verwaltung (Bereiche anlegen/löschen
+mit Rückfrage, Seiten anlegen/umbenennen, Block anlegen, Templates bearbeiten).
 
 Er ist **Referenz für das Verhalten, nicht für die Struktur.** Eine bewusste Abweichung:
 In der Datumsleiste des Prototyps stehen noch Block-Karten; die echte Anwendung zeigt dort

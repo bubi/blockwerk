@@ -19,6 +19,7 @@ export function Today({
   scope,
   meSpaceId,
   spacesById,
+  showHead = true,
   onScopeChange,
   onToggle,
   onJumpToBlock,
@@ -30,6 +31,8 @@ export function Today({
   scope: TodayScope;
   meSpaceId: string | null;
   spacesById: ReadonlyMap<string, SpaceRow>;
+  /** The mobile header already carries the "Heute" title. */
+  showHead?: boolean;
   onScopeChange: (scope: TodayScope) => void;
   onToggle: (itemId: string, done: boolean) => void;
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
@@ -37,9 +40,11 @@ export function Today({
 }) {
   return (
     <div className={styles.today}>
-      <div className={styles.head}>
-        <strong>Heute</strong>
-      </div>
+      {showHead && (
+        <div className={styles.head}>
+          <strong>Heute</strong>
+        </div>
+      )}
 
       {viewStatus.status === "idle" || viewStatus.status === "loading" ? (
         <Loading label="Überblick wird geladen…" />

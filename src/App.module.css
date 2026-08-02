@@ -28,6 +28,31 @@
   padding: 22px 26px;
 }
 
+/* ============================================================
+   Mobile layout (< 860px, docs/adr/0012): its own Gestalt — header,
+   sheet, tab bar. No date column.
+   ============================================================ */
+.mapp {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.msheet {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg);
+  padding: 6px 0 24px;
+}
+
+.mempty {
+  font-size: 13.5px;
+  color: var(--text3);
+  max-width: 56ch;
+  line-height: 1.6;
+  padding: 18px 16px;
+}
+
 .panebar {
   display: none;
 }

@@ -1,0 +1,74 @@
+.tabbar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: saturate(160%) blur(12px);
+  border-top: 1px solid var(--line);
+  padding: 5px 6px calc(5px + env(safe-area-inset-bottom));
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+}
+
+.btn,
+.btnOn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 5px 2px 4px;
+  color: var(--text3);
+  border-radius: 10px;
+  min-height: 52px;
+  justify-content: center;
+}
+
+.btn:active {
+  background: var(--hover);
+}
+
+.btnOn {
+  color: var(--green-dk);
+}
+
+.icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 28px;
+  border-radius: 14px;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+
+.btnOn .icon {
+  background: var(--green-soft);
+  color: var(--green-dk);
+}
+
+.label {
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
+}
+
+.btnOn .label {
+  font-weight: 600;
+}
+
+.badge {
+  position: absolute;
+  top: -3px;
+  right: 8px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--red);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--white);
+  line-height: 1;
+}

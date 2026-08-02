@@ -14,6 +14,8 @@ interface SidebarProps {
   /** The overdue badge of the "Heute" entry. */
   overdueCount: number;
   homeActive: boolean;
+  /** Hide the "Heute" entry — the mobile tab bar provides it. */
+  showHome?: boolean;
   onHome: () => void;
   onSelectSpace: (spaceId: string) => void;
   onCreateSpace: (kind: SpaceRow["kind"], name: string) => void;
@@ -27,6 +29,7 @@ export function Sidebar({
   selectedSpaceId,
   overdueCount,
   homeActive,
+  showHome = true,
   onHome,
   onSelectSpace,
   onCreateSpace,
@@ -34,15 +37,17 @@ export function Sidebar({
 }: SidebarProps) {
   return (
     <div className={styles.rail}>
-      <button
-        type="button"
-        className={homeActive ? styles.homeOn : styles.home}
-        aria-current={homeActive ? "page" : undefined}
-        onClick={onHome}
-      >
-        <span className={styles.name}>Heute</span>
-        {overdueCount > 0 && <span className={styles.open}>{overdueCount}</span>}
-      </button>
+      {showHome && (
+        <button
+          type="button"
+          className={homeActive ? styles.homeOn : styles.home}
+          aria-current={homeActive ? "page" : undefined}
+          onClick={onHome}
+        >
+          <span className={styles.name}>Heute</span>
+          {overdueCount > 0 && <span className={styles.open}>{overdueCount}</span>}
+        </button>
+      )}
 
       <h2 className={styles.colhead}>Bereiche</h2>
       <SpaceGroup
