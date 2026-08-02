@@ -1,6 +1,7 @@
 import { AccessError, verifyAccessJwt } from "./access.ts";
 import type { Env } from "./env.ts";
 import type { AccessIdentity } from "../shared/access.ts";
+import { handleApiRequest } from "./api.ts";
 
 export default {
   async fetch(request, env): Promise<Response> {
@@ -26,6 +27,6 @@ export default {
       return Response.json({ email: identity.email });
     }
 
-    return new Response(null, { status: 404 });
+    return handleApiRequest(request, env, identity);
   },
 } satisfies ExportedHandler<Env>;

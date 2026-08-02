@@ -28,6 +28,11 @@ export async function getSpace(db: D1Like, id: string): Promise<SpaceRow | null>
   return row ? mapSpace(row) : null;
 }
 
+export async function listSpaces(db: D1Like): Promise<SpaceRow[]> {
+  const { results } = await db.prepare("SELECT * FROM spaces ORDER BY id ASC").all<RawSpaceRow>();
+  return results.map(mapSpace);
+}
+
 export async function updateSpace(
   db: D1Like,
   id: string,

@@ -25,6 +25,13 @@ export async function getPage(db: D1Like, id: string): Promise<PageRow | null> {
   return row ? mapPage(row) : null;
 }
 
+export async function listPages(db: D1Like): Promise<PageRow[]> {
+  const { results } = await db
+    .prepare("SELECT * FROM pages ORDER BY space_id ASC, id ASC")
+    .all<RawPageRow>();
+  return results.map(mapPage);
+}
+
 export async function updatePage(db: D1Like, id: string, patch: PagePatch, now: number): Promise<PageRow | null> {
   const result = await db
     .prepare("UPDATE pages SET title = COALESCE(?, title), updated_at = ? WHERE id = ?")

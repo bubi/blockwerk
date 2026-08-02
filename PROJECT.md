@@ -187,7 +187,7 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 0 | Repo-Skelett, Toolchain, `PROJECT.md` | erledigt |
 | 1 | Leere Seite deployt, hinter Access, CI grün | erledigt |
 | 2a | D1-Schema | erledigt |
-| 2b | API, Prototyp-Logik migriert | offen |
+| 2b | API, Prototyp-Logik migriert | Teil 1 (API-Routen + Validierung) erledigt; Prototyp-Logik offen |
 | 3 | Tests, ADRs, Aufräumen | offen |
 | 4 | Features: Volltextsuche, Rückverweise, Terminserien | offen |
 
