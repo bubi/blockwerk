@@ -191,7 +191,7 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 0 | Repo-Skelett, Toolchain, `PROJECT.md` | erledigt |
 | 1 | Leere Seite deployt, hinter Access, CI grün | erledigt |
 | 2a | D1-Schema | erledigt |
-| 2b | API, Prototyp-Logik migriert | erledigt |
+| 2b | API, Prototyp-Logik, State/Client | erledigt |
 | 3 | Tests, ADRs, Aufräumen | offen |
 | 4 | Features: Volltextsuche, Rückverweise, Terminserien | offen |
 
@@ -209,5 +209,7 @@ Bereichs- und Template-Verwaltung.
 
 Er ist **Referenz für das Verhalten, nicht für die Struktur.** Der Zustand liegt dort in
 einem einzigen Objekt und wird über einen Key-Value-Speicher persistiert. Diese Grenze
-(`window.storage`) ist die Stelle, an der später die API andockt — sie ist der einzige Teil
-des Prototyps, der bewusst so gebaut wurde, dass er ersetzt werden kann.
+(`window.storage`) ist inzwischen ersetzt: `/src/state` (typisierter Client + Reducer,
+siehe [ADR 0006](docs/adr/0006-state-und-optimistische-updates.md)) übernimmt den
+Datenfluss zur API — der einzige Teil des Prototyps, der bewusst so gebaut wurde, dass er
+ersetzt werden kann.
