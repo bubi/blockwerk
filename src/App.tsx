@@ -369,7 +369,6 @@ export function App() {
             ledger={ledger}
             today={today}
             spacesById={spacesById}
-            templatesById={templatesById}
             onPrevMonth={() => shiftMonth(-1)}
             onNextMonth={() => shiftMonth(1)}
             onJumpToBlock={jumpToBlock}

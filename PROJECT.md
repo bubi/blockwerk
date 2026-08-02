@@ -22,7 +22,10 @@ Dokuments.
 Eine Notiz, ein Task und ein Termin sind **kein** eigener Datentyp. Es gibt Blöcke, und in
 Blöcken liegen Zeilen (Items). Ein Item hat eine Art und Datumsfelder. Daraus folgt:
 
-- Der Kalender ist **keine zweite Datenhaltung**, sondern eine Projektion aller Items mit Datum.
+- Der Kalender ist **keine zweite Datenhaltung**, sondern eine Projektion der **bewusst** gesetzten Daten:
+  Fälligkeit (`due_date`) und Termin (`event_date`). Ein Blockdatum wird beim Anlegen automatisch vergeben —
+  es dient der Sortierung im Stream und der Auffindbarkeit über die Suche, ist aber keine Aussage über Zeit.
+  Deshalb fallen Blöcke aus der Kalenderprojektion heraus; es bleiben Task-Fälligkeiten und Termine.
 - Ein Task, der einer Person zugewiesen wird, wird **nicht kopiert**. Er bleibt in seinem
   Ursprungsblock und erscheint im Bereich der Person als Spiegel derselben Zeile.
   Abhaken wirkt an beiden Stellen, weil es dasselbe Objekt ist.
@@ -244,7 +247,10 @@ Composer mit Slash-Menü, `#`-Umwandlung, Zeilen einfügen/löschen, zwei Tastat
 (Bereiche anlegen/löschen mit Rückfrage, Seiten anlegen/umbenennen, Block anlegen,
 Templates bearbeiten).
 
-Er ist **Referenz für das Verhalten, nicht für die Struktur.** Der Zustand liegt dort in
+Er ist **Referenz für das Verhalten, nicht für die Struktur.** Eine bewusste Abweichung:
+In der Datumsleiste des Prototyps stehen noch Block-Karten; die echte Anwendung zeigt dort
+nur Termine und Fälligkeiten (siehe „Die eine Idee" — ein Blockdatum ist automatisch, keine
+Zeitangabe). Der Prototyp bleibt in diesem Punkt bewusst stehen. Der Zustand liegt dort in
 einem einzigen Objekt und wird über einen Key-Value-Speicher persistiert. Diese Grenze
 (`window.storage`) ist inzwischen ersetzt: `/src/state` (typisierter Client + Reducer,
 siehe [ADR 0006](docs/adr/0006-state-und-optimistische-updates.md)) übernimmt den

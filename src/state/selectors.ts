@@ -59,7 +59,7 @@ export function selectMirrorGroups(state: AppState, spaceId: string): MirrorGrou
 }
 
 export function selectCalendar(state: AppState, from: string, to: string): CalendarWindow {
-  return projectCalendar([...state.blocks.values()], [...state.items.values()], from, to);
+  return projectCalendar([...state.items.values()], from, to);
 }
 
 export function selectSpacesView(state: AppState): ViewStatus {

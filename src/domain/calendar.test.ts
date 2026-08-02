@@ -1,31 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { block, item } from "./fixtures.ts";
+import { item } from "./fixtures.ts";
 import { fromISODate } from "./dates.ts";
 import { isOverdueTask, ledgerRows, monthLedger, projectCalendar, type LedgerDay } from "./calendar.ts";
 
 describe("projectCalendar", () => {
-  it("returns only dated objects inside the inclusive window", () => {
+  it("returns only consciously dated objects inside the inclusive window", () => {
     const window = projectCalendar(
-      [block({ id: "b-in", date: "2026-08-10" }), block({ id: "b-out", date: "2026-08-01" }), block({ id: "b-edge", date: "2026-08-11" })],
       [
         item({ id: "t-in", kind: "task", dueDate: "2026-08-10" }),
         item({ id: "t-out", kind: "task", dueDate: "2026-08-12" }),
         item({ id: "e-in", kind: "event", eventDate: "2026-08-10", eventTime: "14:00" }),
         item({ id: "e-out", kind: "event", eventDate: "2026-08-12" }),
         item({ id: "note", kind: "note" }),
+        item({ id: "task-no-due", kind: "task", dueDate: null }),
       ],
       "2026-08-10",
       "2026-08-11",
     );
 
-    expect(window.blocks.map((entry) => entry.id)).toEqual(["b-in", "b-edge"]);
     expect(window.dueTasks.map((entry) => entry.id)).toEqual(["t-in"]);
     expect(window.events.map((entry) => entry.id)).toEqual(["e-in"]);
   });
 
-  it("orders blocks chronologically, tasks by due date, events by date and time", () => {
+  it("orders tasks by due date, events by date and time", () => {
     const window = projectCalendar(
-      [block({ id: "b2", date: "2026-08-20" }), block({ id: "b1", date: "2026-08-10" })],
       [
         item({ id: "t2", kind: "task", dueDate: "2026-08-20" }),
         item({ id: "t1", kind: "task", dueDate: "2026-08-10" }),
@@ -37,7 +35,6 @@ describe("projectCalendar", () => {
       "2026-08-31",
     );
 
-    expect(window.blocks.map((entry) => entry.id)).toEqual(["b1", "b2"]);
     expect(window.dueTasks.map((entry) => entry.id)).toEqual(["t1", "t2"]);
     expect(window.events.map((entry) => entry.id)).toEqual(["e2", "e1", "e3"]);
   });
@@ -46,7 +43,6 @@ describe("projectCalendar", () => {
 describe("monthLedger", () => {
   it("enumerates every day of the window and groups content onto it", () => {
     const window = projectCalendar(
-      [block({ id: "b", date: "2026-08-10" })],
       [
         item({ id: "t", kind: "task", dueDate: "2026-08-10" }),
         item({ id: "e", kind: "event", eventDate: "2026-08-11", eventTime: "14:00" }),
@@ -57,16 +53,15 @@ describe("monthLedger", () => {
 
     const ledger = monthLedger(window, "2026-08-10", "2026-08-12");
     expect(ledger.map((day) => day.date)).toEqual(["2026-08-10", "2026-08-11", "2026-08-12"]);
-    expect(ledger[0]!.blocks.map((entry) => entry.id)).toEqual(["b"]);
     expect(ledger[0]!.tasks.map((entry) => entry.id)).toEqual(["t"]);
     expect(ledger[0]!.events).toEqual([]);
     expect(ledger[1]!.events.map((entry) => entry.id)).toEqual(["e"]);
-    expect(ledger[2]!.blocks).toEqual([]);
+    expect(ledger[2]!.tasks).toEqual([]);
   });
 
   it("exposes the weekday index for weekend styling", () => {
     // 2026-08-10 is a Monday.
-    const ledger = monthLedger(projectCalendar([], [], "2026-08-10", "2026-08-10"), "2026-08-10", "2026-08-10");
+    const ledger = monthLedger(projectCalendar([], "2026-08-10", "2026-08-10"), "2026-08-10", "2026-08-10");
     expect(ledger[0]!.weekday).toBe(1);
   });
 });
@@ -74,10 +69,10 @@ describe("monthLedger", () => {
 describe("ledgerRows", () => {
   it("keeps full days as sections and collapses consecutive empty days into a gap", () => {
     const days = [
-      day("2026-08-01", { blocks: 1 }),
+      day("2026-08-01", { tasks: 1 }),
       day("2026-08-02"),
       day("2026-08-03"),
-      day("2026-08-04", { tasks: 1 }),
+      day("2026-08-04", { events: 1 }),
       day("2026-08-05"),
     ];
 
@@ -100,7 +95,7 @@ describe("ledgerRows", () => {
   });
 
   it("returns one section per day when no day is empty", () => {
-    const days = [day("2026-08-01", { blocks: 1 }), day("2026-08-02", { tasks: 1 }), day("2026-08-03", { events: 1 })];
+    const days = [day("2026-08-01", { tasks: 1 }), day("2026-08-02", { events: 1 }), day("2026-08-03", { tasks: 1 })];
 
     expect(ledgerRows(days)).toEqual([
       { type: "day", day: days[0] },
@@ -130,11 +125,10 @@ describe("isOverdueTask", () => {
 });
 
 /** A ledger day with the requested amount of content. */
-function day(date: string, load: { blocks?: number; tasks?: number; events?: number } = {}): LedgerDay {
+function day(date: string, load: { tasks?: number; events?: number } = {}): LedgerDay {
   return {
     date,
     weekday: fromISODate(date).getDay(),
-    blocks: Array.from({ length: load.blocks ?? 0 }, (_, index) => block({ id: `${date}-b${index}`, date })),
     tasks: Array.from({ length: load.tasks ?? 0 }, (_, index) =>
       item({ id: `${date}-t${index}`, kind: "task", dueDate: date }),
     ),

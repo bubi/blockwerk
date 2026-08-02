@@ -123,7 +123,7 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
     dispatch({ type: "calendarLoadStarted" });
     try {
       const window = await client.getCalendar(from, to);
-      dispatch({ type: "calendarLoaded", blocks: window.blocks, dueTasks: window.dueTasks, events: window.events });
+      dispatch({ type: "calendarLoaded", dueTasks: window.dueTasks, events: window.events });
     } catch (err) {
       dispatch({ type: "calendarLoadFailed", error: asClientError(err) });
     }

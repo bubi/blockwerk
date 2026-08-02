@@ -16,7 +16,7 @@ export type Action =
   | { type: "mirrorLoaded"; spaceId: string; tasks: MirrorTask[] }
   | { type: "mirrorLoadFailed"; spaceId: string; error: ClientError }
   | { type: "calendarLoadStarted" }
-  | { type: "calendarLoaded"; blocks: BlockRow[]; dueTasks: ItemRow[]; events: ItemRow[] }
+  | { type: "calendarLoaded"; dueTasks: ItemRow[]; events: ItemRow[] }
   | { type: "calendarLoadFailed"; error: ClientError }
   // ---- optimistic writes ----
   | { type: "writeOptimistic"; op: OptimisticWrite; now: number }
@@ -55,7 +55,6 @@ export function reduce(state: AppState, action: Action): AppState {
     case "calendarLoaded":
       return {
         ...state,
-        blocks: mergeRows(state.blocks, action.blocks),
         items: mergeRows(state.items, [...action.dueTasks, ...action.events]),
         calendarView: { status: "loaded" },
       };

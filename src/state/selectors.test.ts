@@ -89,7 +89,7 @@ describe("selectMirror / selectMirrorGroups", () => {
 });
 
 describe("selectCalendar", () => {
-  it("projects the window via the domain function", () => {
+  it("projects the window via the domain function, without blocks", () => {
     const state = withData({
       blocks: [block({ id: "b-in", date: "2026-08-10" }), block({ id: "b-out", date: "2026-07-01" })],
       items: [
@@ -99,7 +99,7 @@ describe("selectCalendar", () => {
       ],
     });
     const window = selectCalendar(state, "2026-08-01", "2026-08-31");
-    expect(window.blocks.map((entry) => entry.id)).toEqual(["b-in"]);
+    expect(Object.hasOwn(window, "blocks")).toBe(false);
     expect(window.dueTasks.map((entry) => entry.id)).toEqual(["t-in"]);
     expect(window.events.map((entry) => entry.id)).toEqual(["e-in"]);
   });

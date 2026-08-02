@@ -1,4 +1,4 @@
-import type { SpaceRow, TemplateRow } from "../../shared/db.ts";
+import type { SpaceRow } from "../../shared/db.ts";
 import { isOverdueTask, ledgerRows, type LedgerDay } from "../domain/calendar.ts";
 import { dayNumber, formatMonthYear, monthName, weekdayShort } from "../domain/dates.ts";
 import type { ViewStatus } from "../state/state.ts";
@@ -12,7 +12,6 @@ interface DatesProps {
   ledger: LedgerDay[];
   today: string;
   spacesById: ReadonlyMap<string, SpaceRow>;
-  templatesById: ReadonlyMap<string, TemplateRow>;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onJumpToBlock: (blockId: string) => void;
@@ -20,14 +19,17 @@ interface DatesProps {
 }
 
 /**
- * The calendar column (prototype reference): days with entries are sections
- * with a full-width heading line (weekday, date, "heute" tag), their entries
- * are two-line cards. Consecutive empty days collapse into one gap row. The
- * grouping is pure domain logic (ledgerRows); this component only renders it.
+ * The calendar column (prototype reference for the layout): days with entries
+ * are sections with a full-width heading line (weekday, date, "heute" tag),
+ * their entries are two-line cards. Only consciously set dates are shown —
+ * task due dates and events; a block's date is automatic and never appears.
+ * Consecutive empty days collapse into one gap row; a completely empty month
+ * shows an empty state instead. The grouping is pure domain logic
+ * (ledgerRows); this component only renders it.
  */
 export function Dates(props: DatesProps) {
-  const { month, view, ledger, today, spacesById, templatesById, onPrevMonth, onNextMonth, onJumpToBlock, onRetry } = props;
-  const load = ledger.reduce((sum, day) => sum + day.blocks.length + day.tasks.length + day.events.length, 0);
+  const { month, view, ledger, today, spacesById, onPrevMonth, onNextMonth, onJumpToBlock, onRetry } = props;
+  const load = ledger.reduce((sum, day) => sum + day.tasks.length + day.events.length, 0);
 
   return (
     <div className={styles.dates}>
@@ -46,6 +48,8 @@ export function Dates(props: DatesProps) {
         <Loading label="Kalender wird geladen…" />
       ) : view.status === "failed" ? (
         <LoadError message={formatError(view.error)} onRetry={onRetry} />
+      ) : load === 0 ? (
+        <p className={styles.empty}>Keine Termine oder Fälligkeiten in diesem Monat.</p>
       ) : (
         <div className={styles.ledger}>
           {ledgerRows(ledger).map((row) =>
@@ -59,7 +63,6 @@ export function Dates(props: DatesProps) {
                 day={row.day}
                 today={today}
                 spacesById={spacesById}
-                templatesById={templatesById}
                 onJumpToBlock={onJumpToBlock}
               />
             ),
@@ -74,13 +77,11 @@ function DayBlock({
   day,
   today,
   spacesById,
-  templatesById,
   onJumpToBlock,
 }: {
   day: LedgerDay;
   today: string;
   spacesById: ReadonlyMap<string, SpaceRow>;
-  templatesById: ReadonlyMap<string, TemplateRow>;
   onJumpToBlock: (blockId: string) => void;
 }) {
   const isToday = day.date === today;
@@ -126,23 +127,6 @@ function DayBlock({
               {task.assigneeSpaceId && (
                 <span className={styles.cardwho}>{spacesById.get(task.assigneeSpaceId)?.name.split(" ")[0]}</span>
               )}
-            </span>
-          </button>
-        );
-      })}
-
-      {day.blocks.map((block) => {
-        const template = templatesById.get(block.templateId ?? "");
-        return (
-          <button
-            key={block.id}
-            type="button"
-            className={`${styles.card} hue-${template?.hue ?? "ink"}`}
-            onClick={() => onJumpToBlock(block.id)}
-          >
-            <span className={styles.cardtitle}>{block.title}</span>
-            <span className={styles.cardmeta}>
-              <span className={styles.cardkind}>{template?.label ?? "Block"}</span>
             </span>
           </button>
         );

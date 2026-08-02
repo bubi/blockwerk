@@ -1,23 +1,21 @@
-import type { BlockRow, CalendarWindow, ItemRow } from "../../shared/db.ts";
+import type { CalendarWindow, ItemRow } from "../../shared/db.ts";
 import { addDays, fromISODate, toISODate } from "./dates.ts";
 
 /**
  * The calendar projection — the single definition of which dated objects
- * appear in a window and in which order: blocks by their date, tasks by due
- * date, events by date/time, all `YYYY-MM-DD` inclusive. The worker builds
- * it from all loaded rows; the client can build it from data it already
- * holds (e.g. the month strip).
+ * appear in a window and in which order: tasks by due date, events by
+ * date/time, all `YYYY-MM-DD` inclusive. Only consciously set dates (due
+ * date, event date) are projected — a block's date is assigned automatically
+ * and is not a time statement, so blocks never appear. The worker builds it
+ * from all loaded rows; the client can build it from data it already holds
+ * (e.g. the month strip).
  */
 export function projectCalendar(
-  blocks: readonly BlockRow[],
   items: readonly ItemRow[],
   from: string,
   to: string,
 ): CalendarWindow {
   return {
-    blocks: blocks
-      .filter((block) => block.date >= from && block.date <= to)
-      .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
     dueTasks: items
       .filter(
         (item) =>
@@ -49,7 +47,6 @@ export interface LedgerDay {
   date: string;
   /** 0 = Sunday … 6 = Saturday, for weekend/weekday styling. */
   weekday: number;
-  blocks: BlockRow[];
   tasks: ItemRow[];
   events: ItemRow[];
 }
@@ -64,10 +61,9 @@ export function monthLedger(window: CalendarWindow, from: string, to: string): L
   const end = fromISODate(to);
   while (cursor.getTime() <= end.getTime()) {
     const key = toISODate(cursor);
-    days.set(key, { date: key, weekday: cursor.getDay(), blocks: [], tasks: [], events: [] });
+    days.set(key, { date: key, weekday: cursor.getDay(), tasks: [], events: [] });
     cursor = addDays(cursor, 1);
   }
-  for (const block of window.blocks) days.get(block.date)?.blocks.push(block);
   for (const task of window.dueTasks) if (task.dueDate) days.get(task.dueDate)?.tasks.push(task);
   for (const event of window.events) if (event.eventDate) days.get(event.eventDate)?.events.push(event);
   return [...days.values()];
@@ -88,7 +84,7 @@ export function ledgerRows(days: readonly LedgerDay[]): LedgerRow[] {
   const rows: LedgerRow[] = [];
   let run: { from: string; count: number } | null = null;
   for (const day of days) {
-    const load = day.blocks.length + day.tasks.length + day.events.length;
+    const load = day.tasks.length + day.events.length;
     if (load === 0) {
       if (run) run.count += 1;
       else run = { from: day.date, count: 1 };

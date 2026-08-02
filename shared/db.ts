@@ -63,9 +63,14 @@ export interface ItemRow {
   updatedAt: number;
 }
 
-/** The dated objects of a calendar window — built by /src/domain and used by the worker's calendar route. */
+/**
+ * The calendar window — only the consciously dated objects: task due dates
+ * and events. A block's date is assigned automatically when the block is
+ * created; it orders the stream and feeds search, but is not a statement
+ * about time, so blocks never appear here. Built by /src/domain and used by
+ * the worker's calendar route.
+ */
 export interface CalendarWindow {
-  blocks: BlockRow[];
   dueTasks: ItemRow[];
   events: ItemRow[];
 }

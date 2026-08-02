@@ -143,7 +143,7 @@ describe("GET /api/spaces/:id/mirror", () => {
 });
 
 describe("GET /api/calendar", () => {
-  it("returns blocks, due tasks, and events inside the window", async () => {
+  it("returns due tasks and events inside the window, without blocks", async () => {
     const db = await getTestDb();
     await seedSpace(db, "cal-space");
     await seedPage(db, "cal-page", "cal-space");
@@ -155,7 +155,7 @@ describe("GET /api/calendar", () => {
     const { status, body } = await json<CalendarResponse>("GET", "/api/calendar?from=2026-12-10&to=2026-12-11");
 
     expect(status).toBe(200);
-    expect(body.blocks.map((block) => block.id)).toEqual(["cal-block"]);
+    expect(Object.hasOwn(body, "blocks")).toBe(false);
     expect(body.dueTasks.map((task) => task.id)).toEqual(["cal-task"]);
     expect(body.events.map((event) => event.id)).toEqual(["cal-event"]);
   });
@@ -431,7 +431,7 @@ describe("query budget per read route", () => {
     const beforeCalendar = count();
     const calendar = await json<CalendarResponse>("GET", "/api/calendar?from=2026-08-01&to=2026-08-31", undefined, db);
     expect(calendar.status).toBe(200);
-    expect(count() - beforeCalendar).toBe(2);
+    expect(count() - beforeCalendar).toBe(1);
   });
 
   it("stays fixed for a respace-triggering item write, regardless of block size", async () => {

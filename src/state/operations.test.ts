@@ -123,7 +123,7 @@ describe("operations — loads", () => {
     const { calls, actions, ops } = makeHarness();
     calls.getPage.mockResolvedValue({ page: { id: "p1", spaceId: "s1", title: "P", createdAt: 1, updatedAt: 1 }, blocks: [] });
     calls.getMirror.mockResolvedValue([]);
-    calls.getCalendar.mockResolvedValue({ blocks: [], dueTasks: [], events: [] });
+    calls.getCalendar.mockResolvedValue({ dueTasks: [], events: [] });
 
     await ops.loadPage("p1");
     await ops.loadMirror("person1");

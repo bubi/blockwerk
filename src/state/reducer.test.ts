@@ -231,9 +231,8 @@ describe("load states", () => {
     expect(state.mirrorOrder.get("p1")).toEqual(["t1"]);
     expect(state.items.get("t1")).toBe(task);
 
-    state = reduce(state, { type: "calendarLoaded", blocks: [block({ id: "cb", pageId: "pg1" })], dueTasks: [task], events: [] });
+    state = reduce(state, { type: "calendarLoaded", dueTasks: [task], events: [] });
     expect(state.calendarView.status).toBe("loaded");
-    expect(state.blocks.has("cb")).toBe(true);
     expect(state.items.get("t1")).toBe(task);
   });
 
