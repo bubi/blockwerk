@@ -8,9 +8,6 @@
     "moduleDetection": "force",
     "allowImportingTsExtensions": true,
     "noEmit": true,
-    "paths": {
-      "#test-db": ["./worker/db/testing/get-test-db.workers.ts"]
-    },
 
     "strict": true,
     "noUnusedLocals": true,
@@ -23,9 +20,5 @@
     "isolatedModules": true
   },
   "include": ["worker", "shared", "worker-configuration.d.ts"],
-  "exclude": [
-    "worker/db/vitest.config.ts",
-    "worker/db/testing/get-test-db.local.ts",
-    "worker/db/testing/sqlite-d1.ts"
-  ]
+  "exclude": ["worker/db/vitest.config.ts"]
 }

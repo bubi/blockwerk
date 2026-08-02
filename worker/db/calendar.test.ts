@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getTestDb } from "#test-db";
+import { getTestDb } from "./testing/get-test-db.ts";
 import { createSpace } from "./spaces.ts";
 import { createPage } from "./pages.ts";
 import { createBlock } from "./blocks.ts";

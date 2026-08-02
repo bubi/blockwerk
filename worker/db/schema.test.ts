@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getTestDb } from "#test-db";
+import { getTestDb } from "./testing/get-test-db.ts";
 import type { D1Like } from "./d1-like.ts";
 
 const NOW = 1_700_000_000_000;

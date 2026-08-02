@@ -125,6 +125,9 @@ Komponente schreiben willst, prüfe zuerst, ob sie nach `/domain` gehört.
 
 - Ein Arbeitsschritt hat **PR-Größe**. Lieber fünf kleine Änderungen als ein großer Umbau.
 - Vor jedem Commit laufen `npm run typecheck`, `npm run lint` und `npm test`.
+- **Migrationen gegen Remote führt der Mensch aus, nicht der Assistent.** Der Assistent
+  bereitet sie vor und weist lokal nach, dass sie durchlaufen (`npm run db:migrate:local`);
+  `npm run db:migrate:remote` ist eine bewusste, separate Entscheidung.
 - Architekturentscheidungen kommen als kurzes ADR nach `/docs/adr` — eine Seite: Kontext,
   Entscheidung, Konsequenz. Auch die abgelehnten Alternativen kurz nennen.
 - **Frag nach statt zu raten**, wenn eine Anforderung das Domänenmodell berührt.
@@ -153,8 +156,9 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | Phase | Ziel | Status |
 |-------|------|--------|
 | 0 | Repo-Skelett, Toolchain, `CLAUDE.md` | erledigt |
-| 1 | Leere Seite deployt, hinter Access, CI grün | in Arbeit |
-| 2 | D1-Schema, API, Prototyp-Logik migriert | offen |
+| 1 | Leere Seite deployt, hinter Access, CI grün | erledigt |
+| 2a | D1-Schema | erledigt |
+| 2b | API, Prototyp-Logik migriert | offen |
 | 3 | Tests, ADRs, Aufräumen | offen |
 | 4 | Features: Volltextsuche, Rückverweise, Terminserien | offen |
 

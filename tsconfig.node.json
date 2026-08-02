@@ -13,10 +13,5 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": [
-    "vite.config.ts",
-    "worker/db/vitest.config.ts",
-    "worker/db/testing/get-test-db.local.ts",
-    "worker/db/testing/sqlite-d1.ts"
-  ]
+  "include": ["vite.config.ts", "worker/db/vitest.config.ts"]
 }

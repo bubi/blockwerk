@@ -4,15 +4,11 @@ import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-pool-worker
 
 const migrationsPath = fileURLToPath(new URL("../../migrations", import.meta.url));
 const wranglerConfigPath = fileURLToPath(new URL("../../wrangler.jsonc", import.meta.url));
-const workersDbHandle = fileURLToPath(new URL("./testing/get-test-db.workers.ts", import.meta.url));
 
 export default defineConfig(async () => {
   const migrations = await readD1Migrations(migrationsPath);
 
   return {
-    resolve: {
-      alias: { "#test-db": workersDbHandle },
-    },
     plugins: [
       cloudflareTest({
         wrangler: { configPath: wranglerConfigPath },
