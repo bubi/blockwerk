@@ -157,3 +157,59 @@ test("a block is created from a template with its seed lines", async ({ page }) 
   await page.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
   await expect(spaceButton(page, "Block Test")).toHaveCount(0);
 });
+
+test("rows and blocks can be deleted, with an in-line block confirmation", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Themen hinzufügen" }).dispatchEvent("click");
+  await page.getByLabel("Name des Bereichs").fill("Del Test");
+  await page.getByRole("button", { name: "Anlegen", exact: true }).dispatchEvent("click");
+
+  await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
+  await page.getByRole("menuitem", { name: /Meeting/ }).dispatchEvent("click");
+  const block = page.locator("[data-block-id]").filter({ has: page.locator("input[value='Neuer Meeting']") });
+  await expect(block).toBeVisible();
+  const blockId = await block.getAttribute("data-block-id");
+  const card = page.locator(`[data-block-id='${blockId}']`);
+
+  // The visible row button removes a single line.
+  const headingRow = card.locator("[data-item-id]").filter({ has: page.locator("input[value='Teilnehmer']") });
+  await headingRow.getByRole("button", { name: "Zeile entfernen" }).dispatchEvent("click");
+  await expect(card.locator("input[aria-label='Überschrift'][value='Teilnehmer']")).toHaveCount(0);
+  await expect(card.locator("input[aria-label='Überschrift'][value='Agenda']")).toBeVisible();
+
+  // Deleting the block asks in-line and states the consequence.
+  await card.getByRole("button", { name: "Block entfernen" }).dispatchEvent("click");
+  await expect(card.getByRole("alert")).toContainText("Verweise von außen verlieren ihr Ziel");
+  await card.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
+  await expect(card).toHaveCount(0);
+
+  // Clean up the space.
+  await page.getByRole("button", { name: "Del Test entfernen" }).dispatchEvent("click");
+  await page.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
+  await expect(spaceButton(page, "Del Test")).toHaveCount(0);
+});
+
+test("a page can be deleted and the selection moves on", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Themen hinzufügen" }).dispatchEvent("click");
+  await page.getByLabel("Name des Bereichs").fill("Page Del");
+  await page.getByRole("button", { name: "Anlegen", exact: true }).dispatchEvent("click");
+
+  await page.getByRole("button", { name: "Seite hinzufügen" }).dispatchEvent("click");
+  await page.getByLabel("Neue Seite").fill("Doku");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: "Doku", exact: true })).toBeVisible();
+
+  await page.getByRole("button", { name: "Doku entfernen" }).dispatchEvent("click");
+  await expect(page.getByText("mit ihren Blöcken löschen?")).toBeVisible();
+  await page.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
+
+  // The page is gone; the selection falls back to the remaining "Notizen".
+  await expect(page.getByRole("button", { name: "Doku", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Notizen", exact: true })).toBeVisible();
+
+  // Clean up the space.
+  await page.getByRole("button", { name: "Page Del entfernen" }).dispatchEvent("click");
+  await page.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
+  await expect(spaceButton(page, "Page Del")).toHaveCount(0);
+});

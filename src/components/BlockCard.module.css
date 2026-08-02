@@ -55,6 +55,49 @@
   color: var(--text3);
 }
 
+.kill {
+  margin-left: auto;
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text3);
+  padding: 0 2px;
+}
+
+.kill:hover {
+  color: var(--red);
+}
+
+.confirm {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.confirm p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.confirmbtns {
+  display: flex;
+  gap: 10px;
+  margin-top: 7px;
+}
+
+.sdel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+.scancel {
+  font-size: 13px;
+  color: var(--text2);
+}
+
 .title {
   width: 100%;
   font-size: 17px;

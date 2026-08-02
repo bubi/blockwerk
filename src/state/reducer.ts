@@ -225,8 +225,12 @@ function deletePage(state: AppState, op: Extract<DeleteWrite, { entity: "page" }
   for (const entry of removedBlocks) blocksMap.delete(entry.id);
   for (const entry of removedItems) itemsMap.delete(entry.id);
 
+  // A deleted page leaves no view state behind.
+  const pageViews = new Map(state.pageViews);
+  pageViews.delete(op.id);
+
   const undo: UndoPlan = { remove: [], restore };
-  return addPending({ ...state, pages: pagesMap, blocks: blocksMap, items: itemsMap }, op, undo);
+  return addPending({ ...state, pages: pagesMap, blocks: blocksMap, items: itemsMap, pageViews }, op, undo);
 }
 
 function deleteSpace(state: AppState, op: Extract<DeleteWrite, { entity: "space" }>): AppState {

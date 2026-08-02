@@ -227,6 +227,19 @@ export function ItemRow({
         ) : (
           <span className={styles.refGone}>Ziel entfernt</span>
         ))}
+
+      {onDeleteRow && (
+        <button
+          type="button"
+          className={styles.kill}
+          tabIndex={-1}
+          onClick={() => onDeleteRow(item.id, prevId ?? null)}
+          aria-label="Zeile entfernen"
+          title="Zeile entfernen"
+        >
+          ×
+        </button>
+      )}
     </li>
   );
 }

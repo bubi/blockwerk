@@ -187,3 +187,22 @@
   margin-left: auto;
   flex: none;
 }
+
+/* Per-row delete button — appears on hover, like the space remove buttons. */
+.kill {
+  order: 3;
+  width: 20px;
+  flex: none;
+  font-size: 15px;
+  line-height: 1;
+  color: transparent;
+  text-align: center;
+}
+
+.item:hover .kill {
+  color: var(--text3);
+}
+
+.kill:hover {
+  color: var(--red);
+}

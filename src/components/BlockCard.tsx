@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { BlockRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
 import type { ComposerItemFields } from "../domain/composer.ts";
@@ -22,6 +22,7 @@ interface BlockCardProps {
   onPatchItem: (id: string, patch: ItemPatch) => void;
   onCreateItem: (input: ItemCreateInput) => void;
   onDeleteItem: (id: string) => void;
+  onDeleteBlock: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
 }
 
@@ -43,10 +44,12 @@ export function BlockCard({
   onPatchItem,
   onCreateItem,
   onDeleteItem,
+  onDeleteBlock,
   onJumpToBlock,
 }: BlockCardProps) {
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
   const inputRefs = useRef(new Map<string, HTMLInputElement>());
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const doneCount = block.sections.tasks.filter((task) => task.done).length;
   const eventCount = block.sections.events.length;
@@ -125,36 +128,68 @@ export function BlockCard({
       id={`blk-${block.id}`}
       data-block-id={block.id}
     >
-      <header className={styles.head}>
-        <div className={styles.top}>
-          <span className={styles.pill}>{template.label}</span>
-          <label className={styles.datefield}>
-            <span className="sr-only">Blockdatum</span>
-            <input
-              type="date"
-              value={block.date}
-              onChange={(event) => event.target.value && onPatchBlock(block.id, { date: event.target.value })}
-            />
-          </label>
-          {block.sections.tasks.length > 0 && (
-            <span className={styles.meta}>
-              {doneCount}/{block.sections.tasks.length} Tasks
-            </span>
-          )}
-          {eventCount > 0 && (
-            <span className={styles.meta}>
-              {eventCount} {eventCount === 1 ? "Termin" : "Termine"}
-            </span>
-          )}
+      {confirmDelete ? (
+        <div className={styles.confirm} role="alert">
+          <p>
+            „{block.title || "ohne Titel"}“ mit allen Zeilen löschen? Verweise von außen verlieren ihr Ziel.
+          </p>
+          <div className={styles.confirmbtns}>
+            <button
+              type="button"
+              className={styles.sdel}
+              onClick={() => {
+                onDeleteBlock(block.id);
+                setConfirmDelete(false);
+              }}
+            >
+              Löschen
+            </button>
+            <button type="button" className={styles.scancel} onClick={() => setConfirmDelete(false)}>
+              Abbrechen
+            </button>
+          </div>
         </div>
-        <input
-          className={styles.title}
-          value={block.title}
-          onChange={(event) => onPatchBlock(block.id, { title: event.target.value })}
-          aria-label="Blocktitel"
-          placeholder="Titel"
-        />
-      </header>
+      ) : (
+        <header className={styles.head}>
+          <div className={styles.top}>
+            <span className={styles.pill}>{template.label}</span>
+            <label className={styles.datefield}>
+              <span className="sr-only">Blockdatum</span>
+              <input
+                type="date"
+                value={block.date}
+                onChange={(event) => event.target.value && onPatchBlock(block.id, { date: event.target.value })}
+              />
+            </label>
+            {block.sections.tasks.length > 0 && (
+              <span className={styles.meta}>
+                {doneCount}/{block.sections.tasks.length} Tasks
+              </span>
+            )}
+            {eventCount > 0 && (
+              <span className={styles.meta}>
+                {eventCount} {eventCount === 1 ? "Termin" : "Termine"}
+              </span>
+            )}
+            <button
+              type="button"
+              className={styles.kill}
+              onClick={() => setConfirmDelete(true)}
+              aria-label="Block entfernen"
+              title="Block entfernen"
+            >
+              ×
+            </button>
+          </div>
+          <input
+            className={styles.title}
+            value={block.title}
+            onChange={(event) => onPatchBlock(block.id, { title: event.target.value })}
+            aria-label="Blocktitel"
+            placeholder="Titel"
+          />
+        </header>
+      )}
 
       <ul className={styles.items}>
         {block.sections.notes.map(({ item, indent }, index) => (

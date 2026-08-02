@@ -124,6 +124,24 @@ describe("deleting a space mirrors the server cascade locally", () => {
     expect(state.spaces.has("kept")).toBe(true);
   });
 
+  it("deleting a page cascades its blocks and purges the page view", () => {
+    const base = withData(initialState(), {
+      pages: [page({ id: "pg", spaceId: "sp" })],
+      blocks: [block({ id: "b", pageId: "pg" })],
+      items: [item({ id: "i", kind: "note", blockId: "b" })],
+      mirrorViews: undefined,
+    });
+    const loaded = reduce(base, { type: "pageLoaded", page: base.pages.get("pg")!, blocks: [] });
+    expect(loaded.pageViews.get("pg")?.status).toBe("loaded");
+
+    const gone = reduce(loaded, { type: "writeOptimistic", op: { opKey: "k1", entity: "page", id: "pg", change: "delete" }, now: NOW });
+
+    expect(gone.pages.has("pg")).toBe(false);
+    expect(gone.blocks.has("b")).toBe(false);
+    expect(gone.items.has("i")).toBe(false);
+    expect(gone.pageViews.has("pg")).toBe(false);
+  });
+
   it("deleting a person space purges its mirror state", () => {
     const base = withData(initialState(), {
       spaces: [space({ id: "gone", name: "Gone", kind: "person" })],

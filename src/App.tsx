@@ -227,6 +227,19 @@ export function App() {
     if (title !== "") ops.updatePage(id, { title });
   };
 
+  const deletePage = (id: string) => {
+    ops.deletePage(id);
+    // If the active page goes away, switch to another one — the mirror for a
+    // person space, otherwise the next remaining page (or none).
+    if (resolvedPageId === id && space) {
+      const next = space.pages.find((entry) => entry.id !== id);
+      if (next) setPageId(next.id);
+      else setPageId(isPerson ? "mirror" : null);
+    }
+  };
+
+  const deleteBlock = (id: string) => void ops.deleteBlock(id);
+
   const createBlock = async (templateId: string | null) => {
     if (activePageId === null) return;
     const template = templates.find((entry) => entry.id === templateId);
@@ -339,7 +352,9 @@ export function App() {
               onRetryMirror={() => activeSpaceId !== null && void ops.loadMirror(activeSpaceId)}
               onCreatePage={createPage}
               onRenamePage={renamePage}
+              onDeletePage={deletePage}
               onCreateBlock={createBlock}
+              onDeleteBlock={deleteBlock}
               onCreateTemplate={createTemplate}
               onUpdateTemplate={updateTemplate}
               onDeleteTemplate={deleteTemplate}

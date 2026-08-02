@@ -40,7 +40,9 @@ interface StreamProps {
   onRetryMirror: () => void;
   onCreatePage: (title: string) => void;
   onRenamePage: (pageId: string, title: string) => void;
+  onDeletePage: (pageId: string) => void;
   onCreateBlock: (templateId: string | null) => void;
+  onDeleteBlock: (id: string) => void;
   onCreateTemplate: () => void;
   onUpdateTemplate: (id: string, patch: TemplatePatch) => void;
   onDeleteTemplate: (id: string) => void;
@@ -72,7 +74,9 @@ export function Stream(props: StreamProps) {
     onRetryMirror,
     onCreatePage,
     onRenamePage,
+    onDeletePage,
     onCreateBlock,
+    onDeleteBlock,
     onCreateTemplate,
     onUpdateTemplate,
     onDeleteTemplate,
@@ -98,6 +102,7 @@ export function Stream(props: StreamProps) {
           onSelectPage={onSelectPage}
           onCreatePage={onCreatePage}
           onRenamePage={onRenamePage}
+          onDeletePage={onDeletePage}
         />
       </div>
 
@@ -121,6 +126,7 @@ export function Stream(props: StreamProps) {
           onJumpToBlock={onJumpToBlock}
           onRetry={onRetryPage}
           onCreateBlock={onCreateBlock}
+          onDeleteBlock={onDeleteBlock}
           onManageTemplates={() => setTplOpen(true)}
         />
       )}
@@ -147,6 +153,7 @@ function PageTabs({
   onSelectPage,
   onCreatePage,
   onRenamePage,
+  onDeletePage,
 }: {
   isPerson: boolean;
   mirrorMode: boolean;
@@ -156,11 +163,13 @@ function PageTabs({
   onSelectPage: (pageId: string | "mirror") => void;
   onCreatePage: (title: string) => void;
   onRenamePage: (pageId: string, title: string) => void;
+  onDeletePage: (pageId: string) => void;
 }) {
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   const submitAdd = () => {
     const title = draft.trim();
@@ -191,6 +200,28 @@ function PageTabs({
       )}
       {pages.map((page) => {
         const active = !mirrorMode && page.id === selectedPageId;
+        if (confirmId === page.id) {
+          return (
+            <span key={page.id} className={styles.tabconfirm} role="alert">
+              <span>„{page.title}“ mit ihren Blöcken löschen?</span>
+              <span className={styles.tabconfirmbtns}>
+                <button
+                  type="button"
+                  className={styles.sdel}
+                  onClick={() => {
+                    onDeletePage(page.id);
+                    setConfirmId(null);
+                  }}
+                >
+                  Löschen
+                </button>
+                <button type="button" className={styles.scancel} onClick={() => setConfirmId(null)}>
+                  Abbrechen
+                </button>
+              </span>
+            </span>
+          );
+        }
         if (editingId === page.id) {
           return (
             <span key={page.id} className={styles.tabedit}>
@@ -229,6 +260,15 @@ function PageTabs({
               title="Seite umbenennen"
             >
               ✎
+            </button>
+            <button
+              type="button"
+              className={styles.tabdelete}
+              onClick={() => setConfirmId(page.id)}
+              aria-label={`${page.title} entfernen`}
+              title="Seite entfernen"
+            >
+              ×
             </button>
           </span>
         );
@@ -283,6 +323,7 @@ function PagePane({
   onJumpToBlock,
   onRetry,
   onCreateBlock,
+  onDeleteBlock,
   onManageTemplates,
 }: {
   pageView: ViewStatus;
@@ -301,6 +342,7 @@ function PagePane({
   onJumpToBlock: (blockId: string) => void;
   onRetry: () => void;
   onCreateBlock: (templateId: string | null) => void;
+  onDeleteBlock: (id: string) => void;
   onManageTemplates: () => void;
 }) {
   if (pageView.status === "idle" || pageView.status === "loading") return <Loading />;
@@ -326,6 +368,7 @@ function PagePane({
               onPatchItem={onPatchItem}
               onCreateItem={onCreateItem}
               onDeleteItem={onDeleteItem}
+              onDeleteBlock={onDeleteBlock}
               onJumpToBlock={onJumpToBlock}
             />
           ))}
