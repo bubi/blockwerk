@@ -3,7 +3,6 @@ import { calendarParamsSchema } from "../shared/schemas.ts";
 import type { CalendarResponse } from "../shared/api.ts";
 import type { AccessIdentity } from "../shared/access.ts";
 import type { Env } from "./env.ts";
-import type { D1Like } from "./db/d1-like.ts";
 import {
   BadRequestError,
   HttpError,
@@ -86,13 +85,13 @@ async function readJson(request: Request): Promise<unknown> {
   }
 }
 
-async function getCalendarFromParams(db: D1Like, params: URLSearchParams): Promise<CalendarResponse> {
+async function getCalendarFromParams(db: D1Database, params: URLSearchParams): Promise<CalendarResponse> {
   const parsed = calendarParamsSchema.safeParse({ from: params.get("from"), to: params.get("to") });
   if (!parsed.success) throw new ValidationError(zodToFieldIssues(parsed.error));
   return getCalendar(db, parsed.data.from, parsed.data.to);
 }
 
-function putEntity(db: D1Like, entity: EntityName, id: string, body: unknown, email: string) {
+function putEntity(db: D1Database, entity: EntityName, id: string, body: unknown, email: string) {
   const now = Date.now();
   switch (entity) {
     case "space":
@@ -108,7 +107,7 @@ function putEntity(db: D1Like, entity: EntityName, id: string, body: unknown, em
   }
 }
 
-function patchEntity(db: D1Like, entity: EntityName, id: string, body: unknown, email: string) {
+function patchEntity(db: D1Database, entity: EntityName, id: string, body: unknown, email: string) {
   const now = Date.now();
   switch (entity) {
     case "space":

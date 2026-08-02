@@ -80,6 +80,11 @@ Eine Stufe: D1-Tests (`worker/db/*.test.ts`) laufen ausschließlich über
   einer anderen Maschine) und sich der Fehler nicht wie diesmal auf einen Bug in der
   eigenen Testinfrastruktur zurückführen lässt: dann ist ein Shim wieder eine legitime
   Option — diesmal mit einer echten, dokumentierten Ursache statt eines Verdachts.
+- **Fortschreibung (Phase 3):** Auch die schmale `D1Like`-Oberfläche, die Shim und echtes
+  D1 strukturell vereinen sollte, ist inzwischen zurückgebaut — die db-Schicht nutzt
+  direkt den echten `D1Database`-Typ. Der hier beschriebene Grund (eine Wahrheit statt
+  zwei) hat sich damit noch einmal bestätigt: es gibt nichts mehr, das mit echtem D1
+  „synchron gehalten" werden müsste.
 
 ## Verworfene Alternative: zwei Teststufen dauerhaft behalten
 

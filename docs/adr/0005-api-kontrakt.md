@@ -44,18 +44,21 @@ Feldpfad (`{ path: "spaceId", code: "not_found" }`) statt roher FK-Fehler.
 Block-Reihenfolge (Notizen und Refs → Tasks → Termine; Termine chronologisch)
 liegt als `orderBlockItems` in `/src/domain/order.ts`; `loadPageBlocks` lädt
 die Items nur noch mechanisch (`block_id`, `id`) und ruft die Domänenfunktion
-auf. Es gibt kein zweites Ordering im SQL. Refs sind Stream-Zeilen wie
-Notizen — der Prototyp rendert sie zwischen den Notizzeilen und rückt sie
-unter Überschriften ein (PROJECT.md kennt drei Gruppen, keine vierte). Blöcke
-einer Seite: date DESC, id. Spiegel: Fälligkeit, `null` zuletzt — eine
-Sicht-Abfrage ohne Domänen-Pendant.
+auf. Dasselbe gilt für die Block-Reihenfolge einer Seite (`date DESC, id`):
+der Worker sortiert nicht in SQL, sondern ruft `orderPageBlocks` auf — Worker
+und Client nutzen dieselbe Funktion (in Phase 3 bereinigt). Es gibt kein
+zweites Ordering im SQL. Refs sind Stream-Zeilen wie Notizen — der Prototyp
+rendert sie zwischen den Notizzeilen und rückt sie unter Überschriften ein
+(PROJECT.md kennt drei Gruppen, keine vierte). Spiegel: Fälligkeit, `null`
+zuletzt — eine Sicht-Abfrage ohne Domänen-Pendant.
 
 **Kalenderprojektion ebenfalls einmal definiert.** `projectCalendar` in
 `/src/domain` ist die einzige Definition, welche datierten Objekte in einem
 Zeitfenster liegen und wie sie geordnet sind. Die Worker-Route lädt alle
 Blöcke und Items (zwei feste Abfragen) und projiziert darüber. Die
-fensterbasierten Kalender-Indizes aus der Migration sind damit ungenutzt und
-Kandidaten für das Aufräumen in Phase 3.
+fensterbasierten Kalender-Indizes aus 0001 waren dadurch ungenutzt und
+wurden in Phase 3 per `migrations/0002_drop_unused_calendar_indexes.sql`
+entfernt — reiner Schreibaufwand, ohne je gelesen zu werden.
 
 **Zod an der Systemgrenze, Schemata in `/shared`** (direct dependency
 `zod@4.4.3`), damit Client und Worker dieselbe Wahrheit nutzen. Objekte sind

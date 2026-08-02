@@ -1,5 +1,4 @@
 import type { SpaceRow } from "../../shared/db.ts";
-import type { D1Like } from "./d1-like.ts";
 import { mapSpace, type RawSpaceRow } from "./mappers.ts";
 
 export interface NewSpaceInput {
@@ -15,7 +14,7 @@ export interface SpacePatch {
   short?: string;
 }
 
-export async function createSpace(db: D1Like, input: NewSpaceInput, now: number): Promise<SpaceRow> {
+export async function createSpace(db: D1Database, input: NewSpaceInput, now: number): Promise<SpaceRow> {
   await db
     .prepare("INSERT INTO spaces (id, name, kind, short, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)")
     .bind(input.id, input.name, input.kind, input.short, now, now)
@@ -23,18 +22,18 @@ export async function createSpace(db: D1Like, input: NewSpaceInput, now: number)
   return { ...input, createdAt: now, updatedAt: now };
 }
 
-export async function getSpace(db: D1Like, id: string): Promise<SpaceRow | null> {
+export async function getSpace(db: D1Database, id: string): Promise<SpaceRow | null> {
   const row = await db.prepare("SELECT * FROM spaces WHERE id = ?").bind(id).first<RawSpaceRow>();
   return row ? mapSpace(row) : null;
 }
 
-export async function listSpaces(db: D1Like): Promise<SpaceRow[]> {
+export async function listSpaces(db: D1Database): Promise<SpaceRow[]> {
   const { results } = await db.prepare("SELECT * FROM spaces ORDER BY id ASC").all<RawSpaceRow>();
   return results.map(mapSpace);
 }
 
 export async function updateSpace(
-  db: D1Like,
+  db: D1Database,
   id: string,
   patch: SpacePatch,
   now: number,
@@ -65,7 +64,7 @@ export async function updateSpace(
  * Cascades pages/blocks/items and nulls assignee_space_id elsewhere — see
  * docs/adr/0001-task-spiegel.md.
  */
-export async function deleteSpace(db: D1Like, id: string): Promise<boolean> {
+export async function deleteSpace(db: D1Database, id: string): Promise<boolean> {
   const result = await db.prepare("DELETE FROM spaces WHERE id = ?").bind(id).run();
   return result.meta.changes > 0;
 }

@@ -2,8 +2,8 @@ import { expect, test } from "@playwright/test";
 
 test("composer: /task with @Person and !morgen creates a task, visible in the block and the mirror", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: /Roadmap Q3/ }).click();
-  await page.getByRole("button", { name: "Planung" }).click();
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
 
   const composer = page.locator("[data-block-id='b1']").getByLabel("Neue Zeile");
   await composer.click();
@@ -21,7 +21,7 @@ test("composer: /task with @Person and !morgen creates a task, visible in the bl
   await expect(row.getByText("morgen", { exact: true })).toBeVisible();
 
   // The same row is mirrored in Tomas's space.
-  await page.getByRole("button", { name: /Tomas Kirsch/ }).click();
+  await page.getByRole("button", { name: /^Tomas Kirsch(?:\s+\d+)?$/ }).click();
   const mirrored = page.locator("[data-item-id]").filter({ has: page.locator('input[value="Protokoll"]') });
   await expect(mirrored).toBeVisible();
   await expect(mirrored.getByText("morgen", { exact: true })).toBeVisible();
@@ -29,8 +29,8 @@ test("composer: /task with @Person and !morgen creates a task, visible in the bl
 
 test("typing # at the line start converts a note into a heading, indenting the following line", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: /Roadmap Q3/ }).click();
-  await page.getByRole("button", { name: "Planung" }).click();
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
 
   const converted = page.locator("[data-item-id='b2-n1'] input");
   await converted.fill("# Kontext");
@@ -43,8 +43,8 @@ test("typing # at the line start converts a note into a heading, indenting the f
 
 test("Enter in a heading inserts a new line directly below, not at the block end", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: /Roadmap Q3/ }).click();
-  await page.getByRole("button", { name: "Planung" }).click();
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
 
   const b1 = page.locator("[data-block-id='b1']");
   const noteInputs = b1.locator("input[aria-label='Notiz']");
@@ -68,8 +68,8 @@ test("Enter in a heading inserts a new line directly below, not at the block end
 
 test("arrow keys select rows, Space toggles a task, Escape switches the mode — no mouse", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: /Roadmap Q3/ }).click();
-  await page.getByRole("button", { name: "Planung" }).click();
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
 
   const b1 = page.locator("[data-block-id='b1']");
   const row = (id: string) => b1.locator(`[data-item-id='${id}']`);
@@ -115,8 +115,8 @@ test("arrow keys select rows, Space toggles a task, Escape switches the mode —
 
 test("a change made through the composer survives a reload", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: /Roadmap Q3/ }).click();
-  await page.getByRole("button", { name: "Planung" }).click();
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
 
   const composer = page.locator("[data-block-id='b1']").getByLabel("Neue Zeile");
   await composer.click();
@@ -127,7 +127,7 @@ test("a change made through the composer survives a reload", async ({ page }) =>
   await expect(page.locator('input[value="Rechner bestellen"]')).toBeVisible();
 
   await page.goto("/");
-  await page.getByRole("button", { name: /Roadmap Q3/ }).click();
-  await page.getByRole("button", { name: "Planung" }).click();
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
   await expect(page.locator('input[value="Rechner bestellen"]')).toBeVisible();
 });

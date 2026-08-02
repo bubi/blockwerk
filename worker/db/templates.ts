@@ -1,5 +1,4 @@
 import type { TemplateRow } from "../../shared/db.ts";
-import type { D1Like } from "./d1-like.ts";
 import { mapTemplate, type RawTemplateRow } from "./mappers.ts";
 
 export interface NewTemplateInput {
@@ -15,7 +14,7 @@ export interface TemplatePatch {
   seed?: string[];
 }
 
-export async function createTemplate(db: D1Like, input: NewTemplateInput, now: number): Promise<TemplateRow> {
+export async function createTemplate(db: D1Database, input: NewTemplateInput, now: number): Promise<TemplateRow> {
   await db
     .prepare("INSERT INTO templates (id, label, hue, seed, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)")
     .bind(input.id, input.label, input.hue, JSON.stringify(input.seed), now, now)
@@ -23,18 +22,18 @@ export async function createTemplate(db: D1Like, input: NewTemplateInput, now: n
   return { ...input, createdAt: now, updatedAt: now };
 }
 
-export async function getTemplate(db: D1Like, id: string): Promise<TemplateRow | null> {
+export async function getTemplate(db: D1Database, id: string): Promise<TemplateRow | null> {
   const row = await db.prepare("SELECT * FROM templates WHERE id = ?").bind(id).first<RawTemplateRow>();
   return row ? mapTemplate(row) : null;
 }
 
-export async function listTemplates(db: D1Like): Promise<TemplateRow[]> {
+export async function listTemplates(db: D1Database): Promise<TemplateRow[]> {
   const { results } = await db.prepare("SELECT * FROM templates ORDER BY id ASC").all<RawTemplateRow>();
   return results.map(mapTemplate);
 }
 
 export async function updateTemplate(
-  db: D1Like,
+  db: D1Database,
   id: string,
   patch: TemplatePatch,
   now: number,
@@ -50,7 +49,7 @@ export async function updateTemplate(
 }
 
 /** Blocks keep their content and fall back to "Ohne Template" — see docs/adr/0001-task-spiegel.md. */
-export async function deleteTemplate(db: D1Like, id: string): Promise<boolean> {
+export async function deleteTemplate(db: D1Database, id: string): Promise<boolean> {
   const result = await db.prepare("DELETE FROM templates WHERE id = ?").bind(id).run();
   return result.meta.changes > 0;
 }

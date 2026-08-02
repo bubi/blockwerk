@@ -145,6 +145,7 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
         ) : (
           <input
             ref={inputRef}
+            id={`composer-${blockId}`}
             className={styles.input}
             value={value}
             onChange={(event) => {

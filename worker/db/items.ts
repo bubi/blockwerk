@@ -1,6 +1,5 @@
 import type { ItemRow } from "../../shared/db.ts";
 import { orderBlockItems } from "../../src/domain/order.ts";
-import type { D1Like } from "./d1-like.ts";
 import { mapItem, type RawItemRow } from "./mappers.ts";
 
 interface NewItemBase {
@@ -59,7 +58,7 @@ export function buildItemRow(input: NewItemInput, position: number, now: number)
         : { ...base, refBlockId: input.refBlockId };
 }
 
-async function insertItemRow(db: D1Like, row: ItemRow): Promise<void> {
+async function insertItemRow(db: D1Database, row: ItemRow): Promise<void> {
   await db
     .prepare(
       `INSERT INTO items
@@ -85,18 +84,18 @@ async function insertItemRow(db: D1Like, row: ItemRow): Promise<void> {
     .run();
 }
 
-export async function createItem(db: D1Like, input: NewItemInput, now: number): Promise<ItemRow> {
+export async function createItem(db: D1Database, input: NewItemInput, now: number): Promise<ItemRow> {
   const row = buildItemRow(input, input.position, now);
   await insertItemRow(db, row);
   return row;
 }
 
-export async function getItem(db: D1Like, id: string): Promise<ItemRow | null> {
+export async function getItem(db: D1Database, id: string): Promise<ItemRow | null> {
   const row = await db.prepare("SELECT * FROM items WHERE id = ?").bind(id).first<RawItemRow>();
   return row ? mapItem(row) : null;
 }
 
-export async function updateItem(db: D1Like, id: string, patch: ItemPatch, now: number): Promise<ItemRow | null> {
+export async function updateItem(db: D1Database, id: string, patch: ItemPatch, now: number): Promise<ItemRow | null> {
   const sets: string[] = [];
   const values: unknown[] = [];
   const set = (column: string, value: unknown) => {
@@ -121,7 +120,7 @@ export async function updateItem(db: D1Like, id: string, patch: ItemPatch, now: 
   return getItem(db, id);
 }
 
-export async function deleteItem(db: D1Like, id: string): Promise<boolean> {
+export async function deleteItem(db: D1Database, id: string): Promise<boolean> {
   const result = await db.prepare("DELETE FROM items WHERE id = ?").bind(id).run();
   return result.meta.changes > 0;
 }
@@ -130,7 +129,7 @@ export async function deleteItem(db: D1Like, id: string): Promise<boolean> {
 // Ordered insertion with block re-spacing
 // ============================================================
 
-export async function listBlockItems(db: D1Like, blockId: string): Promise<ItemRow[]> {
+export async function listBlockItems(db: D1Database, blockId: string): Promise<ItemRow[]> {
   const { results } = await db.prepare("SELECT * FROM items WHERE block_id = ?").bind(blockId).all<RawItemRow>();
   return results.map(mapItem);
 }
@@ -153,7 +152,7 @@ export interface ItemCreateResult {
  * the item it collided with. The re-space is a single UPDATE ... CASE, so a
  * large block still costs one query, not one per row.
  */
-export async function createItemWithRespace(db: D1Like, input: NewItemInput, now: number): Promise<ItemCreateResult> {
+export async function createItemWithRespace(db: D1Database, input: NewItemInput, now: number): Promise<ItemCreateResult> {
   const blockItems = await listBlockItems(db, input.blockId);
   const collides = blockItems.some((item) => item.position === input.position);
   if (!collides) {

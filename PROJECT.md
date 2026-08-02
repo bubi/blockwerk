@@ -56,7 +56,9 @@ Regeln, die im Code gelten müssen:
   und werden unter Überschriften eingerückt — es gibt keine vierte Gruppe. Innerhalb der
   Notizen und Verweise zählt `position`, Termine werden chronologisch sortiert. Diese Regel
   ist **genau einmal** definiert (in `/src/domain`, `orderBlockItems`); der Worker ruft sie
-  von dort auf und sortiert nicht zusätzlich in SQL.
+  von dort auf und sortiert nicht zusätzlich in SQL. Dasselbe gilt für die Block-Reihenfolge
+  einer Seite (neuestes Datum zuerst): `orderPageBlocks` ist die einzige Definition, Worker
+  und Client rufen sie beide auf.
 - **Positionen:** Lücken zulassen (Schritt 1000), bei Erschöpfung Respace des Blocks
   (eine Anweisung, Reihenfolge bleibt erhalten — siehe [ADR 0009](docs/adr/0009-position-respace.md)).
 - **Überschriften:** Ein Item mit `heading` ist eine Überschrift; alle folgenden Notiz- und
@@ -109,10 +111,14 @@ Eine Zeile darf nicht verschwinden, weil jemand an anderer Stelle etwas gelösch
   /components   UI
   /state        Reducer und Datenzugriff
 /worker         Worker: Routing, Access-Prüfung, D1-Zugriff
+  /db/testing   Testhelfer für die worker/db-Tests (Abfragezähler, Migrationen)
 /shared         Typen, die Client und Worker teilen
 /migrations     D1-Migrationen, aufsteigend nummeriert
+/e2e            Playwright-Specs gegen die lokale Umgebung
+/scripts        Entwicklungshelfer (z. B. der E2E-Webserver)
 /docs/adr       kurze Entscheidungsprotokolle
 /prototype      der ursprüngliche Einzeldatei-Prototyp, als Referenz
+seed.sql        idempotentes Seed für die lokale Entwicklung (INSERT OR IGNORE)
 ```
 
 `/domain` ist die wichtigste Grenze: Datumsparser, Token-Parser (`@Person`, `!datum`, `14:00`),
@@ -127,9 +133,10 @@ Logik in eine Komponente wandern, erst prüfen, ob sie stattdessen nach `/domain
   Deutsch. Fachbegriffe im Code englisch (`space`, `block`, `item`), nicht gemischt.
 - **TypeScript strict.** Kein `any`. Typen für Datenbankzeilen liegen in `/shared`.
 - **Keine Formatierungsdebatten:** Prettier und ESLint entscheiden, nicht wir.
-- **Tests:** Vitest für `/domain` und den Worker, Playwright für die paar Wege, die wirklich
-  brechen dürfen (Login, Block anlegen, Task zuweisen und abhaken, Kalender).
-  Kein Zwang zu Coverage-Zahlen; Tests für Logik, nicht für Markup.
+- **Tests:** Vitest für `/domain` und den Worker, Playwright für die Wege, die wirklich
+  brechen dürfen (Seiten-/Blockstream-Reihenfolge, Bereichswechsel, Composer-Interaktion
+  samt Tastatur, Task-Spiegel, Verwaltung). Kein Zwang zu Coverage-Zahlen; Tests für
+  Logik, nicht für Markup.
 - **Migrationen sind unveränderlich.** Einmal deployt wird eine Migration nie editiert,
   sondern durch eine neue ersetzt.
 - **Commits:** Konventionelles Format (`feat:`, `fix:`, `refactor:`, `docs:`).
@@ -153,7 +160,8 @@ jedem Commit.
 Zusätzlich gibt es **Playwright-Wege gegen die lokale Umgebung** (`npm run test:e2e`):
 sie starten den Worker mit D1 local und Seed selbst (siehe unten) und brauchen den
 Port 8787 frei. Sie gehören nicht zu den vier Gates, weil sie die echte lokale
-Umgebung voraussetzen; die drei Wege sind die, die wirklich brechen dürfen.
+Umgebung voraussetzen; abgedeckt sind Stream-Reihenfolge, Bereichswechsel,
+Composer/Tastatur, Task-Spiegel und die Verwaltung.
 
 ---
 
@@ -217,7 +225,7 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 1 | Leere Seite deployt, hinter Access, CI grün | erledigt |
 | 2a | D1-Schema | erledigt |
 | 2b | API, Prototyp-Logik, State/Client, Oberfläche | erledigt |
-| 3 | Tests, ADRs, Aufräumen | offen |
+| 3 | Rest von 2b (Verwaltung), Tests, ADRs, Aufräumen | in Arbeit |
 | 4 | Features: Volltextsuche, Rückverweise, Terminserien | offen |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
@@ -230,10 +238,11 @@ Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.
 `/prototype/blockwerk.jsx` ist eine lauffähige Einzeldatei mit dem vollständigen
 Interaktionsmodell: Slash-Befehle, `#`-Überschriften mit Einrückung, Tastaturbedienung
 (Pfeiltasten wählen Zeilen, Leertaste hakt ab), Task-Spiegel, Datumsleiste,
-Bereichs- und Template-Verwaltung. In der echten Anwendung sind davon umgesetzt:
+Bereichs- und Template-Verwaltung. In der echten Anwendung ist davon alles umgesetzt:
 Composer mit Slash-Menü, `#`-Umwandlung, Zeilen einfügen/löschen, zwei Tastaturmodi
-über den DOM-Fokus (ADR 0008) sowie Position-Respace (ADR 0009); Bereichs- und
-Template-Verwaltung folgen noch.
+über den DOM-Fokus (ADR 0008), Position-Respace (ADR 0009), sowie die Verwaltung
+(Bereiche anlegen/löschen mit Rückfrage, Seiten anlegen/umbenennen, Block anlegen,
+Templates bearbeiten).
 
 Er ist **Referenz für das Verhalten, nicht für die Struktur.** Der Zustand liegt dort in
 einem einzigen Objekt und wird über einen Key-Value-Speicher persistiert. Diese Grenze

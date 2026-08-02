@@ -1,6 +1,7 @@
+import { useState } from "react";
 import type { SpaceWithPages } from "../../shared/api.ts";
-import type { BlockRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
-import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
+import type { BlockRow, PageRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
+import type { BlockPatch, ItemPatch, TemplatePatch } from "../../shared/schemas.ts";
 import type { MirrorGroup } from "../domain/mirror.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
 import type { ViewStatus } from "../state/state.ts";
@@ -9,7 +10,9 @@ import { BlockCard } from "./BlockCard.tsx";
 import { formatError } from "./errorText.ts";
 import { FALLBACK_TEMPLATE } from "./fallbackTemplate.ts";
 import { Mirror } from "./Mirror.tsx";
+import { NewBlockBar } from "./NewBlockBar.tsx";
 import { LoadError, Loading } from "./status.tsx";
+import { TemplateManager } from "./TemplateManager.tsx";
 import styles from "./Stream.module.css";
 
 interface StreamProps {
@@ -18,6 +21,7 @@ interface StreamProps {
   isPerson: boolean;
   pageBlocks: BlockView[];
   mirrorGroups: MirrorGroup[];
+  templates: TemplateRow[];
   templatesById: ReadonlyMap<string, TemplateRow>;
   spacesById: ReadonlyMap<string, SpaceRow>;
   blocksById: ReadonlyMap<string, BlockRow>;
@@ -34,6 +38,12 @@ interface StreamProps {
   onJumpToBlock: (blockId: string) => void;
   onRetryPage: () => void;
   onRetryMirror: () => void;
+  onCreatePage: (title: string) => void;
+  onRenamePage: (pageId: string, title: string) => void;
+  onCreateBlock: (templateId: string | null) => void;
+  onCreateTemplate: () => void;
+  onUpdateTemplate: (id: string, patch: TemplatePatch) => void;
+  onDeleteTemplate: (id: string) => void;
 }
 
 export function Stream(props: StreamProps) {
@@ -43,6 +53,7 @@ export function Stream(props: StreamProps) {
     isPerson,
     pageBlocks,
     mirrorGroups,
+    templates,
     templatesById,
     spacesById,
     blocksById,
@@ -59,8 +70,15 @@ export function Stream(props: StreamProps) {
     onJumpToBlock,
     onRetryPage,
     onRetryMirror,
+    onCreatePage,
+    onRenamePage,
+    onCreateBlock,
+    onCreateTemplate,
+    onUpdateTemplate,
+    onDeleteTemplate,
   } = props;
 
+  const [tplOpen, setTplOpen] = useState(false);
   const mirrorMode = selectedPageId === "mirror";
   const openCount = mirrorGroups.reduce((sum, group) => sum + group.tasks.length, 0);
 
@@ -71,32 +89,16 @@ export function Stream(props: StreamProps) {
           <span className={isPerson ? styles.dotPerson : styles.dotTopic} aria-hidden="true" />
           <strong>{space.name}</strong>
         </div>
-        <nav className={styles.tabs} aria-label="Seiten">
-          {isPerson && (
-            <button
-              type="button"
-              className={mirrorMode ? styles.tabOn : styles.tab}
-              aria-current={mirrorMode ? "page" : undefined}
-              onClick={() => onSelectPage("mirror")}
-            >
-              Zugewiesen {openCount > 0 && <span className={styles.count}>{openCount}</span>}
-            </button>
-          )}
-          {space.pages.map((page) => {
-            const active = !mirrorMode && page.id === selectedPageId;
-            return (
-              <button
-                key={page.id}
-                type="button"
-                className={active ? styles.tabOn : styles.tab}
-                aria-current={active ? "page" : undefined}
-                onClick={() => onSelectPage(page.id)}
-              >
-                {page.title}
-              </button>
-            );
-          })}
-        </nav>
+        <PageTabs
+          isPerson={isPerson}
+          mirrorMode={mirrorMode}
+          pages={space.pages}
+          selectedPageId={selectedPageId}
+          openCount={openCount}
+          onSelectPage={onSelectPage}
+          onCreatePage={onCreatePage}
+          onRenamePage={onRenamePage}
+        />
       </div>
 
       {mirrorMode ? (
@@ -106,6 +108,7 @@ export function Stream(props: StreamProps) {
           pageView={pageView}
           pageBlocks={pageBlocks}
           pulseBlockId={pulseBlockId}
+          templates={templates}
           templatesById={templatesById}
           spacesById={spacesById}
           blocksById={blocksById}
@@ -117,9 +120,149 @@ export function Stream(props: StreamProps) {
           onDeleteItem={onDeleteItem}
           onJumpToBlock={onJumpToBlock}
           onRetry={onRetryPage}
+          onCreateBlock={onCreateBlock}
+          onManageTemplates={() => setTplOpen(true)}
+        />
+      )}
+
+      {tplOpen && (
+        <TemplateManager
+          templates={templates}
+          onCreate={onCreateTemplate}
+          onUpdate={onUpdateTemplate}
+          onDelete={onDeleteTemplate}
+          onClose={() => setTplOpen(false)}
         />
       )}
     </div>
+  );
+}
+
+function PageTabs({
+  isPerson,
+  mirrorMode,
+  pages,
+  selectedPageId,
+  openCount,
+  onSelectPage,
+  onCreatePage,
+  onRenamePage,
+}: {
+  isPerson: boolean;
+  mirrorMode: boolean;
+  pages: PageRow[];
+  selectedPageId: string | "mirror";
+  openCount: number;
+  onSelectPage: (pageId: string | "mirror") => void;
+  onCreatePage: (title: string) => void;
+  onRenamePage: (pageId: string, title: string) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
+
+  const submitAdd = () => {
+    const title = draft.trim();
+    if (!title) return;
+    onCreatePage(title);
+    setDraft("");
+    setAdding(false);
+  };
+
+  const submitRename = () => {
+    if (editingId === null) return;
+    const title = editDraft.trim();
+    if (title) onRenamePage(editingId, title);
+    setEditingId(null);
+  };
+
+  return (
+    <nav className={styles.tabs} aria-label="Seiten">
+      {isPerson && (
+        <button
+          type="button"
+          className={mirrorMode ? styles.tabOn : styles.tab}
+          aria-current={mirrorMode ? "page" : undefined}
+          onClick={() => onSelectPage("mirror")}
+        >
+          Zugewiesen {openCount > 0 && <span className={styles.count}>{openCount}</span>}
+        </button>
+      )}
+      {pages.map((page) => {
+        const active = !mirrorMode && page.id === selectedPageId;
+        if (editingId === page.id) {
+          return (
+            <span key={page.id} className={styles.tabedit}>
+              <input
+                autoFocus
+                value={editDraft}
+                onChange={(event) => setEditDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") submitRename();
+                  if (event.key === "Escape") setEditingId(null);
+                }}
+                onBlur={submitRename}
+                aria-label="Seitentitel umbenennen"
+              />
+            </span>
+          );
+        }
+        return (
+          <span key={page.id} className={styles.tabwrap}>
+            <button
+              type="button"
+              className={active ? styles.tabOn : styles.tab}
+              aria-current={active ? "page" : undefined}
+              onClick={() => onSelectPage(page.id)}
+            >
+              {page.title}
+            </button>
+            <button
+              type="button"
+              className={styles.tabrename}
+              onClick={() => {
+                setEditingId(page.id);
+                setEditDraft(page.title);
+              }}
+              aria-label={`${page.title} umbenennen`}
+              title="Seite umbenennen"
+            >
+              ✎
+            </button>
+          </span>
+        );
+      })}
+      {adding ? (
+        <span className={styles.tabedit}>
+          <input
+            autoFocus
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") submitAdd();
+              if (event.key === "Escape") {
+                setDraft("");
+                setAdding(false);
+              }
+            }}
+            onBlur={submitAdd}
+            placeholder="Seitenname"
+            aria-label="Neue Seite"
+          />
+        </span>
+      ) : (
+        <button
+          type="button"
+          className={`${styles.tab} ${styles.tabAdd}`}
+          onClick={() => setAdding(true)}
+          aria-label="Seite hinzufügen"
+          title="Seite hinzufügen"
+        >
+          +
+        </button>
+      )}
+    </nav>
   );
 }
 
@@ -127,6 +270,7 @@ function PagePane({
   pageView,
   pageBlocks,
   pulseBlockId,
+  templates,
   templatesById,
   spacesById,
   blocksById,
@@ -138,10 +282,13 @@ function PagePane({
   onDeleteItem,
   onJumpToBlock,
   onRetry,
+  onCreateBlock,
+  onManageTemplates,
 }: {
   pageView: ViewStatus;
   pageBlocks: BlockView[];
   pulseBlockId: string | null;
+  templates: TemplateRow[];
   templatesById: ReadonlyMap<string, TemplateRow>;
   spacesById: ReadonlyMap<string, SpaceRow>;
   blocksById: ReadonlyMap<string, BlockRow>;
@@ -153,35 +300,37 @@ function PagePane({
   onDeleteItem: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
   onRetry: () => void;
+  onCreateBlock: (templateId: string | null) => void;
+  onManageTemplates: () => void;
 }) {
   if (pageView.status === "idle" || pageView.status === "loading") return <Loading />;
   if (pageView.status === "failed") return <LoadError message={formatError(pageView.error)} onRetry={onRetry} />;
-  if (pageBlocks.length === 0) {
-    return (
-      <p className={styles.empty}>
-        Diese Seite ist leer. Neue Blöcke entstehen später über das Menü — sie bekommen automatisch das heutige Datum.
-      </p>
-    );
-  }
   return (
-    <div className={styles.blocks}>
-      {pageBlocks.map((block) => (
-        <BlockCard
-          key={block.id}
-          block={block}
-          template={templatesById.get(block.templateId ?? "") ?? FALLBACK_TEMPLATE}
-          spacesById={spacesById}
-          blocksById={blocksById}
-          spaces={spaces}
-          today={today}
-          pulse={pulseBlockId === block.id}
-          onPatchBlock={onPatchBlock}
-          onPatchItem={onPatchItem}
-          onCreateItem={onCreateItem}
-          onDeleteItem={onDeleteItem}
-          onJumpToBlock={onJumpToBlock}
-        />
-      ))}
+    <div className={styles.page}>
+      <NewBlockBar templates={templates} onCreateBlock={onCreateBlock} onManageTemplates={onManageTemplates} />
+      {pageBlocks.length === 0 ? (
+        <p className={styles.empty}>Diese Seite ist leer. Lege mit „Block anlegen“ den ersten Block an.</p>
+      ) : (
+        <div className={styles.blocks}>
+          {pageBlocks.map((block) => (
+            <BlockCard
+              key={block.id}
+              block={block}
+              template={templatesById.get(block.templateId ?? "") ?? FALLBACK_TEMPLATE}
+              spacesById={spacesById}
+              blocksById={blocksById}
+              spaces={spaces}
+              today={today}
+              pulse={pulseBlockId === block.id}
+              onPatchBlock={onPatchBlock}
+              onPatchItem={onPatchItem}
+              onCreateItem={onCreateItem}
+              onDeleteItem={onDeleteItem}
+              onJumpToBlock={onJumpToBlock}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

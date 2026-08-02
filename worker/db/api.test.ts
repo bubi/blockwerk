@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { env } from "cloudflare:workers";
 import worker from "../index.ts";
 import type { Env } from "../env.ts";
-import type { D1Like } from "./d1-like.ts";
 import { countingD1 } from "./testing/counting-d1.ts";
 import { getTestDb } from "./testing/get-test-db.ts";
 import { createBlock, createItem, createPage, createSpace, createTemplate, loadPageBlocks } from "./index.ts";
@@ -16,7 +15,7 @@ interface ErrorBody {
   error: { code: string; message?: string; issues?: { path: string; code: string }[] };
 }
 
-function makeEnv(db: D1Like): Env {
+function makeEnv(db: D1Database): Env {
   return { ...env, DB: db as unknown as D1Database, DEV_ACCESS_EMAIL: DEV_EMAIL };
 }
 
@@ -33,25 +32,25 @@ function apiRequest(
   return new Request<unknown, IncomingRequestCfProperties<unknown>>(`https://blockwerk.test${path}`, init);
 }
 
-async function call(method: string, path: string, body?: unknown, db?: D1Like): Promise<Response> {
+async function call(method: string, path: string, body?: unknown, db?: D1Database): Promise<Response> {
   const testDb = db ?? (await getTestDb());
   return worker.fetch(apiRequest(method, path, body), makeEnv(testDb));
 }
 
-async function json<T = unknown>(method: string, path: string, body?: unknown, db?: D1Like) {
+async function json<T = unknown>(method: string, path: string, body?: unknown, db?: D1Database) {
   const response = await call(method, path, body, db);
   return { status: response.status, body: (await response.json()) as T };
 }
 
-async function seedSpace(db: D1Like, id: string, kind: "person" | "topic" = "topic") {
+async function seedSpace(db: D1Database, id: string, kind: "person" | "topic" = "topic") {
   return createSpace(db, { id, name: id, kind, short: id.slice(0, 2).toUpperCase() }, NOW);
 }
 
-async function seedPage(db: D1Like, id: string, spaceId: string) {
+async function seedPage(db: D1Database, id: string, spaceId: string) {
   return createPage(db, { id, spaceId, title: id }, NOW);
 }
 
-async function seedBlock(db: D1Like, id: string, pageId: string) {
+async function seedBlock(db: D1Database, id: string, pageId: string) {
   return createBlock(db, { id, pageId, templateId: null, title: id, date: "2026-08-01" }, NOW);
 }
 
@@ -509,7 +508,7 @@ describe("item re-spacing (respace)", () => {
   });
 });
 
-async function streamItems(db: D1Like, blockId: string) {
+async function streamItems(db: D1Database, blockId: string) {
   const page = await loadPageBlocks(db, "x20-page");
   const block = page.find((entry) => entry.id === blockId);
   return block?.items ?? [];

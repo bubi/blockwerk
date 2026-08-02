@@ -16,7 +16,6 @@ import {
   type ItemWrite,
 } from "../shared/schemas.ts";
 import { NotFoundError, ValidationError } from "./errors.ts";
-import type { D1Like } from "./db/d1-like.ts";
 import {
   createBlock,
   createItemWithRespace,
@@ -65,7 +64,7 @@ function assertRow<T>(row: T | null): T {
 // Reads
 // ============================================================
 
-export async function getSpaces(db: D1Like): Promise<SpacesResponse> {
+export async function getSpaces(db: D1Database): Promise<SpacesResponse> {
   const spaces = await listSpaces(db);
   const pages = await listPages(db);
   const templates = await listTemplates(db);
@@ -83,20 +82,20 @@ export async function getSpaces(db: D1Like): Promise<SpacesResponse> {
   };
 }
 
-export async function getPageDetail(db: D1Like, id: string): Promise<PageResponse> {
+export async function getPageDetail(db: D1Database, id: string): Promise<PageResponse> {
   const page = await getPage(db, id);
   if (!page) throw new NotFoundError(`Page '${id}' does not exist`);
   const blocks = await loadPageBlocks(db, id);
   return { page, blocks };
 }
 
-export async function getMirror(db: D1Like, spaceId: string): Promise<MirrorTask[]> {
+export async function getMirror(db: D1Database, spaceId: string): Promise<MirrorTask[]> {
   const space = await getSpace(db, spaceId);
   if (!space) throw new NotFoundError(`Space '${spaceId}' does not exist`);
   return loadMirror(db, spaceId);
 }
 
-export async function getCalendar(db: D1Like, from: string, to: string): Promise<CalendarResponse> {
+export async function getCalendar(db: D1Database, from: string, to: string): Promise<CalendarResponse> {
   return loadCalendarWindow(db, from, to);
 }
 
@@ -108,21 +107,21 @@ export async function getCalendar(db: D1Like, from: string, to: string): Promise
 
 type ReferenceKind = "space" | "page" | "block" | "template";
 
-const getters: Record<ReferenceKind, (db: D1Like, id: string) => Promise<unknown | null>> = {
+const getters: Record<ReferenceKind, (db: D1Database, id: string) => Promise<unknown | null>> = {
   space: getSpace,
   page: getPage,
   block: getBlock,
   template: getTemplate,
 };
 
-async function ensureExists(db: D1Like, kind: ReferenceKind, id: string, field: string): Promise<void> {
+async function ensureExists(db: D1Database, kind: ReferenceKind, id: string, field: string): Promise<void> {
   const row = await getters[kind](db, id);
   if (!row) {
     throw new ValidationError([{ path: field, code: "not_found" }], `${kind} '${id}' does not exist`);
   }
 }
 
-async function checkItemRefs(db: D1Like, input: { assigneeSpaceId: string | null; refBlockId: string | null }) {
+async function checkItemRefs(db: D1Database, input: { assigneeSpaceId: string | null; refBlockId: string | null }) {
   if (input.assigneeSpaceId !== null) {
     await ensureExists(db, "space", input.assigneeSpaceId, "assigneeSpaceId");
   }
@@ -135,7 +134,7 @@ async function checkItemRefs(db: D1Like, input: { assigneeSpaceId: string | null
 // Writes — space
 // ============================================================
 
-export async function putSpace(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<SpaceRow> {
+export async function putSpace(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<SpaceRow> {
   const input = spaceWriteSchema.parse(body);
   logWrite("PUT", "space", id, email);
   const existing = await getSpace(db, id);
@@ -143,7 +142,7 @@ export async function putSpace(db: D1Like, id: string, body: unknown, now: numbe
   return createSpace(db, { ...input, id }, now);
 }
 
-export async function patchSpace(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<SpaceRow> {
+export async function patchSpace(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<SpaceRow> {
   const patch = spacePatchSchema.parse(body);
   logWrite("PATCH", "space", id, email);
   const existing = await getSpace(db, id);
@@ -155,7 +154,7 @@ export async function patchSpace(db: D1Like, id: string, body: unknown, now: num
 // Writes — page
 // ============================================================
 
-export async function putPage(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<PageRow> {
+export async function putPage(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<PageRow> {
   const input = pageWriteSchema.parse(body);
   logWrite("PUT", "page", id, email);
   const existing = await getPage(db, id);
@@ -167,7 +166,7 @@ export async function putPage(db: D1Like, id: string, body: unknown, now: number
   return createPage(db, { ...input, id }, now);
 }
 
-export async function patchPage(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<PageRow> {
+export async function patchPage(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<PageRow> {
   const patch = pagePatchSchema.parse(body);
   logWrite("PATCH", "page", id, email);
   const existing = await getPage(db, id);
@@ -179,7 +178,7 @@ export async function patchPage(db: D1Like, id: string, body: unknown, now: numb
 // Writes — block
 // ============================================================
 
-export async function putBlock(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<BlockRow> {
+export async function putBlock(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<BlockRow> {
   const input = blockWriteSchema.parse(body);
   logWrite("PUT", "block", id, email);
   const existing = await getBlock(db, id);
@@ -193,7 +192,7 @@ export async function putBlock(db: D1Like, id: string, body: unknown, now: numbe
   return createBlock(db, { ...input, id }, now);
 }
 
-export async function patchBlock(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<BlockRow> {
+export async function patchBlock(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<BlockRow> {
   const patch = blockPatchSchema.parse(body);
   logWrite("PATCH", "block", id, email);
   const existing = await getBlock(db, id);
@@ -209,7 +208,7 @@ export async function patchBlock(db: D1Like, id: string, body: unknown, now: num
 // ============================================================
 
 export async function putTemplate(
-  db: D1Like,
+  db: D1Database,
   id: string,
   body: unknown,
   now: number,
@@ -223,7 +222,7 @@ export async function putTemplate(
 }
 
 export async function patchTemplate(
-  db: D1Like,
+  db: D1Database,
   id: string,
   body: unknown,
   now: number,
@@ -255,7 +254,7 @@ function contentPatch(input: ItemWrite): ItemPatch {
   };
 }
 
-export async function putItem(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<ItemWriteResponse> {
+export async function putItem(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<ItemWriteResponse> {
   const input = itemWriteSchema.parse(body);
   logWrite("PUT", "item", id, email);
   const existing = await getItem(db, id);
@@ -313,7 +312,7 @@ function toNewItemInput(input: ItemWrite, id: string) {
   }
 }
 
-export async function patchItem(db: D1Like, id: string, body: unknown, now: number, email: string): Promise<ItemWriteResponse> {
+export async function patchItem(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<ItemWriteResponse> {
   const patch = itemPatchSchema.parse(body);
   logWrite("PATCH", "item", id, email);
   const existing = await getItem(db, id);
@@ -338,7 +337,7 @@ export async function patchItem(db: D1Like, id: string, body: unknown, now: numb
 // ============================================================
 
 export async function deleteEntity(
-  db: D1Like,
+  db: D1Database,
   entity: EntityName,
   id: string,
   email: string,

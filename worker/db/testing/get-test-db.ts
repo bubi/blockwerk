@@ -1,5 +1,4 @@
 import { env } from "cloudflare:workers";
-import type { D1Like } from "../d1-like.ts";
 
 /**
  * The real D1 binding, running under real workerd (`npm run test:workers`,
@@ -9,6 +8,6 @@ import type { D1Like } from "../d1-like.ts";
  * within one file share state (see worker/db/*.test.ts for how that's
  * handled).
  */
-export async function getTestDb(): Promise<D1Like> {
+export async function getTestDb(): Promise<D1Database> {
   return env.DB;
 }

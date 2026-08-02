@@ -19,6 +19,9 @@
 }
 
 .grouphead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-size: 11.5px;
   font-weight: 600;
   text-transform: uppercase;
@@ -26,6 +29,111 @@
   color: var(--text3);
   margin: 0 0 4px;
   padding: 0 8px;
+}
+
+.sadd {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text3);
+}
+
+.sadd:hover {
+  background: var(--hover);
+  color: var(--green);
+}
+
+.saddrow {
+  display: flex;
+  gap: 5px;
+  padding: 3px 8px 7px;
+}
+
+.saddrow input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--white);
+}
+
+.saddgo {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--green);
+  flex: none;
+}
+
+.srow {
+  display: flex;
+  align-items: center;
+}
+
+.srow .item,
+.srow .itemOn {
+  flex: 1;
+  min-width: 0;
+}
+
+.skill {
+  width: 20px;
+  flex: none;
+  font-size: 15px;
+  line-height: 1;
+  color: transparent;
+  text-align: center;
+}
+
+.srow:hover .skill {
+  color: var(--text3);
+}
+
+.skill:hover {
+  color: var(--red);
+}
+
+.sconfirm {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  margin: 2px 0;
+  font-size: 12.5px;
+  color: var(--text2);
+}
+
+.sconfirm p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.sconfirmbtns {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.sdel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+.scancel {
+  font-size: 12.5px;
+  color: var(--text2);
+}
+
+.grpempty {
+  margin: 0;
+  padding: 2px 8px;
+  font-size: 12.5px;
+  color: var(--text3);
 }
 
 .item,

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { block, item, page, space, template } from "../domain/fixtures.ts";
 import { reduce } from "./reducer.ts";
 import { selectMirror, selectPageBlocks } from "./selectors.ts";
-import { initialState, type AppState, type ClientError } from "./state.ts";
+import { initialState, type AppState, type ClientError, type ViewStatus } from "./state.ts";
 
 const NOW = 1_700_000_000_000;
 
@@ -124,6 +124,20 @@ describe("deleting a space mirrors the server cascade locally", () => {
     expect(state.spaces.has("kept")).toBe(true);
   });
 
+  it("deleting a person space purges its mirror state", () => {
+    const base = withData(initialState(), {
+      spaces: [space({ id: "gone", name: "Gone", kind: "person" })],
+      pages: [page({ id: "pg-gone", spaceId: "gone" })],
+      mirrorOrder: new Map([["gone", ["t1"]]]),
+      mirrorViews: new Map([["gone", { status: "loaded" }]]),
+    });
+
+    const state = reduce(base, { type: "writeOptimistic", op: { opKey: "k1", entity: "space", id: "gone", change: "delete" }, now: NOW });
+
+    expect(state.mirrorOrder.has("gone")).toBe(false);
+    expect(state.mirrorViews.has("gone")).toBe(false);
+  });
+
   it("rolls the whole subtree and the nulled assignment back", () => {
     const base = withData(initialState(), {
       spaces: [space({ id: "gone", name: "Gone", kind: "topic" })],
@@ -230,6 +244,7 @@ interface Seed {
   items?: ReturnType<typeof item>[];
   templates?: ReturnType<typeof template>[];
   mirrorOrder?: Map<string, string[]>;
+  mirrorViews?: Map<string, ViewStatus>;
   spacesOther?: ReturnType<typeof space>[];
   pagesOther?: ReturnType<typeof page>[];
   blocksOther?: ReturnType<typeof block>[];
@@ -247,5 +262,6 @@ function withData(state: AppState, seed: Seed): AppState {
     items: new Map((seed.items ?? []).map((row) => [row.id, row])),
     templates: new Map((seed.templates ?? []).map((row) => [row.id, row])),
     mirrorOrder: seed.mirrorOrder ?? new Map(),
+    mirrorViews: seed.mirrorViews ?? new Map(),
   };
 }

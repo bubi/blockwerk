@@ -1,6 +1,5 @@
 import type { BlockRow, ItemRow } from "../../shared/db.ts";
-import { orderBlockItems } from "../../src/domain/order.ts";
-import type { D1Like } from "./d1-like.ts";
+import { orderBlockItems, orderPageBlocks } from "../../src/domain/order.ts";
 import { mapBlock, mapItem, type RawBlockRow, type RawItemRow } from "./mappers.ts";
 
 export interface PageBlock extends BlockRow {
@@ -14,12 +13,13 @@ export interface PageBlock extends BlockRow {
  * query-budget test in worker/db/page.test.ts.
  *
  * The SQL here is purely mechanical (`block_id`, then `id` for stable
- * grouping) — item order is the domain rule, computed by `orderBlockItems`
- * (src/domain/order.ts). That is the only place the order is defined.
+ * grouping). Both orderings are the domain rules, computed by
+ * `orderPageBlocks` and `orderBlockItems` (src/domain/order.ts) — the only
+ * places the order is defined, for the worker and the client alike.
  */
-export async function loadPageBlocks(db: D1Like, pageId: string): Promise<PageBlock[]> {
+export async function loadPageBlocks(db: D1Database, pageId: string): Promise<PageBlock[]> {
   const { results: blockRows } = await db
-    .prepare("SELECT * FROM blocks WHERE page_id = ? ORDER BY date DESC, id ASC")
+    .prepare("SELECT * FROM blocks WHERE page_id = ?")
     .bind(pageId)
     .all<RawBlockRow>();
 
@@ -39,5 +39,8 @@ export async function loadPageBlocks(db: D1Like, pageId: string): Promise<PageBl
     else itemsByBlock.set(item.blockId, [item]);
   }
 
-  return blockRows.map((raw) => ({ ...mapBlock(raw), items: orderBlockItems(itemsByBlock.get(raw.id) ?? []) }));
+  return orderPageBlocks(blockRows.map(mapBlock)).map((block) => ({
+    ...block,
+    items: orderBlockItems(itemsByBlock.get(block.id) ?? []),
+  }));
 }

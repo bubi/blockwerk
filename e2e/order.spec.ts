@@ -5,8 +5,8 @@ test("a page's blocks appear in date-descending order with their items", async (
 
   // Default space is the first topic with pages (Kundenfeedback); navigate to
   // Roadmap Q3 → Planung, which has two blocks (b2 today, b1 two days ago).
-  await page.getByRole("button", { name: /Roadmap Q3/ }).click();
-  await page.getByRole("button", { name: "Planung" }).click();
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
 
   const blocks = page.locator("[data-block-id]");
   await expect(blocks).toHaveCount(2);

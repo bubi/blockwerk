@@ -1,0 +1,151 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(29, 33, 37, 0.4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 5vh 16px;
+  z-index: 70;
+  overflow-y: auto;
+}
+
+.sheet {
+  background: var(--white);
+  border-radius: 10px;
+  box-shadow: 0 16px 44px rgba(29, 33, 37, 0.25);
+  width: 100%;
+  max-width: 560px;
+  padding: 18px 20px 22px;
+}
+
+.sheethead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.sheethead h2 {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sheetclose {
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text3);
+  padding: 0 4px;
+}
+
+.sheetclose:hover {
+  color: var(--text);
+}
+
+.sheetnote {
+  font-size: 12.5px;
+  color: var(--text3);
+  margin: 0 0 14px;
+}
+
+.tpllist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.tplcard {
+  border: 1px solid var(--line);
+  border-left: 3px solid currentColor;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.tplrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 7px;
+}
+
+.tplname {
+  flex: 1;
+  min-width: 120px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 2px 0;
+}
+
+.tplhue {
+  font-size: 12.5px;
+  color: var(--text2);
+  background: var(--side);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+
+.tplkill {
+  font-size: 12.5px;
+  color: var(--text3);
+  flex: none;
+}
+
+.tplkill:hover {
+  color: var(--red);
+}
+
+.tplconfirm {
+  display: flex;
+  gap: 10px;
+  flex: none;
+}
+
+.sdel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--red);
+}
+
+.scancel {
+  font-size: 12.5px;
+  color: var(--text2);
+}
+
+.tplseed {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text2);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 9px;
+  resize: vertical;
+}
+
+.tplseed:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-soft);
+}
+
+.newbtn {
+  font-size: 13.5px;
+  font-weight: 600;
+  padding: 7px 15px;
+  border-radius: 4px;
+  background: var(--green);
+  color: #fff;
+}
+
+.newbtn:hover {
+  background: var(--green-dk);
+}

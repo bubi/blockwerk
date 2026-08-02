@@ -1,25 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { getTestDb } from "./testing/get-test-db.ts";
-import type { D1Like } from "./d1-like.ts";
 
 const NOW = 1_700_000_000_000;
 const DATE = "2026-08-01";
 
-async function insertSpace(db: D1Like, id: string, kind: "person" | "topic" = "topic") {
+async function insertSpace(db: D1Database, id: string, kind: "person" | "topic" = "topic") {
   await db
     .prepare("INSERT INTO spaces (id, name, kind, short, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)")
     .bind(id, id, kind, id.slice(0, 2).toUpperCase(), NOW, NOW)
     .run();
 }
 
-async function insertPage(db: D1Like, id: string, spaceId: string) {
+async function insertPage(db: D1Database, id: string, spaceId: string) {
   await db
     .prepare("INSERT INTO pages (id, space_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
     .bind(id, spaceId, id, NOW, NOW)
     .run();
 }
 
-async function insertBlock(db: D1Like, id: string, pageId: string, templateId: string | null = null) {
+async function insertBlock(db: D1Database, id: string, pageId: string, templateId: string | null = null) {
   await db
     .prepare(
       "INSERT INTO blocks (id, page_id, template_id, title, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -28,7 +27,7 @@ async function insertBlock(db: D1Like, id: string, pageId: string, templateId: s
     .run();
 }
 
-async function insertNote(db: D1Like, id: string, blockId: string, position: number) {
+async function insertNote(db: D1Database, id: string, blockId: string, position: number) {
   await db
     .prepare(
       "INSERT INTO items (id, block_id, kind, position, text, created_at, updated_at) VALUES (?, ?, 'note', ?, ?, ?, ?)",
@@ -37,7 +36,7 @@ async function insertNote(db: D1Like, id: string, blockId: string, position: num
     .run();
 }
 
-async function insertTask(db: D1Like, id: string, blockId: string, position: number, assigneeSpaceId: string) {
+async function insertTask(db: D1Database, id: string, blockId: string, position: number, assigneeSpaceId: string) {
   await db
     .prepare(
       "INSERT INTO items (id, block_id, kind, position, text, assignee_space_id, created_at, updated_at) VALUES (?, ?, 'task', ?, ?, ?, ?, ?)",
@@ -46,7 +45,7 @@ async function insertTask(db: D1Like, id: string, blockId: string, position: num
     .run();
 }
 
-async function insertRef(db: D1Like, id: string, blockId: string, position: number, refBlockId: string) {
+async function insertRef(db: D1Database, id: string, blockId: string, position: number, refBlockId: string) {
   await db
     .prepare(
       "INSERT INTO items (id, block_id, kind, position, ref_block_id, created_at, updated_at) VALUES (?, ?, 'ref', ?, ?, ?, ?)",
@@ -55,7 +54,7 @@ async function insertRef(db: D1Like, id: string, blockId: string, position: numb
     .run();
 }
 
-async function insertTemplate(db: D1Like, id: string) {
+async function insertTemplate(db: D1Database, id: string) {
   await db
     .prepare("INSERT INTO templates (id, label, hue, created_at, updated_at) VALUES (?, ?, 'steel', ?, ?)")
     .bind(id, id, NOW, NOW)

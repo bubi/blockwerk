@@ -1,5 +1,4 @@
 import type { BlockRow } from "../../shared/db.ts";
-import type { D1Like } from "./d1-like.ts";
 import { mapBlock, type RawBlockRow } from "./mappers.ts";
 
 export interface NewBlockInput {
@@ -16,7 +15,7 @@ export interface BlockPatch {
   date?: string;
 }
 
-export async function createBlock(db: D1Like, input: NewBlockInput, now: number): Promise<BlockRow> {
+export async function createBlock(db: D1Database, input: NewBlockInput, now: number): Promise<BlockRow> {
   await db
     .prepare(
       "INSERT INTO blocks (id, page_id, template_id, title, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -26,12 +25,12 @@ export async function createBlock(db: D1Like, input: NewBlockInput, now: number)
   return { ...input, createdAt: now, updatedAt: now };
 }
 
-export async function getBlock(db: D1Like, id: string): Promise<BlockRow | null> {
+export async function getBlock(db: D1Database, id: string): Promise<BlockRow | null> {
   const row = await db.prepare("SELECT * FROM blocks WHERE id = ?").bind(id).first<RawBlockRow>();
   return row ? mapBlock(row) : null;
 }
 
-export async function updateBlock(db: D1Like, id: string, patch: BlockPatch, now: number): Promise<BlockRow | null> {
+export async function updateBlock(db: D1Database, id: string, patch: BlockPatch, now: number): Promise<BlockRow | null> {
   const sets: string[] = [];
   const values: unknown[] = [];
   // templateId is nullable and "set to null" (un-template a block) is a real
@@ -60,7 +59,7 @@ export async function updateBlock(db: D1Like, id: string, patch: BlockPatch, now
  * Cascades its items; ref items elsewhere pointing at this block keep their
  * row and lose only ref_block_id — see docs/adr/0001-task-spiegel.md.
  */
-export async function deleteBlock(db: D1Like, id: string): Promise<boolean> {
+export async function deleteBlock(db: D1Database, id: string): Promise<boolean> {
   const result = await db.prepare("DELETE FROM blocks WHERE id = ?").bind(id).run();
   return result.meta.changes > 0;
 }

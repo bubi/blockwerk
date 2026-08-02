@@ -265,8 +265,18 @@ function deleteSpace(state: AppState, op: Extract<DeleteWrite, { entity: "space"
   for (const entry of removedBlocks) blocksMap.delete(entry.id);
   for (const entry of removedItems) itemsMap.delete(entry.id);
 
+  // A deleted person space leaves no mirror state behind.
+  const mirrorOrder = new Map(state.mirrorOrder);
+  mirrorOrder.delete(op.id);
+  const mirrorViews = new Map(state.mirrorViews);
+  mirrorViews.delete(op.id);
+
   const undo: UndoPlan = { remove: [], restore };
-  return addPending({ ...state, spaces: spacesMap, pages: pagesMap, blocks: blocksMap, items: itemsMap }, op, undo);
+  return addPending(
+    { ...state, spaces: spacesMap, pages: pagesMap, blocks: blocksMap, items: itemsMap, mirrorOrder, mirrorViews },
+    op,
+    undo,
+  );
 }
 
 function deleteTemplate(state: AppState, op: Extract<DeleteWrite, { entity: "template" }>): AppState {

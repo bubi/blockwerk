@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { SpaceWithPages } from "../shared/api.ts";
-import type { BlockPatch, ItemPatch } from "../shared/schemas.ts";
+import type { SpaceKind } from "../shared/db.ts";
+import type { BlockPatch, ItemPatch, TemplatePatch } from "../shared/schemas.ts";
 import { Dates } from "./components/Dates.tsx";
 import { Header } from "./components/Header.tsx";
 import { Notifications } from "./components/Notifications.tsx";
@@ -10,6 +11,9 @@ import { formatError } from "./components/errorText.ts";
 import { LoadError, Loading } from "./components/status.tsx";
 import { monthLedger } from "./domain/calendar.ts";
 import { toISODate } from "./domain/dates.ts";
+import { detectHeading } from "./domain/headings.ts";
+import { newBlockId, newItemId, newPageId, newSpaceId, newTemplateId } from "./domain/ids.ts";
+import { deriveShort } from "./domain/naming.ts";
 import type { ItemCreateInput } from "./state/operations.ts";
 import {
   selectCalendar,
@@ -34,7 +38,7 @@ export function App() {
   const [pane, setPane] = useState<"spaces" | "stream" | "dates">("stream");
   const todayDate = new Date();
   const [month, setMonth] = useState({ year: todayDate.getFullYear(), month: todayDate.getMonth() });
-  const [jump, setJump] = useState<{ blockId: string; pageId: string } | null>(null);
+  const [jump, setJump] = useState<{ blockId: string; pageId: string; focusComposer?: boolean } | null>(null);
   const [bootRetries, setBootRetries] = useState(0);
   const MAX_BOOT_RETRIES = 10;
 
@@ -127,11 +131,30 @@ export function App() {
     if (!jump || resolvedPageId !== jump.pageId || pageViewStatus !== "loaded") return;
     const timer = window.setTimeout(() => {
       const element = document.getElementById(`blk-${jump.blockId}`);
-      if (element) element.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (jump.focusComposer) document.getElementById(`composer-${jump.blockId}`)?.focus();
+      }
       setJump(null);
     }, 60);
     return () => window.clearTimeout(timer);
   }, [jump, resolvedPageId, pageViewStatus]);
+
+  // If the selected space disappears (deleted), move to another one.
+  const deleteSpace = (id: string) => {
+    ops.deleteSpace(id);
+    if (resolvedSpaceId === id) {
+      const next = defaultSpace(spaces.filter((entry) => entry.id !== id));
+      if (next) {
+        setSpaceId(next.id);
+        setPageId(next.kind === "person" ? "mirror" : (next.pages[0]?.id ?? null));
+      } else {
+        setSpaceId(null);
+        setPageId(null);
+      }
+      setJump(null);
+    }
+  };
 
   const pageBlocks = activePageId !== null ? selectPageBlocks(state, activePageId) : [];
   const mirrorGroups = isPerson && activeSpaceId !== null ? selectMirrorGroups(state, activeSpaceId) : [];
@@ -172,6 +195,72 @@ export function App() {
   const createItem = (input: ItemCreateInput) => void ops.createItem(input);
   const deleteItem = (id: string) => void ops.deleteItem(id);
 
+  const createSpace = async (kind: SpaceKind, rawName: string) => {
+    const name = rawName.trim();
+    if (!name) return;
+    const id = newSpaceId();
+    const pageId = newPageId();
+    // Select the new space synchronously, before any await — otherwise the
+    // async continuation could revert a selection the user already changed.
+    setSpaceId(id);
+    setPageId(kind === "person" ? "mirror" : pageId);
+    setPane("stream");
+    setJump(null);
+    // The page references the space, so its PUT must not race the space's
+    // (both rows are optimistic already; the page's request follows once
+    // the space is confirmed on the server).
+    const space = ops.createSpace({ id, name, kind, short: deriveShort(name) });
+    await space;
+    ops.createPage({ id: pageId, spaceId: id, title: "Notizen" });
+  };
+
+  const createPage = (rawTitle: string) => {
+    const title = rawTitle.trim();
+    if (title === "" || activeSpaceId === null) return;
+    const pageId = newPageId();
+    ops.createPage({ id: pageId, spaceId: activeSpaceId, title });
+    setPageId(pageId);
+  };
+
+  const renamePage = (id: string, rawTitle: string) => {
+    const title = rawTitle.trim();
+    if (title !== "") ops.updatePage(id, { title });
+  };
+
+  const createBlock = async (templateId: string | null) => {
+    if (activePageId === null) return;
+    const template = templates.find((entry) => entry.id === templateId);
+    const blockId = newBlockId();
+    // The seed items reference the block, so their PUTs must not race the
+    // block's create — the block is confirmed first, then the items.
+    await ops.createBlock({
+      id: blockId,
+      pageId: activePageId,
+      templateId,
+      title: `Neuer ${template?.label ?? "Block"}`,
+      date: toISODate(new Date()),
+    });
+    for (const [index, line] of (template?.seed ?? []).entries()) {
+      const detected = detectHeading(line);
+      ops.createItem({
+        id: newItemId(),
+        blockId,
+        kind: "note",
+        position: 1000 * (index + 1),
+        text: detected?.text ?? line,
+        heading: detected?.heading ?? null,
+      });
+    }
+    setJump({ blockId, pageId: activePageId, focusComposer: true });
+  };
+
+  const createTemplate = () => {
+    ops.createTemplate({ id: newTemplateId(), label: "Neues Template", hue: "ink", seed: [] });
+  };
+
+  const updateTemplate = (id: string, patch: TemplatePatch) => void ops.updateTemplate(id, patch);
+  const deleteTemplate = (id: string) => void ops.deleteTemplate(id);
+
   const jumpToBlock = (blockId: string) => {
     const block = state.blocks.get(blockId);
     if (!block) return;
@@ -209,6 +298,8 @@ export function App() {
               openCounts={openCounts}
               selectedSpaceId={activeSpaceId}
               onSelectSpace={selectSpace}
+              onCreateSpace={createSpace}
+              onDeleteSpace={deleteSpace}
             />
           )}
         </aside>
@@ -229,6 +320,7 @@ export function App() {
               isPerson={isPerson}
               pageBlocks={pageBlocks}
               mirrorGroups={mirrorGroups}
+              templates={templates}
               templatesById={templatesById}
               spacesById={spacesById}
               blocksById={state.blocks}
@@ -245,6 +337,12 @@ export function App() {
               onJumpToBlock={jumpToBlock}
               onRetryPage={() => resolvedPageId !== "mirror" && void ops.loadPage(resolvedPageId)}
               onRetryMirror={() => activeSpaceId !== null && void ops.loadMirror(activeSpaceId)}
+              onCreatePage={createPage}
+              onRenamePage={renamePage}
+              onCreateBlock={createBlock}
+              onCreateTemplate={createTemplate}
+              onUpdateTemplate={updateTemplate}
+              onDeleteTemplate={deleteTemplate}
             />
           )}
         </main>

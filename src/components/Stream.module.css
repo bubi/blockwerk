@@ -60,6 +60,60 @@
   background: none;
 }
 
+.tabAdd {
+  color: var(--text3);
+  font-size: 16px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.tabwrap {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: -1px;
+}
+
+.tabwrap .tab,
+.tabwrap .tabOn {
+  border-radius: 4px 0 0 4px;
+}
+
+.tabrename {
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 4px;
+  color: transparent;
+}
+
+.tabwrap:hover .tabrename {
+  color: var(--text3);
+}
+
+.tabrename:hover {
+  color: var(--green-dk);
+}
+
+.tabedit {
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: -1px;
+}
+
+.tabedit input {
+  font-size: 13.5px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-bottom-color: var(--green);
+  border-radius: 4px 4px 0 0;
+  background: var(--white);
+  min-width: 120px;
+}
+
+.page {
+  display: flex;
+  flex-direction: column;
+}
+
 .count {
   display: inline-block;
   background: var(--green);

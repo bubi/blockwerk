@@ -1,5 +1,4 @@
 import type { BlockRow, ItemRow } from "../../shared/db.ts";
-import type { D1Like } from "./d1-like.ts";
 import { mapItem, type RawItemRow } from "./mappers.ts";
 
 export interface MirrorTask {
@@ -20,7 +19,7 @@ interface RawMirrorRow extends RawItemRow {
  * joined with blocks for just enough context (title, date, page) to link
  * back to the source. One query.
  */
-export async function loadMirror(db: D1Like, assigneeSpaceId: string): Promise<MirrorTask[]> {
+export async function loadMirror(db: D1Database, assigneeSpaceId: string): Promise<MirrorTask[]> {
   const { results } = await db
     .prepare(
       `SELECT

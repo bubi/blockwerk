@@ -1,4 +1,3 @@
-export type { D1Like, D1LikeMeta, D1LikeResult, D1LikeStatement } from "./d1-like.ts";
 export * from "./spaces.ts";
 export * from "./pages.ts";
 export * from "./templates.ts";
