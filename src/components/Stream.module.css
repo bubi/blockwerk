@@ -1,0 +1,121 @@
+.stream {
+  padding: 22px 26px 60px;
+}
+
+.streamhead {
+  margin-bottom: 16px;
+}
+
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-bottom: 10px;
+}
+
+.dotPerson,
+.dotTopic {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dotPerson {
+  background: var(--green);
+}
+
+.dotTopic {
+  background: var(--blue);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--line);
+}
+
+.tab,
+.tabOn {
+  font-size: 13.5px;
+  padding: 6px 10px 8px;
+  color: var(--text2);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  border-radius: 4px 4px 0 0;
+}
+
+.tab:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+
+.tabOn {
+  color: var(--green-dk);
+  font-weight: 600;
+  border-bottom-color: var(--green);
+  background: none;
+}
+
+.count {
+  display: inline-block;
+  background: var(--green);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9px;
+  padding: 0 6px;
+  margin-left: 5px;
+}
+
+.blocks {
+  display: flex;
+  flex-direction: column;
+}
+
+.empty {
+  font-size: 13.5px;
+  color: var(--text3);
+  max-width: 56ch;
+  line-height: 1.6;
+}
+
+@media (max-width: 1220px) {
+  .stream {
+    padding: 18px 18px 60px;
+  }
+}
+
+@media (max-width: 980px) {
+  .stream {
+    padding: 16px 16px 24px;
+  }
+}
+
+@media (max-width: 640px) {
+  .stream {
+    padding: 14px 12px 20px;
+  }
+
+  .crumb {
+    font-size: 19px;
+  }
+
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab,
+  .tabOn {
+    white-space: nowrap;
+  }
+}

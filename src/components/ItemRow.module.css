@@ -1,0 +1,170 @@
+.item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0;
+  border-radius: 4px;
+}
+
+.item:hover {
+  background: #fcfcfd;
+}
+
+.indented {
+  margin-left: 22px;
+  padding-left: 11px;
+  border-left: 2px solid var(--line2);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  color: var(--text);
+}
+
+/* Headings (notes with heading 1/2) */
+.heading {
+  margin-top: 7px;
+  align-items: baseline;
+}
+
+.heading:first-child {
+  margin-top: 0;
+}
+
+.hmark {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text3);
+  width: 22px;
+  flex: none;
+  text-align: right;
+  letter-spacing: -0.06em;
+}
+
+.headingInput {
+  font-weight: 600;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  min-width: 0;
+  flex: 1;
+}
+
+.kindNote.heading .headingInput {
+  font-size: 15.5px;
+}
+
+/* Task checkbox */
+.check,
+.checkDone {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid #b6bcc3;
+  border-radius: 3px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  background: var(--white);
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.check:hover {
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.check span {
+  width: 5px;
+  height: 9px;
+  border: 2px solid transparent;
+  border-top: 0;
+  border-left: 0;
+  transform: rotate(42deg) translateY(-1px);
+}
+
+.kindTask:not(.done) .check:hover span {
+  border-color: var(--green);
+}
+
+.checkDone {
+  background: var(--green);
+  border-color: var(--green);
+}
+
+.checkDone span {
+  border-color: #fff;
+}
+
+.done .text {
+  color: var(--text3);
+  text-decoration: line-through;
+}
+
+.who {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 600;
+  background: var(--side);
+  color: var(--text2);
+  border-radius: 10px;
+  padding: 1px 7px;
+  flex: none;
+}
+
+.due,
+.dueLate {
+  font-size: 12px;
+  white-space: nowrap;
+  flex: none;
+}
+
+.due {
+  color: var(--text3);
+}
+
+.dueLate {
+  color: var(--red);
+  font-weight: 600;
+}
+
+/* Events */
+.eventTime {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: 4px;
+  padding: 1px 7px;
+  flex: none;
+}
+
+/* Refs */
+.refLink {
+  display: flex;
+  gap: 9px;
+  align-items: baseline;
+  color: var(--blue);
+  margin-left: auto;
+}
+
+.refLink:hover {
+  text-decoration: underline;
+}
+
+.refDate {
+  font-size: 12px;
+  color: var(--text3);
+}
+
+.refGone {
+  font-size: 12.5px;
+  color: var(--text3);
+  font-style: italic;
+  margin-left: auto;
+  flex: none;
+}

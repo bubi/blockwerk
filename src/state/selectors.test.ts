@@ -3,6 +3,7 @@ import { block, item, page, space, template } from "../domain/fixtures.ts";
 import {
   selectCalendar,
   selectMirror,
+  selectMirrorGroups,
   selectPageBlocks,
   selectSpaces,
   selectTemplates,
@@ -42,7 +43,7 @@ describe("selectPageBlocks", () => {
     });
 
     const blocks = selectPageBlocks(state, "pg1");
-    expect(blocks[0]!.items.map((entry) => entry.id)).toEqual(["note", "ref", "task", "event"]);
+    expect(blocks[0]!.sections.order).toEqual(["note", "ref", "task", "event"]);
   });
 
   it("sorts blocks of a page by date descending, id ascending", () => {
@@ -53,7 +54,7 @@ describe("selectPageBlocks", () => {
   });
 });
 
-describe("selectMirror", () => {
+describe("selectMirror / selectMirrorGroups", () => {
   it("returns the person's open tasks in the stored server order, referencing the same rows", () => {
     const t1 = item({ id: "t1", kind: "task", blockId: "b1", assigneeSpaceId: "p1" });
     const t2 = item({ id: "t2", kind: "task", blockId: "b1", assigneeSpaceId: "p1" });
@@ -68,6 +69,10 @@ describe("selectMirror", () => {
     expect(mirror[0]!.item).toBe(state.items.get("t2"));
     expect(mirror[1]!.item).toBe(state.items.get("t1"));
     expect(mirror[0]!.block).toMatchObject({ id: "b1", pageId: "pg1", title: "Meeting", date: "2026-08-10" });
+
+    const groups = selectMirrorGroups(state, "p1");
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.tasks.map((entry) => entry.id)).toEqual(["t2", "t1"]);
   });
 
   it("hides tasks that were checked off or reassigned away", () => {

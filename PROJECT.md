@@ -148,6 +148,29 @@ npm run test:workers  # Vitest gegen den Worker — D1-Zugriffsschicht stimmt
 Jede Stufe weist etwas anderes nach; keine ersetzt eine andere. Alle vier laufen vor
 jedem Commit.
 
+Zusätzlich gibt es **Playwright-Wege gegen die lokale Umgebung** (`npm run test:e2e`):
+sie starten den Worker mit D1 local und Seed selbst (siehe unten) und brauchen den
+Port 8787 frei. Sie gehören nicht zu den vier Gates, weil sie die echte lokale
+Umgebung voraussetzen; die drei Wege sind die, die wirklich brechen dürfen.
+
+---
+
+## Lokale Entwicklung
+
+```
+npm run dev              # D1 local migrieren + seeden, dann Worker (8787) + Vite (5173, HMR, /api-Proxy) gleichzeitig
+npm run dev:worker       # nur der Worker (braucht dist, siehe ASSETS-Binding)
+npm run dev:vite         # nur Vite
+npm run test:e2e         # Playwright gegen lokale Umgebung (resetet .wrangler/state)
+```
+
+Die Berechtigung kommt in der Entwicklung aus `.dev.vars`
+(`DEV_ACCESS_EMAIL=dev@example.com`); Access selbst prüft nur der Worker in
+Produktion. `seed.sql` ist mit `INSERT OR IGNORE` idempotent, mehrfaches Seeden
+schadet also nicht. `npm run test:e2e` setzt den lokalen D1-Zustand zurück
+(`rm -rf .wrangler/state`), damit die Wege deterministisch sind — erst `npm run dev`
+stoppen, sonst belegt der Worker den Port.
+
 ---
 
 ## Arbeitsweise
@@ -191,7 +214,7 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 0 | Repo-Skelett, Toolchain, `PROJECT.md` | erledigt |
 | 1 | Leere Seite deployt, hinter Access, CI grün | erledigt |
 | 2a | D1-Schema | erledigt |
-| 2b | API, Prototyp-Logik, State/Client | erledigt |
+| 2b | API, Prototyp-Logik, State/Client, Oberfläche | erledigt |
 | 3 | Tests, ADRs, Aufräumen | offen |
 | 4 | Features: Volltextsuche, Rückverweise, Terminserien | offen |
 

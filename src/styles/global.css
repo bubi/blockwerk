@@ -1,0 +1,122 @@
+/*
+ * Design tokens, reset, and base styles. Component styling lives in CSS
+ * Modules next to each component (see docs/adr/0007-css-modules.md); this
+ * file only sets the palette, element defaults, focus visibility, and the
+ * reduced-motion rule — never component classes.
+ */
+:root {
+  --white: #ffffff;
+  --bg: #fafafa;
+  --side: #f5f6f8;
+  --hover: #edeef0;
+  --line: #e4e6e9;
+  --line2: #eff0f2;
+
+  --text: #1d2125;
+  --text2: #6b7075;
+  --text3: #9ba0a6;
+
+  --green: #00a82d;
+  --green-dk: #00922a;
+  --green-soft: #e8f6ec;
+  --blue: #2f80ed;
+  --blue-soft: #e9f1fd;
+  --purple: #7a5af8;
+  --orange: #e8883a;
+  --red: #e5484d;
+  --grey: #7a828a;
+
+  --radius: 6px;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Source Sans Pro", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--white);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14.5px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Accessible focus: never remove, always visible. */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+/* Screen-reader-only utility. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Template hues — data-driven accent colors. */
+.hue-plum {
+  color: var(--purple);
+}
+.hue-steel {
+  color: var(--blue);
+}
+.hue-moss {
+  color: var(--green);
+}
+.hue-amber {
+  color: var(--orange);
+}
+.hue-ink {
+  color: var(--grey);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

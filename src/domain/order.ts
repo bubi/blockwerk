@@ -1,4 +1,4 @@
-import type { ItemRow } from "../../shared/db.ts";
+import type { BlockRow, ItemRow } from "../../shared/db.ts";
 
 export interface BlockItemGroups {
   /** Note and ref items, in stream order. */
@@ -44,4 +44,9 @@ function compareBlockItems(a: ItemRow, b: ItemRow): number {
     );
   }
   return a.position - b.position || a.id.localeCompare(b.id);
+}
+
+/** A page's blocks in display order — newest date first, id ascending on ties. */
+export function orderPageBlocks(blocks: readonly BlockRow[]): BlockRow[] {
+  return [...blocks].sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
 }

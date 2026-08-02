@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { item } from "./fixtures.ts";
-import { groupBlockItems, orderBlockItems } from "./order.ts";
+import { block, item } from "./fixtures.ts";
+import { groupBlockItems, orderBlockItems, orderPageBlocks } from "./order.ts";
 
 describe("orderBlockItems", () => {
   it("orders notes and refs by position, then tasks, then events chronologically", () => {
@@ -70,5 +70,24 @@ describe("groupBlockItems", () => {
     expect(groups.notes.map((entry) => entry.id)).toEqual(["note", "ref"]);
     expect(groups.tasks.map((entry) => entry.id)).toEqual(["task"]);
     expect(groups.events.map((entry) => entry.id)).toEqual(["event"]);
+  });
+});
+
+describe("orderPageBlocks", () => {
+  it("orders a page's blocks by date descending, id ascending on ties", () => {
+    const blocks = [
+      block({ id: "mid", pageId: "p1", date: "2026-08-10" }),
+      block({ id: "new", pageId: "p1", date: "2026-08-20" }),
+      block({ id: "old", pageId: "p1", date: "2026-08-01" }),
+      block({ id: "tie-b", pageId: "p1", date: "2026-08-20" }),
+      block({ id: "tie-a", pageId: "p1", date: "2026-08-20" }),
+    ];
+    expect(orderPageBlocks(blocks).map((entry) => entry.id)).toEqual(["new", "tie-a", "tie-b", "mid", "old"]);
+  });
+
+  it("does not mutate the input", () => {
+    const blocks = [block({ id: "old", pageId: "p1", date: "2026-08-01" }), block({ id: "new", pageId: "p1", date: "2026-08-20" })];
+    orderPageBlocks(blocks);
+    expect(blocks.map((entry) => entry.id)).toEqual(["old", "new"]);
   });
 });

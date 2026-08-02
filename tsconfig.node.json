@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["vite.config.ts", "worker/db/vitest.config.ts"]
+  "include": ["vite.config.ts", "worker/db/vitest.config.ts", "playwright.config.ts", "e2e/**/*.ts"]
 }

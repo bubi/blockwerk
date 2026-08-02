@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { block, item } from "./fixtures.ts";
-import { projectCalendar } from "./calendar.ts";
+import { monthLedger, projectCalendar } from "./calendar.ts";
 
 describe("projectCalendar", () => {
   it("returns only dated objects inside the inclusive window", () => {
@@ -39,5 +39,33 @@ describe("projectCalendar", () => {
     expect(window.blocks.map((entry) => entry.id)).toEqual(["b1", "b2"]);
     expect(window.dueTasks.map((entry) => entry.id)).toEqual(["t1", "t2"]);
     expect(window.events.map((entry) => entry.id)).toEqual(["e2", "e1", "e3"]);
+  });
+});
+
+describe("monthLedger", () => {
+  it("enumerates every day of the window and groups content onto it", () => {
+    const window = projectCalendar(
+      [block({ id: "b", date: "2026-08-10" })],
+      [
+        item({ id: "t", kind: "task", dueDate: "2026-08-10" }),
+        item({ id: "e", kind: "event", eventDate: "2026-08-11", eventTime: "14:00" }),
+      ],
+      "2026-08-10",
+      "2026-08-12",
+    );
+
+    const ledger = monthLedger(window, "2026-08-10", "2026-08-12");
+    expect(ledger.map((day) => day.date)).toEqual(["2026-08-10", "2026-08-11", "2026-08-12"]);
+    expect(ledger[0]!.blocks.map((entry) => entry.id)).toEqual(["b"]);
+    expect(ledger[0]!.tasks.map((entry) => entry.id)).toEqual(["t"]);
+    expect(ledger[0]!.events).toEqual([]);
+    expect(ledger[1]!.events.map((entry) => entry.id)).toEqual(["e"]);
+    expect(ledger[2]!.blocks).toEqual([]);
+  });
+
+  it("exposes the weekday index for weekend styling", () => {
+    // 2026-08-10 is a Monday.
+    const ledger = monthLedger(projectCalendar([], [], "2026-08-10", "2026-08-10"), "2026-08-10", "2026-08-10");
+    expect(ledger[0]!.weekday).toBe(1);
   });
 });

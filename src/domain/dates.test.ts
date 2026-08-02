@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { addDays, formatShort, fromISODate, parseDateWord, relativeLabel, toISODate } from "./dates.ts";
+import {
+  addDays,
+  dayNumber,
+  formatMonthYear,
+  formatShort,
+  fromISODate,
+  monthName,
+  parseDateWord,
+  relativeLabel,
+  toISODate,
+  weekdayShort,
+} from "./dates.ts";
 
 describe("toISODate", () => {
   it("pads month and day to two digits", () => {
@@ -40,6 +51,22 @@ describe("formatShort", () => {
   it("renders weekday abbreviation and day.month", () => {
     expect(formatShort("2026-08-10")).toBe("Mo 10.8.");
     expect(formatShort("2026-01-15")).toBe("Do 15.1.");
+  });
+});
+
+describe("weekdayShort / dayNumber", () => {
+  it("labels weekday indices and reads the day of month", () => {
+    expect(weekdayShort(1)).toBe("Mo");
+    expect(weekdayShort(7)).toBe("");
+    expect(dayNumber("2026-08-10")).toBe(10);
+  });
+});
+
+describe("monthName / formatMonthYear", () => {
+  it("names the month in German and formats the headline", () => {
+    expect(monthName(0)).toBe("Januar");
+    expect(monthName(7)).toBe("August");
+    expect(formatMonthYear(2026, 7)).toBe("August 2026");
   });
 });
 

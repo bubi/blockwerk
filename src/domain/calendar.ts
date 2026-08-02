@@ -1,4 +1,5 @@
 import type { BlockRow, CalendarWindow, ItemRow } from "../../shared/db.ts";
+import { addDays, fromISODate, toISODate } from "./dates.ts";
 
 /**
  * The calendar projection — the single definition of which dated objects
@@ -41,4 +42,33 @@ export function projectCalendar(
           a.id.localeCompare(b.id),
       ),
   };
+}
+
+export interface LedgerDay {
+  /** 'YYYY-MM-DD'. */
+  date: string;
+  /** 0 = Sunday … 6 = Saturday, for weekend/weekday styling. */
+  weekday: number;
+  blocks: BlockRow[];
+  tasks: ItemRow[];
+  events: ItemRow[];
+}
+
+/**
+ * The month strip: every day of the `[from, to]` window (inclusive) with the
+ * window's content grouped onto it — pure presentation over a CalendarWindow.
+ */
+export function monthLedger(window: CalendarWindow, from: string, to: string): LedgerDay[] {
+  const days = new Map<string, LedgerDay>();
+  let cursor = fromISODate(from);
+  const end = fromISODate(to);
+  while (cursor.getTime() <= end.getTime()) {
+    const key = toISODate(cursor);
+    days.set(key, { date: key, weekday: cursor.getDay(), blocks: [], tasks: [], events: [] });
+    cursor = addDays(cursor, 1);
+  }
+  for (const block of window.blocks) days.get(block.date)?.blocks.push(block);
+  for (const task of window.dueTasks) if (task.dueDate) days.get(task.dueDate)?.tasks.push(task);
+  for (const event of window.events) if (event.eventDate) days.get(event.eventDate)?.events.push(event);
+  return [...days.values()];
 }

@@ -101,7 +101,10 @@ export class FetchApiClient implements ApiClient {
     let attempt = 0;
     for (;;) {
       try {
-        return await this.fetchImpl(url, init);
+        // Call the impl as a free function: native `fetch` rejects being
+        // invoked with a foreign receiver ("Illegal invocation").
+        const doFetch = this.fetchImpl;
+        return await doFetch(url, init);
       } catch (err) {
         if (!retryable || attempt >= this.maxAttempts - 1) throw networkError(err);
         attempt++;

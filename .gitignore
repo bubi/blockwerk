@@ -6,3 +6,5 @@ dist
 *.tsbuildinfo
 .dev.vars*
 !.dev.vars.example
+test-results
+playwright-report

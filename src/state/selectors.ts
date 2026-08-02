@@ -1,15 +1,23 @@
 import type { ApiBlock, MirrorTask, SpaceWithPages } from "../../shared/api.ts";
 import type { BlockRow, CalendarWindow, ItemRow, TemplateRow } from "../../shared/db.ts";
+import { buildBlockView, type BlockSection } from "../domain/blockView.ts";
 import { projectCalendar } from "../domain/calendar.ts";
-import { orderBlockItems } from "../domain/order.ts";
+import { groupMirrorTasks, type MirrorGroup } from "../domain/mirror.ts";
+import { orderBlockItems, orderPageBlocks } from "../domain/order.ts";
 import type { AppState, ViewStatus } from "./state.ts";
 
 /**
  * Derived views over the normalized state. Views are assembled here at read
  * time and never stored — a task row in `items` is referenced by every view
- * that shows it. Ordering rules come from /src/domain; nothing is re-sorted
- * or re-grouped in this module.
+ * that shows it. Ordering and grouping rules come from /src/domain
+ * (orderBlockItems, orderPageBlocks, buildBlockView, groupMirrorTasks,
+ * projectCalendar); this module only selects and delegates.
  */
+
+/** A page block with its display model pre-built by /src/domain. */
+export interface BlockView extends ApiBlock {
+  sections: BlockSection;
+}
 
 export function selectSpaces(state: AppState): SpaceWithPages[] {
   return [...state.spaces.values()]
@@ -26,14 +34,12 @@ export function selectTemplates(state: AppState): TemplateRow[] {
   return [...state.templates.values()].sort((a, b) => a.id.localeCompare(b.id));
 }
 
-export function selectPageBlocks(state: AppState, pageId: string): ApiBlock[] {
-  return [...state.blocks.values()]
-    .filter((block) => block.pageId === pageId)
-    .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id))
-    .map((block) => ({
-      ...block,
-      items: orderBlockItems([...state.items.values()].filter((item) => item.blockId === block.id)),
-    }));
+export function selectPageBlocks(state: AppState, pageId: string): BlockView[] {
+  return orderPageBlocks([...state.blocks.values()].filter((block) => block.pageId === pageId)).map((block) => ({
+    ...block,
+    items: orderBlockItems([...state.items.values()].filter((item) => item.blockId === block.id)),
+    sections: buildBlockView([...state.items.values()].filter((item) => item.blockId === block.id)),
+  }));
 }
 
 export function selectMirror(state: AppState, spaceId: string): MirrorTask[] {
@@ -46,6 +52,10 @@ export function selectMirror(state: AppState, spaceId: string): MirrorTask[] {
     tasks.push({ item, block: blockContext(state, item) });
   }
   return tasks;
+}
+
+export function selectMirrorGroups(state: AppState, spaceId: string): MirrorGroup[] {
+  return groupMirrorTasks(selectMirror(state, spaceId));
 }
 
 export function selectCalendar(state: AppState, from: string, to: string): CalendarWindow {

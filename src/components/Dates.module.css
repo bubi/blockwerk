@@ -1,0 +1,173 @@
+.dates {
+  border-left: 1px solid var(--line);
+  background: var(--white);
+  padding: 14px 0 60px;
+}
+
+.monthbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+}
+
+.mnav {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  color: var(--text2);
+  line-height: 1;
+}
+
+.mnav:hover {
+  background: var(--hover);
+}
+
+.monthtitle {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.monthmeta {
+  font-size: 12px;
+  color: var(--text3);
+  padding: 2px 14px 10px;
+  margin: 0;
+}
+
+.ledger {
+  border-top: 1px solid var(--line2);
+}
+
+.day {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  border-bottom: 1px solid var(--line2);
+  padding-right: 12px;
+}
+
+.dayThin {
+  min-height: 20px;
+}
+
+.dayFull {
+  padding-bottom: 6px;
+}
+
+.dayWe {
+  background: #fcfcfd;
+}
+
+.dayToday {
+  background: var(--green-soft);
+}
+
+.dayToday .dnum {
+  background: var(--green);
+  color: #fff;
+}
+
+.daymark {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-end;
+  padding: 4px 8px 0 0;
+}
+
+.dnum {
+  font-size: 12.5px;
+  color: var(--text2);
+  min-width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.dwd {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+.dayWe .dnum,
+.dayWe .dwd {
+  color: var(--text3);
+}
+
+.dayload {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px 0 0 6px;
+  min-width: 0;
+}
+
+.dayThin .dayload {
+  padding-top: 0;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--side);
+  color: var(--text);
+  min-width: 0;
+}
+
+.chip::before {
+  content: "";
+  width: 3px;
+  align-self: stretch;
+  border-radius: 2px;
+  background: currentColor;
+  flex: none;
+  margin-left: -3px;
+}
+
+.chip:hover {
+  background: var(--hover);
+}
+
+.chiptime {
+  font-size: 11px;
+  color: var(--text3);
+  flex: none;
+}
+
+.chipEvent {
+  color: var(--blue);
+}
+
+.chipTask {
+  color: var(--green-dk);
+}
+
+.chipTask.chipDone {
+  color: var(--text3);
+  text-decoration: line-through;
+}
+
+.chipBlock {
+  color: var(--grey);
+}
+
+.who {
+  margin-left: auto;
+  font-style: normal;
+}
+
+@media (max-width: 640px) {
+  .day {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+}

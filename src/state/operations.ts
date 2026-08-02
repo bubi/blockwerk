@@ -35,6 +35,9 @@ export interface Operations {
   createTemplate(input: TemplateCreateInput): Promise<void>;
   updateTemplate(id: string, patch: TemplatePatch): Promise<void>;
   deleteTemplate(id: string): Promise<void>;
+
+  /** Dismisses a visible error notification. */
+  dismissNotification(id: string): void;
 }
 
 export interface SpaceCreateInput {
@@ -192,6 +195,8 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
       ),
     deleteTemplate: (id) =>
       runWrite({ opKey: opKey("template", id, "delete"), entity: "template", id, change: "delete" }, () => client.delete("template", id)),
+
+    dismissNotification: (id) => dispatch({ type: "dismissNotification", id }),
   };
 }
 

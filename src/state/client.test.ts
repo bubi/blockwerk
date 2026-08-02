@@ -20,6 +20,19 @@ describe("FetchApiClient reads", () => {
     expect(fetchImpl).toHaveBeenCalledWith(expect.stringContaining("/api/spaces"), expect.objectContaining({ method: "GET" }));
   });
 
+  it("calls the fetch implementation as a free function, not as a method", async () => {
+    // Native `fetch` rejects a foreign receiver ("Illegal invocation"). The
+    // client must not invoke the impl as a method of itself.
+    const fetchImpl = function (this: unknown, url: string, init?: RequestInit) {
+      if (this !== undefined) throw new TypeError("Illegal invocation");
+      if (init?.method !== "GET") throw new Error(`unexpected method for ${url}`);
+      return Promise.resolve(jsonResponse({ spaces: [], templates: [] }));
+    };
+    const client = makeClient(fetchImpl as unknown as typeof fetch);
+
+    await expect(client.getSpaces()).resolves.toEqual({ spaces: [], templates: [] });
+  });
+
   it("classifies an HTTP error with the API error body", async () => {
     const fetchImpl = vi
       .fn()

@@ -13,6 +13,31 @@ const DAY_MS = 86_400_000;
 
 const WEEKDAY_ABBREV = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
+const MONTH_NAMES = [
+  "Januar",
+  "Februar",
+  "März",
+  "April",
+  "Mai",
+  "Juni",
+  "Juli",
+  "August",
+  "September",
+  "Oktober",
+  "November",
+  "Dezember",
+];
+
+/** German month name for a 0-based month index, e.g. `monthName(7) === "August"`. */
+export function monthName(monthIndex: number): string {
+  return MONTH_NAMES[monthIndex] ?? "";
+}
+
+/** Month headline for a 0-based month index, e.g. `formatMonthYear(2026, 7) === "August 2026"`. */
+export function formatMonthYear(year: number, monthIndex: number): string {
+  return `${monthName(monthIndex)} ${year}`;
+}
+
 /** Converts a Date to the `YYYY-MM-DD` string stored in `date`/`due_date`/`event_date` fields. */
 export function toISODate(date: Date): string {
   const year = date.getFullYear();
@@ -44,6 +69,16 @@ export function addDays(date: Date, days: number): Date {
 export function formatShort(isoDate: string): string {
   const date = fromISODate(isoDate);
   return `${WEEKDAY_ABBREV[date.getDay()]} ${date.getDate()}.${date.getMonth() + 1}.`;
+}
+
+/** German weekday abbreviation for a 0-based weekday index (0 = Sunday). */
+export function weekdayShort(weekdayIndex: number): string {
+  return WEEKDAY_ABBREV[weekdayIndex] ?? "";
+}
+
+/** Day of the month (1–31) of an ISO date, for the calendar day marker. */
+export function dayNumber(isoDate: string): number {
+  return fromISODate(isoDate).getDate();
 }
 
 /**
