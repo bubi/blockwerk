@@ -72,3 +72,42 @@ export function monthLedger(window: CalendarWindow, from: string, to: string): L
   for (const event of window.events) if (event.eventDate) days.get(event.eventDate)?.events.push(event);
   return [...days.values()];
 }
+
+/** One display row of the calendar ledger: a full day, or a run of empty days. */
+export type LedgerRow =
+  | { type: "day"; day: LedgerDay }
+  | { type: "gap"; from: string; count: number };
+
+/**
+ * The ledger's display order — the single definition of how a month is laid
+ * out: every day with content is its own section, consecutive days without
+ * content collapse into one gap row (which day they start at, how many). Pure
+ * presentation over the month ledger, mirroring the prototype's `ledgerRows`.
+ */
+export function ledgerRows(days: readonly LedgerDay[]): LedgerRow[] {
+  const rows: LedgerRow[] = [];
+  let run: { from: string; count: number } | null = null;
+  for (const day of days) {
+    const load = day.blocks.length + day.tasks.length + day.events.length;
+    if (load === 0) {
+      if (run) run.count += 1;
+      else run = { from: day.date, count: 1 };
+      continue;
+    }
+    if (run) {
+      rows.push({ type: "gap", ...run });
+      run = null;
+    }
+    rows.push({ type: "day", day });
+  }
+  if (run) rows.push({ type: "gap", ...run });
+  return rows;
+}
+
+/**
+ * Whether an open task is past its due date — `dueDate` before `todayIso`.
+ * ISO strings compare lexicographically, so no calendar arithmetic is needed.
+ */
+export function isOverdueTask(task: ItemRow, todayIso: string): boolean {
+  return !task.done && task.dueDate !== null && task.dueDate < todayIso;
+}

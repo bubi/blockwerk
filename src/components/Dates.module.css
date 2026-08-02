@@ -41,133 +41,148 @@
 }
 
 .ledger {
+  padding: 0 14px 8px;
+}
+
+/* Ein Tag mit Einträgen */
+.dayblock {
+  padding: 14px 0 4px;
   border-top: 1px solid var(--line2);
 }
 
-.day {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  border-bottom: 1px solid var(--line2);
-  padding-right: 12px;
+.dayblock:first-child {
+  border-top: none;
+  padding-top: 2px;
 }
 
-.dayThin {
-  min-height: 20px;
-}
-
-.dayFull {
-  padding-bottom: 6px;
-}
-
-.dayWe {
-  background: #fcfcfd;
-}
-
-.dayToday {
-  background: var(--green-soft);
-}
-
-.dayToday .dnum {
-  background: var(--green);
-  color: #fff;
-}
-
-.daymark {
+.dayhead {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  justify-content: flex-end;
-  padding: 4px 8px 0 0;
-}
-
-.dnum {
-  font-size: 12.5px;
-  color: var(--text2);
-  min-width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: 8px;
+  padding-left: 2px;
 }
 
 .dwd {
-  font-size: 11px;
-  color: var(--text3);
-}
-
-.dayWe .dnum,
-.dayWe .dwd {
-  color: var(--text3);
-}
-
-.dayload {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 4px 0 0 6px;
-  min-width: 0;
-}
-
-.dayThin .dayload {
-  padding-top: 0;
-}
-
-.chip {
-  display: flex;
-  align-items: center;
-  gap: 7px;
   font-size: 12.5px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  background: var(--side);
-  color: var(--text);
-  min-width: 0;
-}
-
-.chip::before {
-  content: "";
-  width: 3px;
-  align-self: stretch;
-  border-radius: 2px;
-  background: currentColor;
-  flex: none;
-  margin-left: -3px;
-}
-
-.chip:hover {
-  background: var(--hover);
-}
-
-.chiptime {
-  font-size: 11px;
+  font-weight: 600;
   color: var(--text3);
-  flex: none;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.chipEvent {
-  color: var(--blue);
+.dnum {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.chipTask {
+.todaytag {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--green);
+  border-radius: 10px;
+  padding: 1px 8px;
+  margin-left: auto;
+}
+
+.dayblock.isToday .dnum,
+.dayblock.isToday .dwd {
   color: var(--green-dk);
 }
 
-.chipTask.chipDone {
+/* Zusammengefasste leere Tage */
+.gap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 2px;
+  border-top: 1px solid var(--line2);
+}
+
+.gap::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line2);
+}
+
+.gap span {
+  font-size: 12px;
+  color: var(--text3);
+  flex: none;
+}
+
+/* Eintragskarte: Titel oben, Metazeile darunter */
+.card {
+  display: block;
+  width: 100%;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-left: 3px solid currentColor;
+  border-radius: 6px;
+  padding: 8px 11px;
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.card:hover {
+  background: #fbfcfb;
+  border-color: #cfd4d9;
+}
+
+.cardtitle {
+  display: block;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--text);
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardmeta {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+
+.cardkind {
+  font-size: 12px;
+  font-weight: 600;
+  color: currentColor;
+}
+
+.cardtime {
+  font-size: 12px;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+
+.cardwho {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.cardEvent {
+  color: var(--blue);
+}
+
+.cardTask {
+  color: var(--green-dk);
+}
+
+.cardTask.isLate {
+  color: var(--red);
+}
+
+.cardTask.isDone {
+  color: var(--text3);
+}
+
+.cardTask.isDone .cardtitle {
   color: var(--text3);
   text-decoration: line-through;
-}
-
-.chipBlock {
-  color: var(--grey);
-}
-
-.who {
-  margin-left: auto;
-  font-style: normal;
-}
-
-@media (max-width: 640px) {
-  .day {
-    grid-template-columns: 38px minmax(0, 1fr);
-  }
 }
