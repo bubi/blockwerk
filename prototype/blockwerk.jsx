@@ -321,6 +321,22 @@ export default function Blockwerk() {
 
   const monthLoad = monthDays.reduce((a, d) => a + d.blocks.length + d.tasks.length + d.events.length, 0);
 
+  /* Volle Tage einzeln, leere Tagesläufe zu einer Zeile zusammengefasst:
+     der Monatsrhythmus bleibt sichtbar, ohne 20 fast leere Zeilen. */
+  const ledgerRows = [];
+  let run = null;
+  monthDays.forEach((d) => {
+    const load = d.blocks.length + d.tasks.length + d.events.length;
+    if (load === 0) {
+      if (run) run.count += 1;
+      else run = { type: "gap", from: d.key, count: 1 };
+      return;
+    }
+    if (run) { ledgerRows.push(run); run = null; }
+    ledgerRows.push({ type: "day", day: d });
+  });
+  if (run) ledgerRows.push(run);
+
   return (
     <div className="bw">
       <style>{CSS}</style>
@@ -440,37 +456,58 @@ export default function Blockwerk() {
             <h2 className="colhead colhead--flush">{MONTHS[month.getMonth()]} <span className="yr">{month.getFullYear()}</span></h2>
             <button className="mnav" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} aria-label="Nächster Monat">›</button>
           </div>
-          <p className="monthmeta">{monthLoad} datierte Einträge</p>
+          <p className="monthmeta">{monthLoad} datierte Einträge im Monat</p>
           <div className="ledger">
-            {monthDays.map((d) => {
-              const load = d.blocks.length + d.tasks.length + d.events.length;
+            {ledgerRows.map((row) => {
+              if (row.type === "gap") {
+                return (
+                  <div key={`gap-${row.from}`} className="gap">
+                    <span>{row.count === 1 ? "ein Tag ohne Einträge" : `${row.count} Tage ohne Einträge`}</span>
+                  </div>
+                );
+              }
+              const d = row.day;
               const isToday = d.key === iso(TODAY);
-              const we = d.date.getDay() === 0 || d.date.getDay() === 6;
               return (
-                <div key={d.key} className={`day ${load ? "day--full" : "day--thin"} ${isToday ? "day--today" : ""} ${we ? "day--we" : ""}`}>
-                  <div className="daymark">
-                    <span className="dnum">{d.date.getDate()}</span>
+                <section key={d.key} className={`dayblock ${isToday ? "is-today" : ""}`}>
+                  <header className="dayhead">
                     <span className="dwd">{WD[d.date.getDay()]}</span>
-                  </div>
-                  <div className="dayload">
-                    {d.events.map((e) => (
-                      <button key={e.id} className="chip chip--event" onClick={() => jumpTo(e.blockId)}>
-                        <span className="chiptime">{e.time || "—"}</span>{e.text}
+                    <span className="dnum">{d.date.getDate()}. {MONTHS[d.date.getMonth()].slice(0, 3)}</span>
+                    {isToday && <span className="todaytag">heute</span>}
+                  </header>
+
+                  {d.events.map((e) => (
+                    <button key={e.id} className="card card--event" onClick={() => jumpTo(e.blockId)}>
+                      <span className="cardtitle">{e.text}</span>
+                      <span className="cardmeta">
+                        <span className="cardkind">Termin</span>
+                        {e.time && <span className="cardtime">{e.time}</span>}
+                      </span>
+                    </button>
+                  ))}
+
+                  {d.tasks.map((t) => {
+                    const late = !t.done && t.due < iso(TODAY);
+                    return (
+                      <button key={t.id} className={`card card--task ${t.done ? "is-done" : ""} ${late ? "is-late" : ""}`} onClick={() => jumpTo(t.blockId)}>
+                        <span className="cardtitle">{t.text}</span>
+                        <span className="cardmeta">
+                          <span className="cardkind">{t.done ? "erledigt" : late ? "überfällig" : "fällig"}</span>
+                          {t.assignee && <span className="cardwho">{spaceOf(t.assignee).name.split(" ")[0]}</span>}
+                        </span>
                       </button>
-                    ))}
-                    {d.tasks.map((t) => (
-                      <button key={t.id} className={`chip chip--task ${t.done ? "is-done" : ""}`} onClick={() => jumpTo(t.blockId)}>
-                        <span className="chiptime">{t.done ? "erledigt" : "fällig"}</span>{t.text}
-                        {t.assignee && <em className="who">{spaceOf(t.assignee).short}</em>}
-                      </button>
-                    ))}
-                    {d.blocks.map((b) => (
-                      <button key={b.id} className={`chip chip--block hue-${tplOf(b.type).hue}`} onClick={() => jumpTo(b.id)}>
-                        <span className="chiptime">{tplOf(b.type).label}</span>{b.title}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    );
+                  })}
+
+                  {d.blocks.map((b) => (
+                    <button key={b.id} className={`card card--block hue-${tplOf(b.type).hue}`} onClick={() => jumpTo(b.id)}>
+                      <span className="cardtitle">{b.title}</span>
+                      <span className="cardmeta">
+                        <span className="cardkind">{tplOf(b.type).label}</span>
+                      </span>
+                    </button>
+                  ))}
+                </section>
               );
             })}
           </div>
@@ -1214,34 +1251,45 @@ const CSS = `
 .donehead{font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:var(--text3); margin:0 0 4px;}
 
 /* Datumsspalte */
-.monthbar{display:flex; align-items:center; gap:6px; padding:0 14px;}
-.mnav{width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-size:17px; color:var(--text2); line-height:1;}
+.monthbar{display:flex; align-items:center; gap:6px; padding:0 16px;}
+.mnav{width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font-size:19px; color:var(--text2); line-height:1;}
 .mnav:hover{background:var(--hover);}
-.monthbar .colhead--flush{flex:1;}
+.monthbar .colhead--flush{flex:1; font-size:16px;}
 .yr{color:var(--text3); font-weight:400;}
-.monthmeta{font-size:12px; color:var(--text3); padding:2px 14px 10px; margin:0;}
-.ledger{border-top:1px solid var(--line2);}
-.day{display:grid; grid-template-columns:44px minmax(0,1fr); border-bottom:1px solid var(--line2); padding-right:12px;}
-.day--thin{min-height:20px;}
-.day--full{padding-bottom:6px;}
-.day--we{background:#FCFCFD;}
-.day--today{background:var(--green-soft);}
-.day--today .dnum{background:var(--green); color:#fff;}
-.daymark{display:flex; align-items:center; gap:5px; justify-content:flex-end; padding:4px 8px 0 0;}
-.dnum{font-size:12.5px; color:var(--text2); min-width:20px; height:20px; border-radius:50%; display:grid; place-items:center;}
-.dwd{font-size:11px; color:var(--text3);}
-.day--we .dnum,.day--we .dwd{color:var(--text3);}
-.dayload{display:flex; flex-direction:column; gap:3px; padding:4px 0 0 6px; min-width:0;}
-.day--thin .dayload{padding-top:0;}
-.chip{display:flex; align-items:center; gap:7px; font-size:12.5px; padding:3px 8px; border-radius:4px; background:var(--side); color:var(--text); min-width:0;}
-.chip::before{content:''; width:3px; align-self:stretch; border-radius:2px; background:currentColor; flex:none; margin-left:-3px;}
-.chip:hover{background:var(--hover);}
-.chiptime{font-size:11px; color:var(--text3); flex:none;}
-.chip--event{color:var(--blue);}
-.chip--task{color:var(--green-dk);}
-.chip--task.is-done{color:var(--text3); text-decoration:line-through;}
-.chip--block{color:var(--grey);}
-.chip .who{margin-left:auto;}
+.monthmeta{font-size:12.5px; color:var(--text3); padding:3px 16px 14px; margin:0;}
+.ledger{padding:0 14px 8px;}
+
+/* Ein Tag mit Einträgen */
+.dayblock{padding:14px 0 4px; border-top:1px solid var(--line2);}
+.dayblock:first-child{border-top:none; padding-top:2px;}
+.dayhead{display:flex; align-items:baseline; gap:7px; margin-bottom:8px; padding-left:2px;}
+.dwd{font-size:12.5px; font-weight:600; color:var(--text3); text-transform:uppercase; letter-spacing:.05em;}
+.dnum{font-size:14.5px; font-weight:600; color:var(--text);}
+.todaytag{font-size:11.5px; font-weight:600; color:#fff; background:var(--green); border-radius:10px; padding:1px 8px; margin-left:auto;}
+.dayblock.is-today .dnum,.dayblock.is-today .dwd{color:var(--green-dk);}
+
+/* Zusammengefasste leere Tage */
+.gap{display:flex; align-items:center; gap:10px; padding:9px 2px; border-top:1px solid var(--line2);}
+.gap::after{content:''; flex:1; height:1px; background:var(--line2);}
+.gap span{font-size:12px; color:var(--text3); flex:none;}
+
+/* Eintragskarte */
+.card{display:block; width:100%; background:var(--white); border:1px solid var(--line); border-left:3px solid currentColor;
+      border-radius:6px; padding:8px 11px; margin-bottom:6px; text-align:left;}
+.card:hover{background:#FBFCFB; border-color:#CFD4D9;}
+.cardtitle{display:block; font-size:13.5px; line-height:1.4; color:var(--text); margin-bottom:2px;
+           overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.cardmeta{display:flex; align-items:baseline; gap:9px;}
+.cardkind{font-size:12px; font-weight:600; color:currentColor;}
+.cardtime{font-size:12px; color:var(--text2); font-variant-numeric:tabular-nums;}
+.cardwho{font-size:12px; color:var(--text2);}
+
+.card--event{color:var(--blue);}
+.card--task{color:var(--green-dk);}
+.card--task.is-late{color:var(--red);}
+.card--task.is-done{color:var(--text3);}
+.card--task.is-done .cardtitle{color:var(--text3); text-decoration:line-through;}
+.card--block{color:var(--grey);}
 
 /* Suche */
 .results{max-width:740px;}
@@ -1328,7 +1376,7 @@ const CSS = `
   .newhint{flex-basis:100%;}
   .tmenu{left:0; right:0; min-width:0;}
   .slash{left:0; right:0; min-width:0;}
-  .day{grid-template-columns:38px minmax(0,1fr);}
+  .ledger{padding:0 12px 8px;}
   .sheet{padding:15px 14px 18px; border-radius:8px;}
   .overlay{padding:3vh 10px;}
   .flash{left:12px; right:12px; transform:none; text-align:center;}
