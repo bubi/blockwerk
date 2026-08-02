@@ -430,6 +430,6 @@ describe("query budget per read route", () => {
     const beforeCalendar = count();
     const calendar = await json<CalendarResponse>("GET", "/api/calendar?from=2026-08-01&to=2026-08-31", undefined, db);
     expect(calendar.status).toBe(200);
-    expect(count() - beforeCalendar).toBe(3);
+    expect(count() - beforeCalendar).toBe(2);
   });
 });

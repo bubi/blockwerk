@@ -1,4 +1,4 @@
-import type { BlockRow, ItemRow, PageRow, SpaceRow, TemplateRow } from "./db.ts";
+import type { BlockRow, CalendarWindow, ItemRow, PageRow, SpaceRow, TemplateRow } from "./db.ts";
 
 /**
  * The error contract for the whole API. Defined here so client and worker
@@ -54,8 +54,5 @@ export interface MirrorTask {
   block: Pick<BlockRow, "id" | "pageId" | "title" | "date">;
 }
 
-export interface CalendarResponse {
-  blocks: BlockRow[];
-  dueTasks: ItemRow[];
-  events: ItemRow[];
-}
+/** The calendar route returns the same shape the domain projection builds. */
+export type CalendarResponse = CalendarWindow;

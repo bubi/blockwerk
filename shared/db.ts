@@ -39,7 +39,6 @@ export interface BlockRow {
 }
 
 export type ItemKind = "note" | "task" | "event" | "ref";
-
 export interface ItemRow {
   id: string;
   blockId: string;
@@ -62,4 +61,11 @@ export interface ItemRow {
   refBlockId: string | null;
   createdAt: number;
   updatedAt: number;
+}
+
+/** The dated objects of a calendar window — built by /src/domain and used by the worker's calendar route. */
+export interface CalendarWindow {
+  blocks: BlockRow[];
+  dueTasks: ItemRow[];
+  events: ItemRow[];
 }

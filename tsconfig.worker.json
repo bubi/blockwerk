@@ -19,6 +19,6 @@
     "skipLibCheck": true,
     "isolatedModules": true
   },
-  "include": ["worker", "shared", "worker-configuration.d.ts"],
-  "exclude": ["worker/db/vitest.config.ts"]
+  "include": ["worker", "shared", "src/domain", "worker-configuration.d.ts"],
+  "exclude": ["worker/db/vitest.config.ts", "src/domain/**/*.test.ts"]
 }

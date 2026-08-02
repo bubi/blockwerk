@@ -51,11 +51,15 @@ Space (Bereich)     Person oder Thema
 
 Regeln, die im Code gelten müssen:
 
-- **Reihenfolge im Block:** Notizen → Tasks → Folgetermine. Innerhalb der Notizen zählt
-  `position`, Termine werden chronologisch sortiert.
-- **Überschriften:** Ein Item mit `heading` ist eine Überschrift; alle folgenden Notizzeilen
-  bis zur nächsten Überschrift werden eingerückt dargestellt. Die Einrückung ist reine
-  Darstellung, es gibt keine Baumstruktur in den Daten.
+- **Reihenfolge im Block:** Notizen und Verweise → Tasks → Folgetermine. Verweise sind
+  Stream-Zeilen wie Notizen: sie stehen in `position`-Reihenfolge zwischen den Notizzeilen
+  und werden unter Überschriften eingerückt — es gibt keine vierte Gruppe. Innerhalb der
+  Notizen und Verweise zählt `position`, Termine werden chronologisch sortiert. Diese Regel
+  ist **genau einmal** definiert (in `/src/domain`, `orderBlockItems`); der Worker ruft sie
+  von dort auf und sortiert nicht zusätzlich in SQL.
+- **Überschriften:** Ein Item mit `heading` ist eine Überschrift; alle folgenden Notiz- und
+  Verweiszeilen bis zur nächsten Überschrift werden eingerückt dargestellt. Die Einrückung
+  ist reine Darstellung, es gibt keine Baumstruktur in den Daten.
 - **Spiegel:** Der Bereich einer Person zeigt `SELECT … WHERE assignee_space_id = ?`.
   Niemals ein zweiter Datensatz.
 
@@ -110,8 +114,8 @@ Eine Zeile darf nicht verschwinden, weil jemand an anderer Stelle etwas gelösch
 ```
 
 `/domain` ist die wichtigste Grenze: Datumsparser, Token-Parser (`@Person`, `!datum`, `14:00`),
-Sortierung, Einrückungsberechnung. Alles dort ist pur und testbar. Soll Logik in eine
-Komponente wandern, erst prüfen, ob sie stattdessen nach `/domain` gehört.
+Sortierung, Einrückungsberechnung, Kalenderprojektion. Alles dort ist pur und testbar. Soll
+Logik in eine Komponente wandern, erst prüfen, ob sie stattdessen nach `/domain` gehört.
 
 ---
 
@@ -187,7 +191,7 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 0 | Repo-Skelett, Toolchain, `PROJECT.md` | erledigt |
 | 1 | Leere Seite deployt, hinter Access, CI grün | erledigt |
 | 2a | D1-Schema | erledigt |
-| 2b | API, Prototyp-Logik migriert | Teil 1 (API-Routen + Validierung) erledigt; Prototyp-Logik offen |
+| 2b | API, Prototyp-Logik migriert | erledigt |
 | 3 | Tests, ADRs, Aufräumen | offen |
 | 4 | Features: Volltextsuche, Rückverweise, Terminserien | offen |
 

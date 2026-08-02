@@ -40,12 +40,22 @@ Feldpfad (`{ path: "spaceId", code: "not_found" }`) statt roher FK-Fehler.
 (kaputtes JSON), 404 `not_found`, 405 `method_not_allowed` (mit `Allow`),
 500 `internal` (Details nur ins Log).
 
-**Ordering entscheidet der Server.** `loadPageBlocks` sortiert in der
-Abfrage: Notizen und Refs (position, id) → Tasks (position, id) → Termine
-(event_date, event_time, position, id). Refs sind Stream-Zeilen wie Notizen —
-der Prototyp rendert sie zwischen den Notizzeilen und rückt sie unter
-Überschriften ein (PROJECT.md kennt drei Gruppen, keine vierte). Blöcke einer
-Seite: date DESC, id. Spiegel: Fälligkeit, `null` zuletzt.
+**Ordering entscheidet der Server — und ist genau einmal definiert.** Die
+Block-Reihenfolge (Notizen und Refs → Tasks → Termine; Termine chronologisch)
+liegt als `orderBlockItems` in `/src/domain/order.ts`; `loadPageBlocks` lädt
+die Items nur noch mechanisch (`block_id`, `id`) und ruft die Domänenfunktion
+auf. Es gibt kein zweites Ordering im SQL. Refs sind Stream-Zeilen wie
+Notizen — der Prototyp rendert sie zwischen den Notizzeilen und rückt sie
+unter Überschriften ein (PROJECT.md kennt drei Gruppen, keine vierte). Blöcke
+einer Seite: date DESC, id. Spiegel: Fälligkeit, `null` zuletzt — eine
+Sicht-Abfrage ohne Domänen-Pendant.
+
+**Kalenderprojektion ebenfalls einmal definiert.** `projectCalendar` in
+`/src/domain` ist die einzige Definition, welche datierten Objekte in einem
+Zeitfenster liegen und wie sie geordnet sind. Die Worker-Route lädt alle
+Blöcke und Items (zwei feste Abfragen) und projiziert darüber. Die
+fensterbasierten Kalender-Indizes aus der Migration sind damit ungenutzt und
+Kandidaten für das Aufräumen in Phase 3.
 
 **Zod an der Systemgrenze, Schemata in `/shared`** (direct dependency
 `zod@4.4.3`), damit Client und Worker dieselbe Wahrheit nutzen. Objekte sind
@@ -57,7 +67,7 @@ Access-Identität. Kein Rollen-/Rechtemodell (Nicht-Ziel).
 ## Konsequenzen
 
 - Jede Leseroute kommt mit fester, kleiner Zahl an D1-Abfragen aus
-  (spaces=3, page=3, mirror=2, calendar=3), gemessen durch den
+  (spaces=3, page=3, mirror=2, calendar=2), gemessen durch den
   Budget-Test in `worker/db/api.test.ts` über den fetch-Handler.
 - PUT auf existierender Zeile kostet eine Leseabfrage mehr als reines
   Anlegen; das ist der Preis für die „get then create-or-replace"-Semantik

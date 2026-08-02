@@ -1,4 +1,5 @@
 import type { BlockRow, ItemRow } from "../../shared/db.ts";
+import { orderBlockItems } from "../../src/domain/order.ts";
 import type { D1Like } from "./d1-like.ts";
 import { mapBlock, mapItem, type RawBlockRow, type RawItemRow } from "./mappers.ts";
 
@@ -12,11 +13,9 @@ export interface PageBlock extends BlockRow {
  * clause — regardless of how many blocks or items exist. See the
  * query-budget test in worker/db/page.test.ts.
  *
- * Item order is decided here, not by the client (see docs/adr/0005):
- * notes and refs (position, id) → tasks (position, id) → events
- * (chronological by event_date/event_time, then position, id). Refs are
- * stream lines like notes — the prototype renders them among the note rows,
- * indented under headings — so they order by position with the notes.
+ * The SQL here is purely mechanical (`block_id`, then `id` for stable
+ * grouping) — item order is the domain rule, computed by `orderBlockItems`
+ * (src/domain/order.ts). That is the only place the order is defined.
  */
 export async function loadPageBlocks(db: D1Like, pageId: string): Promise<PageBlock[]> {
   const { results: blockRows } = await db
@@ -28,16 +27,7 @@ export async function loadPageBlocks(db: D1Like, pageId: string): Promise<PageBl
 
   const placeholders = blockRows.map(() => "?").join(", ");
   const { results: itemRows } = await db
-    .prepare(
-      `SELECT * FROM items WHERE block_id IN (${placeholders})
-       ORDER BY
-         block_id ASC,
-         CASE WHEN kind IN ('note', 'ref') THEN 0 WHEN kind = 'task' THEN 1 ELSE 2 END ASC,
-         CASE WHEN kind = 'event' THEN event_date ELSE '' END ASC,
-         CASE WHEN kind = 'event' THEN event_time ELSE '' END ASC,
-         position ASC,
-         id ASC`,
-    )
+    .prepare(`SELECT * FROM items WHERE block_id IN (${placeholders}) ORDER BY block_id ASC, id ASC`)
     .bind(...blockRows.map((row) => row.id))
     .all<RawItemRow>();
 
@@ -49,5 +39,5 @@ export async function loadPageBlocks(db: D1Like, pageId: string): Promise<PageBl
     else itemsByBlock.set(item.blockId, [item]);
   }
 
-  return blockRows.map((raw) => ({ ...mapBlock(raw), items: itemsByBlock.get(raw.id) ?? [] }));
+  return blockRows.map((raw) => ({ ...mapBlock(raw), items: orderBlockItems(itemsByBlock.get(raw.id) ?? []) }));
 }
