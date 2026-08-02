@@ -213,8 +213,10 @@ export function App() {
         <main className={`${styles.col} ${styles.stream} ${pane === "stream" ? styles.open : ""}`}>
           {spacesView.status === "failed" ? (
             <LoadError message={formatError(spacesView.error)} onRetry={() => void ops.loadSpaces()} />
-          ) : space === null ? (
+          ) : spacesView.status === "idle" || spacesView.status === "loading" ? (
             <Loading />
+          ) : space === null ? (
+            <p className={styles.empty}>Noch keine Bereiche. Sobald der erste Bereich angelegt ist, erscheint er hier.</p>
           ) : resolvedPageId === null ? (
             <p className={styles.empty}>Dieser Bereich hat noch keine Seite.</p>
           ) : (
