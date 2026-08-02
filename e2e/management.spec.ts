@@ -45,6 +45,7 @@ test("deleting a person space keeps foreign tasks and only drops the assignment"
   // A block in the host topic, with a task assigned to Kim.
   await spaceButton(page, "Host Raum").dispatchEvent("click");
   await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
+  await expect(page.getByRole("menuitem", { name: /Meeting/ })).toBeVisible();
   await page.getByRole("menuitem", { name: /Meeting/ }).dispatchEvent("click");
   const hostBlock = page.locator("[data-block-id]").filter({ has: page.locator("input[value='Neuer Meeting']") });
   await expect(hostBlock).toBeVisible();
@@ -57,9 +58,9 @@ test("deleting a person space keeps foreign tasks and only drops the assignment"
   await expect(hostBlock.locator('input[value="Check"]')).toBeVisible();
   await expect(hostBlock.getByText("KL", { exact: true })).toBeVisible();
 
-  // Deleting Kim asks in-line and states the consequence.
+  // Deleting Kim asks in a modal dialog that states the consequence.
   await page.getByRole("button", { name: "Kim Lee entfernen" }).dispatchEvent("click");
-  await expect(page.locator("aside").getByRole("alert")).toContainText(
+  await expect(page.getByRole("dialog", { name: "Löschen bestätigen" })).toContainText(
     "Tasks in anderen Bereichen verlieren nur ihre Zuständigkeit",
   );
   await page.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
@@ -102,6 +103,7 @@ test("pages can be created and renamed", async ({ page }) => {
 test("templates can be added, edited, and deleted", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
+  await expect(page.getByRole("menuitem", { name: /Templates bearbeiten/ })).toBeVisible();
   await page.getByRole("menuitem", { name: /Templates bearbeiten/ }).dispatchEvent("click");
   const dialog = page.getByRole("dialog", { name: "Templates bearbeiten" });
   await expect(dialog).toBeVisible();
@@ -120,10 +122,10 @@ test("templates can be added, edited, and deleted", async ({ page }) => {
   await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
   await expect(page.getByRole("menuitem", { name: /Daily/ })).toBeVisible();
 
-  // Back into the manager to delete it again — with an in-line confirmation.
+  // Back into the manager to delete it again — with a modal confirmation.
   await page.getByRole("menuitem", { name: /Templates bearbeiten/ }).dispatchEvent("click");
   await dailyCard.getByRole("button", { name: "Daily entfernen" }).dispatchEvent("click");
-  await dailyCard.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
+  await page.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
   await expect(dailyCard).toHaveCount(0);
 
   // The block menu no longer offers it.
@@ -140,6 +142,7 @@ test("a block is created from a template with its seed lines", async ({ page }) 
 
   const blocksBefore = await page.locator("[data-block-id]").count();
   await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
+  await expect(page.getByRole("menuitem", { name: /Meeting/ })).toBeVisible();
   await page.getByRole("menuitem", { name: /Meeting/ }).dispatchEvent("click");
 
   await expect(page.locator("[data-block-id]")).toHaveCount(blocksBefore + 1);
@@ -165,6 +168,7 @@ test("rows and blocks can be deleted, with an in-line block confirmation", async
   await page.getByRole("button", { name: "Anlegen", exact: true }).dispatchEvent("click");
 
   await page.getByRole("button", { name: "Block anlegen" }).dispatchEvent("click");
+  await expect(page.getByRole("menuitem", { name: /Meeting/ })).toBeVisible();
   await page.getByRole("menuitem", { name: /Meeting/ }).dispatchEvent("click");
   const block = page.locator("[data-block-id]").filter({ has: page.locator("input[value='Neuer Meeting']") });
   await expect(block).toBeVisible();
@@ -177,10 +181,12 @@ test("rows and blocks can be deleted, with an in-line block confirmation", async
   await expect(card.locator("input[aria-label='Überschrift'][value='Teilnehmer']")).toHaveCount(0);
   await expect(card.locator("input[aria-label='Überschrift'][value='Agenda']")).toBeVisible();
 
-  // Deleting the block asks in-line and states the consequence.
+  // Deleting the block asks in a modal dialog and states the consequence.
   await card.getByRole("button", { name: "Block entfernen" }).dispatchEvent("click");
-  await expect(card.getByRole("alert")).toContainText("Verweise von außen verlieren ihr Ziel");
-  await card.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
+  await expect(page.getByRole("dialog", { name: "Löschen bestätigen" })).toContainText(
+    "Verweise von außen verlieren ihr Ziel",
+  );
+  await page.getByRole("button", { name: "Löschen" }).dispatchEvent("click");
   await expect(card).toHaveCount(0);
 
   // Clean up the space.
@@ -199,6 +205,10 @@ test("a page can be deleted and the selection moves on", async ({ page }) => {
   await page.getByLabel("Neue Seite").fill("Doku");
   await page.keyboard.press("Enter");
   await expect(page.getByRole("button", { name: "Doku", exact: true })).toBeVisible();
+  // Wait for the page's initial load to settle (the block bar only renders
+  // for a loaded page view) — otherwise a late GET can re-add the row the
+  // DELETE just removed.
+  await expect(page.getByRole("button", { name: "Block anlegen" })).toBeVisible();
 
   await page.getByRole("button", { name: "Doku entfernen" }).dispatchEvent("click");
   await expect(page.getByText("mit ihren Blöcken löschen?")).toBeVisible();

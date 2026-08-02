@@ -7,6 +7,7 @@ import { insertPositionBetween } from "../domain/position.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
 import type { BlockView } from "../state/selectors.ts";
 import { Composer } from "./Composer.tsx";
+import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { ItemRow } from "./ItemRow.tsx";
 import styles from "./BlockCard.module.css";
 
@@ -128,68 +129,45 @@ export function BlockCard({
       id={`blk-${block.id}`}
       data-block-id={block.id}
     >
-      {confirmDelete ? (
-        <div className={styles.confirm} role="alert">
-          <p>
-            „{block.title || "ohne Titel"}“ mit allen Zeilen löschen? Verweise von außen verlieren ihr Ziel.
-          </p>
-          <div className={styles.confirmbtns}>
-            <button
-              type="button"
-              className={styles.sdel}
-              onClick={() => {
-                onDeleteBlock(block.id);
-                setConfirmDelete(false);
-              }}
-            >
-              Löschen
-            </button>
-            <button type="button" className={styles.scancel} onClick={() => setConfirmDelete(false)}>
-              Abbrechen
-            </button>
-          </div>
+      <header className={styles.head}>
+        <div className={styles.top}>
+          <span className={styles.pill}>{template.label}</span>
+          <label className={styles.datefield}>
+            <span className="sr-only">Blockdatum</span>
+            <input
+              type="date"
+              value={block.date}
+              onChange={(event) => event.target.value && onPatchBlock(block.id, { date: event.target.value })}
+            />
+          </label>
+          {block.sections.tasks.length > 0 && (
+            <span className={styles.meta}>
+              {doneCount}/{block.sections.tasks.length} Tasks
+            </span>
+          )}
+          {eventCount > 0 && (
+            <span className={styles.meta}>
+              {eventCount} {eventCount === 1 ? "Termin" : "Termine"}
+            </span>
+          )}
+          <button
+            type="button"
+            className={styles.kill}
+            onClick={() => setConfirmDelete(true)}
+            aria-label="Block entfernen"
+            title="Block entfernen"
+          >
+            ×
+          </button>
         </div>
-      ) : (
-        <header className={styles.head}>
-          <div className={styles.top}>
-            <span className={styles.pill}>{template.label}</span>
-            <label className={styles.datefield}>
-              <span className="sr-only">Blockdatum</span>
-              <input
-                type="date"
-                value={block.date}
-                onChange={(event) => event.target.value && onPatchBlock(block.id, { date: event.target.value })}
-              />
-            </label>
-            {block.sections.tasks.length > 0 && (
-              <span className={styles.meta}>
-                {doneCount}/{block.sections.tasks.length} Tasks
-              </span>
-            )}
-            {eventCount > 0 && (
-              <span className={styles.meta}>
-                {eventCount} {eventCount === 1 ? "Termin" : "Termine"}
-              </span>
-            )}
-            <button
-              type="button"
-              className={styles.kill}
-              onClick={() => setConfirmDelete(true)}
-              aria-label="Block entfernen"
-              title="Block entfernen"
-            >
-              ×
-            </button>
-          </div>
-          <input
-            className={styles.title}
-            value={block.title}
-            onChange={(event) => onPatchBlock(block.id, { title: event.target.value })}
-            aria-label="Blocktitel"
-            placeholder="Titel"
-          />
-        </header>
-      )}
+        <input
+          className={styles.title}
+          value={block.title}
+          onChange={(event) => onPatchBlock(block.id, { title: event.target.value })}
+          aria-label="Blocktitel"
+          placeholder="Titel"
+        />
+      </header>
 
       <ul className={styles.items}>
         {block.sections.notes.map(({ item, indent }, index) => (
@@ -265,6 +243,21 @@ export function BlockCard({
         today={today}
         onCreateItem={createComposerItem}
       />
+
+      {confirmDelete && (
+        <ConfirmDialog
+          message={
+            <>
+              „{block.title || "ohne Titel"}“ mit allen Zeilen löschen? Verweise von außen verlieren ihr Ziel.
+            </>
+          }
+          onConfirm={() => {
+            onDeleteBlock(block.id);
+            setConfirmDelete(false);
+          }}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
     </article>
   );
 }

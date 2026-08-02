@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { SpaceRow } from "../../shared/db.ts";
 import type { SpaceWithPages } from "../../shared/api.ts";
 import { deriveShort } from "../domain/naming.ts";
+import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import styles from "./Sidebar.module.css";
 
 interface SidebarProps {
@@ -124,31 +125,6 @@ function SpaceGroup({
       )}
 
       {spaces.map((space) => {
-        if (confirmId === space.id) {
-          return (
-            <div key={space.id} className={styles.sconfirm} role="alert">
-              <p>
-                „{space.name}“ wird gelöscht: Seiten und Blöcke gehen mit, Tasks in anderen Bereichen verlieren nur ihre
-                Zuständigkeit.
-              </p>
-              <div className={styles.sconfirmbtns}>
-                <button
-                  type="button"
-                  className={styles.sdel}
-                  onClick={() => {
-                    onDeleteSpace(space.id);
-                    setConfirmId(null);
-                  }}
-                >
-                  Löschen
-                </button>
-                <button type="button" className={styles.scancel} onClick={() => setConfirmId(null)}>
-                  Abbrechen
-                </button>
-              </div>
-            </div>
-          );
-        }
         const active = space.id === selectedSpaceId;
         const count = openCounts.get(space.id) ?? 0;
         return (
@@ -178,6 +154,22 @@ function SpaceGroup({
         );
       })}
       {spaces.length === 0 && <p className={styles.grpempty}>Noch keiner angelegt</p>}
+
+      {confirmId !== null && (
+        <ConfirmDialog
+          message={
+            <>
+              „{spaces.find((entry) => entry.id === confirmId)?.name ?? ""}“ wird gelöscht: Seiten und Blöcke gehen mit,
+              Tasks in anderen Bereichen verlieren nur ihre Zuständigkeit.
+            </>
+          }
+          onConfirm={() => {
+            onDeleteSpace(confirmId);
+            setConfirmId(null);
+          }}
+          onCancel={() => setConfirmId(null)}
+        />
+      )}
     </div>
   );
 }

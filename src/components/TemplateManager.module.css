@@ -101,23 +101,6 @@
   color: var(--red);
 }
 
-.tplconfirm {
-  display: flex;
-  gap: 10px;
-  flex: none;
-}
-
-.sdel {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--red);
-}
-
-.scancel {
-  font-size: 12.5px;
-  color: var(--text2);
-}
-
 .tplseed {
   width: 100%;
   font: inherit;

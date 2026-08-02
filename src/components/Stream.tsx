@@ -7,6 +7,7 @@ import type { ItemCreateInput } from "../state/operations.ts";
 import type { ViewStatus } from "../state/state.ts";
 import type { BlockView } from "../state/selectors.ts";
 import { BlockCard } from "./BlockCard.tsx";
+import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { formatError } from "./errorText.ts";
 import { FALLBACK_TEMPLATE } from "./fallbackTemplate.ts";
 import { Mirror } from "./Mirror.tsx";
@@ -187,122 +188,117 @@ function PageTabs({
   };
 
   return (
-    <nav className={styles.tabs} aria-label="Seiten">
-      {isPerson && (
-        <button
-          type="button"
-          className={mirrorMode ? styles.tabOn : styles.tab}
-          aria-current={mirrorMode ? "page" : undefined}
-          onClick={() => onSelectPage("mirror")}
-        >
-          Zugewiesen {openCount > 0 && <span className={styles.count}>{openCount}</span>}
-        </button>
-      )}
-      {pages.map((page) => {
-        const active = !mirrorMode && page.id === selectedPageId;
-        if (confirmId === page.id) {
-          return (
-            <span key={page.id} className={styles.tabconfirm} role="alert">
-              <span>„{page.title}“ mit ihren Blöcken löschen?</span>
-              <span className={styles.tabconfirmbtns}>
-                <button
-                  type="button"
-                  className={styles.sdel}
-                  onClick={() => {
-                    onDeletePage(page.id);
-                    setConfirmId(null);
+    <>
+      <nav className={styles.tabs} aria-label="Seiten">
+        {isPerson && (
+          <button
+            type="button"
+            className={mirrorMode ? styles.tabOn : styles.tab}
+            aria-current={mirrorMode ? "page" : undefined}
+            onClick={() => onSelectPage("mirror")}
+          >
+            Zugewiesen {openCount > 0 && <span className={styles.count}>{openCount}</span>}
+          </button>
+        )}
+        {pages.map((page) => {
+          const active = !mirrorMode && page.id === selectedPageId;
+          if (editingId === page.id) {
+            return (
+              <span key={page.id} className={styles.tabedit}>
+                <input
+                  autoFocus
+                  value={editDraft}
+                  onChange={(event) => setEditDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") submitRename();
+                    if (event.key === "Escape") setEditingId(null);
                   }}
-                >
-                  Löschen
-                </button>
-                <button type="button" className={styles.scancel} onClick={() => setConfirmId(null)}>
-                  Abbrechen
-                </button>
+                  onBlur={submitRename}
+                  aria-label="Seitentitel umbenennen"
+                />
               </span>
-            </span>
-          );
-        }
-        if (editingId === page.id) {
+            );
+          }
           return (
-            <span key={page.id} className={styles.tabedit}>
-              <input
-                autoFocus
-                value={editDraft}
-                onChange={(event) => setEditDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") submitRename();
-                  if (event.key === "Escape") setEditingId(null);
+            <span key={page.id} className={styles.tabwrap}>
+              <button
+                type="button"
+                className={active ? styles.tabOn : styles.tab}
+                aria-current={active ? "page" : undefined}
+                onClick={() => onSelectPage(page.id)}
+              >
+                {page.title}
+              </button>
+              <button
+                type="button"
+                className={styles.tabrename}
+                onClick={() => {
+                  setEditingId(page.id);
+                  setEditDraft(page.title);
                 }}
-                onBlur={submitRename}
-                aria-label="Seitentitel umbenennen"
-              />
+                aria-label={`${page.title} umbenennen`}
+                title="Seite umbenennen"
+              >
+                ✎
+              </button>
+              <button
+                type="button"
+                className={styles.tabdelete}
+                onClick={() => setConfirmId(page.id)}
+                aria-label={`${page.title} entfernen`}
+                title="Seite entfernen"
+              >
+                ×
+              </button>
             </span>
           );
-        }
-        return (
-          <span key={page.id} className={styles.tabwrap}>
-            <button
-              type="button"
-              className={active ? styles.tabOn : styles.tab}
-              aria-current={active ? "page" : undefined}
-              onClick={() => onSelectPage(page.id)}
-            >
-              {page.title}
-            </button>
-            <button
-              type="button"
-              className={styles.tabrename}
-              onClick={() => {
-                setEditingId(page.id);
-                setEditDraft(page.title);
+        })}
+        {adding ? (
+          <span className={styles.tabedit}>
+            <input
+              autoFocus
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") submitAdd();
+                if (event.key === "Escape") {
+                  setDraft("");
+                  setAdding(false);
+                }
               }}
-              aria-label={`${page.title} umbenennen`}
-              title="Seite umbenennen"
-            >
-              ✎
-            </button>
-            <button
-              type="button"
-              className={styles.tabdelete}
-              onClick={() => setConfirmId(page.id)}
-              aria-label={`${page.title} entfernen`}
-              title="Seite entfernen"
-            >
-              ×
-            </button>
+              onBlur={submitAdd}
+              placeholder="Seitenname"
+              aria-label="Neue Seite"
+            />
           </span>
-        );
-      })}
-      {adding ? (
-        <span className={styles.tabedit}>
-          <input
-            autoFocus
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") submitAdd();
-              if (event.key === "Escape") {
-                setDraft("");
-                setAdding(false);
-              }
-            }}
-            onBlur={submitAdd}
-            placeholder="Seitenname"
-            aria-label="Neue Seite"
-          />
-        </span>
-      ) : (
-        <button
-          type="button"
-          className={`${styles.tab} ${styles.tabAdd}`}
-          onClick={() => setAdding(true)}
-          aria-label="Seite hinzufügen"
-          title="Seite hinzufügen"
-        >
-          +
-        </button>
+        ) : (
+          <button
+            type="button"
+            className={`${styles.tab} ${styles.tabAdd}`}
+            onClick={() => setAdding(true)}
+            aria-label="Seite hinzufügen"
+            title="Seite hinzufügen"
+          >
+            +
+          </button>
+        )}
+      </nav>
+
+      {confirmId !== null && (
+        <ConfirmDialog
+          message={
+            <>
+              „{pages.find((entry) => entry.id === confirmId)?.title ?? ""}“ mit ihren Blöcken löschen?
+            </>
+          }
+          onConfirm={() => {
+            onDeletePage(confirmId);
+            setConfirmId(null);
+          }}
+          onCancel={() => setConfirmId(null)}
+        />
       )}
-    </nav>
+    </>
   );
 }
 

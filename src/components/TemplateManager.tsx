@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { TemplateRow } from "../../shared/db.ts";
 import type { TemplatePatch } from "../../shared/schemas.ts";
 import { TEMPLATE_HUES } from "../domain/templates.ts";
+import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import styles from "./TemplateManager.module.css";
 
 interface TemplateManagerProps {
@@ -15,8 +16,8 @@ interface TemplateManagerProps {
 /**
  * The template manager (from the prototype): one card per template with its
  * label, hue and seed lines. Seed lines are plain text, one per line — a "#"
- * at the start makes a heading in new blocks. Deletion asks inline, never in
- * a browser dialog.
+ * at the start makes a heading in new blocks. Deletion asks in a modal
+ * ConfirmDialog, never in a browser dialog.
  */
 export function TemplateManager({ templates, onCreate, onUpdate, onDelete, onClose }: TemplateManagerProps) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -68,32 +69,14 @@ export function TemplateManager({ templates, onCreate, onUpdate, onDelete, onClo
                     </option>
                   ))}
                 </select>
-                {confirmId === template.id ? (
-                  <span className={styles.tplconfirm}>
-                    <button
-                      type="button"
-                      className={styles.sdel}
-                      onClick={() => {
-                        onDelete(template.id);
-                        setConfirmId(null);
-                      }}
-                    >
-                      Löschen
-                    </button>
-                    <button type="button" className={styles.scancel} onClick={() => setConfirmId(null)}>
-                      Abbrechen
-                    </button>
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    className={styles.tplkill}
-                    onClick={() => setConfirmId(template.id)}
-                    aria-label={`${template.label} entfernen`}
-                  >
-                    Entfernen
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className={styles.tplkill}
+                  onClick={() => setConfirmId(template.id)}
+                  aria-label={`${template.label} entfernen`}
+                >
+                  Entfernen
+                </button>
               </div>
               <textarea
                 className={styles.tplseed}
@@ -117,6 +100,22 @@ export function TemplateManager({ templates, onCreate, onUpdate, onDelete, onClo
           Template hinzufügen
         </button>
       </div>
+
+      {confirmId !== null && (
+        <ConfirmDialog
+          message={
+            <>
+              „{templates.find((entry) => entry.id === confirmId)?.label ?? ""}“ löschen? Blöcke, die es nutzen, fallen
+              auf „Ohne Template“ zurück.
+            </>
+          }
+          onConfirm={() => {
+            onDelete(confirmId);
+            setConfirmId(null);
+          }}
+          onCancel={() => setConfirmId(null)}
+        />
+      )}
     </div>
   );
 }
