@@ -38,8 +38,8 @@ test("typing # at the line start converts a note into a heading, indenting the f
 
   await expect(page.locator("[data-item-id='b2-n1']").getByRole("button", { name: "In normalen Text umwandeln" })).toBeVisible();
   await expect(converted).toHaveValue("Kontext");
-  // The following note row is rendered indented under the heading.
-  await expect(page.locator("[data-item-id='b2-n2']")).toHaveCSS("margin-left", "22px");
+  // The following note row is rendered indented under the heading (--s4).
+  await expect(page.locator("[data-item-id='b2-n2']")).toHaveCSS("margin-left", "16px");
 });
 
 test("Enter in a heading inserts a new line directly below, not at the block end", async ({ page }) => {

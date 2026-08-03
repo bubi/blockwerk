@@ -1,0 +1,77 @@
+/* ============================================================
+   Blockwerk — Token-Schicht
+   Einzige Quelle für Farbe, Abstand, Radius und Schrift.
+   Kein Wert dieser Datei darf in Komponenten hart eingetippt werden.
+   Werte sind bewusst gewählt; siehe DESIGN-SYSTEM.md für die Begründung.
+   ============================================================ */
+
+/* Die Schriftfamilie wird über den Einstiegspunkt geladen, nicht hier:
+   @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300..900;1,400&display=swap');
+   Der Stack nennt zuerst die lizenzierten Frutiger-Schnitte. Ist Frutiger
+   auf dem Gerät installiert, wird es benutzt; sonst greift Source Sans 3
+   als humanistischer Ersatz mit gleicher Grundhaltung. */
+
+:root,
+.bw {
+  /* ---------- Fläche und Linie ---------- */
+  --white:   #FFFFFF;  /* Karten, Panels, Kopfleiste */
+  --bg:      #FAFAFA;  /* Arbeitsfläche hinter den Karten */
+  --side:    #F5F6F8;  /* Bereichsleiste, ruhige Plaketten, Eingabefelder */
+  --hover:   #EDEEF0;  /* Überfahren bei Bedienelementen */
+  --line:    #E4E6E9;  /* Rahmen und trennende Linien */
+  --line2:   #EFF0F2;  /* Trennung innerhalb einer Fläche, eine Stufe leiser */
+
+  /* ---------- Schriftfarbe ---------- */
+  --text:    #1D2125;  /* Fließtext, Titel */
+  --text2:   #6B7075;  /* Beitext, Etiketten, Metadaten */
+  --text3:   #9BA0A6;  /* Platzhalter, ruhende Symbole, leere Zustände */
+
+  /* ---------- Bedeutungstragende Farbe ----------
+     Grün ist die einzige Betonfarbe der Anwendung. Blau, Rot, Violett und
+     Orange tragen ausschließlich Bedeutung und werden nie dekorativ gesetzt. */
+  --green:      #00A82D;  /* Auswahl, Bestätigung, Hauptaktion */
+  --green-dk:   #00922A;  /* Grün auf heller Fläche, kontrastsicher */
+  --green-soft: #E8F6EC;  /* Fläche eines aktiven oder eigenen Elements */
+  --blue:       #2F80ED;  /* Termine und Verweise */
+  --blue-soft:  #E9F1FD;
+  --red:        #E5484D;  /* Überfällig, Löschen */
+  --red-soft:   #FDECEC;
+  --purple:     #7A5AF8;  /* nur als Blocktyp-Farbe */
+  --orange:     #E8883A;  /* nur als Blocktyp-Farbe */
+  --grey:       #7A828A;  /* nur als Blocktyp-Farbe */
+
+  /* ---------- Abgeleitete Grauwerte ----------
+     Fünf Werte, die sich aus keiner der Stufen oben ergeben, weil sie
+     gegen eine bestimmte Nachbarfarbe ausgemischt sind. */
+  --check-line:   #B6BCC3;  /* Rahmen des Kontrollkästchens */
+  --badge-person: #8C93A0;  /* Plakette einer Person */
+  --badge-topic:  #B0B6BF;  /* Plakette eines Themas */
+  --card-hover:   #CFD4D9;  /* Rahmen einer überfahrenen Eintragskarte */
+  --green-lit:    #7FE0A0;  /* Grün auf dunkler Fläche, etwa im Hinweis */
+
+  /* Farbe des aktuellen Blocktyps. Wird von .hue-* gesetzt und von
+     Typpunkt und Plakette gelesen. Sonst nirgends. */
+  --hue: var(--grey);
+
+  /* ---------- Abstandsleiter ----------
+     Jeder Abstand im Interface ist genau einer dieser Werte. */
+  --s1:  4px;
+  --s2:  8px;
+  --s3: 12px;
+  --s4: 16px;
+  --s5: 24px;
+  --s6: 32px;
+  --s7: 40px;
+
+  /* ---------- Radienleiter ---------- */
+  --r-xs:  6px;  /* Plaketten, Kontrollkästchen, Menüeinträge, Zeilen */
+  --r-sm:  8px;  /* Schaltflächen, Eingabefelder, kleine Karten */
+  --r-md: 12px;  /* Karten und Listen */
+  --r-lg: 16px;  /* Panels über der Oberfläche */
+
+  /* ---------- Schrift ---------- */
+  --sans: 'Frutiger LT Std','Frutiger LT Pro','Frutiger Neue LT',Frutiger,
+          'Source Sans 3','Source Sans Pro','Segoe UI','Myriad Pro',
+          -apple-system,BlinkMacSystemFont,Roboto,sans-serif;
+  --display: var(--sans);   /* eine Familie in allen Rollen, siehe Spec */
+}

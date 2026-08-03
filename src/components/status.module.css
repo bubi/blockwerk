@@ -1,17 +1,17 @@
 .status {
-  padding: 18px 20px;
+  padding: var(--s5);
   color: var(--text2);
-  font-size: 13.5px;
-  max-width: 56ch;
+  font-size: 13px;
+  max-width: 60ch;
   line-height: 1.6;
 }
 
 .status button {
   font-weight: 600;
-  color: var(--green);
-  margin-top: 8px;
+  color: var(--green-dk);
+  margin-top: var(--s2);
 }
 
 .status button:hover {
-  color: var(--green-dk);
+  text-decoration: underline;
 }

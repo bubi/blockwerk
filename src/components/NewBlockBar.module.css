@@ -1,45 +1,35 @@
 .newbar {
   position: relative;
-  margin-bottom: 14px;
-}
-
-.newbtn {
-  font-size: 13.5px;
-  font-weight: 600;
-  padding: 7px 15px;
-  border-radius: 4px;
-  background: var(--green);
-  color: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
-
-.newbtn:hover {
-  background: var(--green-dk);
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  margin-bottom: var(--s4);
+  max-width: 1000px;
 }
 
 .tmenu {
   position: absolute;
   z-index: 20;
-  top: calc(100% + 6px);
+  top: calc(100% + var(--s2));
   left: 0;
+  min-width: 288px;
+  padding: var(--s1);
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(29, 33, 37, 0.13);
-  min-width: 250px;
-  padding: 5px;
-  overflow: hidden;
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 32px rgba(29, 33, 37, 0.14);
+  animation: rise 0.16s ease both;
 }
 
 .titem,
 .tmanage {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s3);
   width: 100%;
-  padding: 8px 10px;
-  border-radius: 5px;
-  text-align: left;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-xs);
 }
 
 .titem:hover,
@@ -47,31 +37,20 @@
   background: var(--hover);
 }
 
-.titem::before {
-  content: "";
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: currentColor;
-  flex: none;
-}
-
 .tlabel {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text);
-  font-weight: 500;
 }
 
 .tseed {
-  font-size: 12px;
   color: var(--text3);
   margin-left: auto;
 }
 
 .tmanage {
-  margin-top: 4px;
-  padding-top: 8px;
   border-top: 1px solid var(--line2);
-  font-size: 13px;
+  margin-top: var(--s1);
+  padding-top: var(--s3);
+  font-size: 14px;
   color: var(--text2);
 }

@@ -1,7 +1,12 @@
 import { useState } from "react";
 import type { SpaceWithPages } from "../../shared/api.ts";
-import type { BlockRow, PageRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
-import type { BlockPatch, ItemPatch, TemplatePatch } from "../../shared/schemas.ts";
+import type {
+  BlockRow,
+  PageRow,
+  SpaceRow,
+  TemplateRow,
+} from "../../shared/db.ts";
+import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
 import type { TaskOverviewView } from "../domain/overview.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
 import type { ViewStatus } from "../state/state.ts";
@@ -13,7 +18,6 @@ import { FALLBACK_TEMPLATE } from "./fallbackTemplate.ts";
 import { NewBlockBar } from "./NewBlockBar.tsx";
 import { LoadError, Loading } from "./status.tsx";
 import { TaskOverview } from "./TaskOverview.tsx";
-import { TemplateManager } from "./TemplateManager.tsx";
 import styles from "./Stream.module.css";
 
 interface StreamProps {
@@ -40,7 +44,11 @@ interface StreamProps {
   onCreateItem: (input: ItemCreateInput) => void;
   onDeleteItem: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
-  onJumpToOverviewRow: (blockId: string, pageId: string, spaceId: string) => void;
+  onJumpToOverviewRow: (
+    blockId: string,
+    pageId: string,
+    spaceId: string,
+  ) => void;
   onRetryPage: () => void;
   onRetryOverview: () => void;
   onCreatePage: (title: string) => void;
@@ -48,9 +56,8 @@ interface StreamProps {
   onDeletePage: (pageId: string) => void;
   onCreateBlock: (templateId: string | null) => void;
   onDeleteBlock: (id: string) => void;
-  onCreateTemplate: () => void;
-  onUpdateTemplate: (id: string, patch: TemplatePatch) => void;
-  onDeleteTemplate: (id: string) => void;
+  /** Opens the shared TemplateManager (owned by the App shell). */
+  onManageTemplates: () => void;
 }
 
 export function Stream(props: StreamProps) {
@@ -85,12 +92,9 @@ export function Stream(props: StreamProps) {
     onDeletePage,
     onCreateBlock,
     onDeleteBlock,
-    onCreateTemplate,
-    onUpdateTemplate,
-    onDeleteTemplate,
+    onManageTemplates,
   } = props;
 
-  const [tplOpen, setTplOpen] = useState(false);
   const mirrorMode = selectedPageId === "mirror";
   const openCount =
     personView === null
@@ -104,7 +108,10 @@ export function Stream(props: StreamProps) {
     <div className={styles.stream}>
       <div className={styles.streamhead}>
         <div className={styles.crumb}>
-          <span className={isPerson ? styles.dotPerson : styles.dotTopic} aria-hidden="true" />
+          <span
+            className={isPerson ? styles.dotPerson : styles.dotTopic}
+            aria-hidden="true"
+          />
           <strong>{space.name}</strong>
         </div>
         <PageTabs
@@ -137,6 +144,7 @@ export function Stream(props: StreamProps) {
           pageView={pageView}
           pageBlocks={pageBlocks}
           pulseBlockId={pulseBlockId}
+          meSpaceId={meSpaceId}
           templates={templates}
           templatesById={templatesById}
           spacesById={spacesById}
@@ -151,17 +159,7 @@ export function Stream(props: StreamProps) {
           onRetry={onRetryPage}
           onCreateBlock={onCreateBlock}
           onDeleteBlock={onDeleteBlock}
-          onManageTemplates={() => setTplOpen(true)}
-        />
-      )}
-
-      {tplOpen && (
-        <TemplateManager
-          templates={templates}
-          onCreate={onCreateTemplate}
-          onUpdate={onUpdateTemplate}
-          onDelete={onDeleteTemplate}
-          onClose={() => setTplOpen(false)}
+          onManageTemplates={onManageTemplates}
         />
       )}
     </div>
@@ -216,11 +214,14 @@ function PageTabs({
         {isPerson && (
           <button
             type="button"
-            className={mirrorMode ? styles.tabOn : styles.tab}
+            className={`label ${mirrorMode ? styles.tabOn : styles.tab}`}
             aria-current={mirrorMode ? "page" : undefined}
             onClick={() => onSelectPage("mirror")}
           >
-            Zugewiesen {openCount > 0 && <span className={styles.count}>{openCount}</span>}
+            Zugewiesen{" "}
+            {openCount > 0 && (
+              <span className="badge badge--active">{openCount}</span>
+            )}
           </button>
         )}
         {pages.map((page) => {
@@ -246,7 +247,7 @@ function PageTabs({
             <span key={page.id} className={styles.tabwrap}>
               <button
                 type="button"
-                className={active ? styles.tabOn : styles.tab}
+                className={`label ${active ? styles.tabOn : styles.tab}`}
                 aria-current={active ? "page" : undefined}
                 onClick={() => onSelectPage(page.id)}
               >
@@ -311,7 +312,8 @@ function PageTabs({
         <ConfirmDialog
           message={
             <>
-              „{pages.find((entry) => entry.id === confirmId)?.title ?? ""}“ mit ihren Blöcken löschen?
+              „{pages.find((entry) => entry.id === confirmId)?.title ?? ""}“ mit
+              ihren Blöcken löschen?
             </>
           }
           onConfirm={() => {
@@ -329,6 +331,7 @@ function PagePane({
   pageView,
   pageBlocks,
   pulseBlockId,
+  meSpaceId,
   templates,
   templatesById,
   spacesById,
@@ -348,6 +351,7 @@ function PagePane({
   pageView: ViewStatus;
   pageBlocks: BlockView[];
   pulseBlockId: string | null;
+  meSpaceId: string | null;
   templates: TemplateRow[];
   templatesById: ReadonlyMap<string, TemplateRow>;
   spacesById: ReadonlyMap<string, SpaceRow>;
@@ -364,20 +368,33 @@ function PagePane({
   onDeleteBlock: (id: string) => void;
   onManageTemplates: () => void;
 }) {
-  if (pageView.status === "idle" || pageView.status === "loading") return <Loading />;
-  if (pageView.status === "failed") return <LoadError message={formatError(pageView.error)} onRetry={onRetry} />;
+  if (pageView.status === "idle" || pageView.status === "loading")
+    return <Loading />;
+  if (pageView.status === "failed")
+    return (
+      <LoadError message={formatError(pageView.error)} onRetry={onRetry} />
+    );
   return (
     <div className={styles.page}>
-      <NewBlockBar templates={templates} onCreateBlock={onCreateBlock} onManageTemplates={onManageTemplates} />
+      <NewBlockBar
+        templates={templates}
+        onCreateBlock={onCreateBlock}
+        onManageTemplates={onManageTemplates}
+      />
       {pageBlocks.length === 0 ? (
-        <p className={styles.empty}>Diese Seite ist leer. Lege mit „Block anlegen“ den ersten Block an.</p>
+        <p className="empty">
+          Diese Seite ist leer. Lege mit „Block anlegen“ den ersten Block an.
+        </p>
       ) : (
         <div className={styles.blocks}>
           {pageBlocks.map((block) => (
             <BlockCard
               key={block.id}
               block={block}
-              template={templatesById.get(block.templateId ?? "") ?? FALLBACK_TEMPLATE}
+              template={
+                templatesById.get(block.templateId ?? "") ?? FALLBACK_TEMPLATE
+              }
+              meSpaceId={meSpaceId}
               spacesById={spacesById}
               blocksById={blocksById}
               spaces={spaces}
@@ -418,8 +435,12 @@ function PersonPane({
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
   onRetry: () => void;
 }) {
-  if (viewStatus.status === "idle" || viewStatus.status === "loading") return <Loading />;
-  if (viewStatus.status === "failed") return <LoadError message={formatError(viewStatus.error)} onRetry={onRetry} />;
+  if (viewStatus.status === "idle" || viewStatus.status === "loading")
+    return <Loading />;
+  if (viewStatus.status === "failed")
+    return (
+      <LoadError message={formatError(viewStatus.error)} onRetry={onRetry} />
+    );
   if (view === null) return null;
   return (
     <TaskOverview

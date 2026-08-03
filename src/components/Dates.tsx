@@ -1,7 +1,16 @@
 import type { SpaceRow } from "../../shared/db.ts";
 import type { ItemPatch } from "../../shared/schemas.ts";
-import { isOverdueTask, ledgerRows, type LedgerDay } from "../domain/calendar.ts";
-import { dayNumber, formatMonthYear, monthName, weekdayShort } from "../domain/dates.ts";
+import {
+  isOverdueTask,
+  ledgerRows,
+  type LedgerDay,
+} from "../domain/calendar.ts";
+import {
+  dayNumber,
+  formatMonthYear,
+  monthName,
+  weekdayShort,
+} from "../domain/dates.ts";
 import type { ViewStatus } from "../state/state.ts";
 import { formatError } from "./errorText.ts";
 import { LoadError, Loading } from "./status.tsx";
@@ -34,17 +43,44 @@ interface DatesProps {
  * pure domain logic (ledgerRows); this component only renders it.
  */
 export function Dates(props: DatesProps) {
-  const { month, view, ledger, today, spacesById, onPrevMonth, onNextMonth, onJumpToBlock, onReschedule, onToggleDone, onRetry } = props;
-  const load = ledger.reduce((sum, day) => sum + day.tasks.length + day.events.length, 0);
+  const {
+    month,
+    view,
+    ledger,
+    today,
+    spacesById,
+    onPrevMonth,
+    onNextMonth,
+    onJumpToBlock,
+    onReschedule,
+    onToggleDone,
+    onRetry,
+  } = props;
+  const load = ledger.reduce(
+    (sum, day) => sum + day.tasks.length + day.events.length,
+    0,
+  );
 
   return (
     <div className={styles.dates}>
       <div className={styles.monthbar}>
-        <button type="button" className={styles.mnav} onClick={onPrevMonth} aria-label="Vorheriger Monat">
+        <button
+          type="button"
+          className={styles.mnav}
+          onClick={onPrevMonth}
+          aria-label="Vorheriger Monat"
+        >
           ‹
         </button>
-        <h2 className={styles.monthtitle}>{formatMonthYear(month.year, month.month)}</h2>
-        <button type="button" className={styles.mnav} onClick={onNextMonth} aria-label="Nächster Monat">
+        <h2 className={styles.monthtitle}>
+          {formatMonthYear(month.year, month.month)}
+        </h2>
+        <button
+          type="button"
+          className={styles.mnav}
+          onClick={onNextMonth}
+          aria-label="Nächster Monat"
+        >
           ›
         </button>
       </div>
@@ -55,13 +91,19 @@ export function Dates(props: DatesProps) {
       ) : view.status === "failed" ? (
         <LoadError message={formatError(view.error)} onRetry={onRetry} />
       ) : load === 0 ? (
-        <p className={styles.empty}>Keine Termine oder Fälligkeiten in diesem Monat.</p>
+        <p className="empty">
+          Keine Termine oder Fälligkeiten in diesem Monat.
+        </p>
       ) : (
         <div className={styles.ledger}>
           {ledgerRows(ledger).map((row) =>
             row.type === "gap" ? (
               <div key={`gap-${row.from}`} className={styles.gap}>
-                <span>{row.count === 1 ? "ein Tag ohne Einträge" : `${row.count} Tage ohne Einträge`}</span>
+                <span className="label label--muted">
+                  {row.count === 1
+                    ? "ein Tag ohne Einträge"
+                    : `${row.count} Tage ohne Einträge`}
+                </span>
               </div>
             ) : (
               <DayBlock
@@ -102,27 +144,37 @@ function DayBlock({
   return (
     <section className={`${styles.dayblock} ${isToday ? styles.isToday : ""}`}>
       <header className={styles.dayhead}>
-        <span className={styles.dwd}>{weekdayShort(day.weekday)}</span>
-        <span className={styles.dnum}>
-          {dayNumber(day.date)}. {monthAbbrev}
+        <span className={`${styles.dwd} label label--muted`}>
+          {weekdayShort(day.weekday)}
         </span>
-        {isToday && <span className={styles.todaytag}>heute</span>}
+        <span className={styles.dnum}>{dayNumber(day.date)}</span>
+        <span className={`${styles.dmon} label label--muted`}>
+          {isToday ? "heute" : monthAbbrev}
+        </span>
       </header>
 
       {day.events.map((event) => (
         <div key={event.id} className={`${styles.card} ${styles.cardEvent}`}>
           <div className={styles.cardbody}>
-            <button type="button" className={styles.cardtitle} onClick={() => onJumpToBlock(event.blockId)}>
+            <button
+              type="button"
+              className={styles.cardtitle}
+              onClick={() => onJumpToBlock(event.blockId)}
+            >
               {event.text}
             </button>
-            <span className={styles.cardmeta}>
+            <span className={`${styles.cardmeta} label`}>
               <DateField
                 value={event.eventDate ?? ""}
                 label="Neues Termindatum wählen"
-                onChange={(value) => onReschedule(event.id, { eventDate: value })}
+                onChange={(value) =>
+                  onReschedule(event.id, { eventDate: value })
+                }
               />
               <span className={styles.cardkind}>Termin</span>
-              {event.eventTime && <span className={styles.cardtime}>{event.eventTime}</span>}
+              {event.eventTime && (
+                <span className={styles.cardtime}>{event.eventTime}</span>
+              )}
             </span>
           </div>
         </div>
@@ -141,25 +193,35 @@ function DayBlock({
               role="checkbox"
               aria-checked={task.done}
               aria-label={`${task.text || "Aufgabe"} — ${task.done ? "wieder öffnen" : "als erledigt markieren"}`}
-              className={task.done ? styles.cardcheckDone : styles.cardcheck}
+              className={task.done ? "check check--done" : "check"}
               onClick={() => onToggleDone(task.id, !task.done)}
             >
               <span aria-hidden="true" />
             </button>
             <div className={styles.cardbody}>
-              <button type="button" className={styles.cardtitle} onClick={() => onJumpToBlock(task.blockId)}>
+              <button
+                type="button"
+                className={styles.cardtitle}
+                onClick={() => onJumpToBlock(task.blockId)}
+              >
                 {task.text}
               </button>
-              <span className={styles.cardmeta}>
+              <span className={`${styles.cardmeta} label`}>
                 <DateField
-                value={task.dueDate ?? ""}
-                label="Neues Fälligkeitsdatum wählen"
-                onChange={(value) => onReschedule(task.id, { dueDate: value })}
-              />
-              <span className={styles.cardkind}>{task.done ? "erledigt" : late ? "überfällig" : "fällig"}</span>
-              {task.assigneeSpaceId && (
-                <span className={styles.cardwho}>{spacesById.get(task.assigneeSpaceId)?.name.split(" ")[0]}</span>
-              )}
+                  value={task.dueDate ?? ""}
+                  label="Neues Fälligkeitsdatum wählen"
+                  onChange={(value) =>
+                    onReschedule(task.id, { dueDate: value })
+                  }
+                />
+                <span className={styles.cardkind}>
+                  {task.done ? "erledigt" : late ? "überfällig" : "fällig"}
+                </span>
+                {task.assigneeSpaceId && (
+                  <span className={styles.cardwho}>
+                    {spacesById.get(task.assigneeSpaceId)?.name.split(" ")[0]}
+                  </span>
+                )}
               </span>
             </div>
           </div>
@@ -187,7 +249,11 @@ function DateField({
   return (
     <label className={styles.datefield}>
       <span className="sr-only">{label}</span>
-      <input type="date" value={value} onChange={(event) => event.target.value && onChange(event.target.value)} />
+      <input
+        type="date"
+        value={value}
+        onChange={(event) => event.target.value && onChange(event.target.value)}
+      />
     </label>
   );
 }

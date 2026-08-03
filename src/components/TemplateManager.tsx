@@ -19,7 +19,13 @@ interface TemplateManagerProps {
  * at the start makes a heading in new blocks. Deletion asks in a modal
  * ConfirmDialog, never in a browser dialog.
  */
-export function TemplateManager({ templates, onCreate, onUpdate, onDelete, onClose }: TemplateManagerProps) {
+export function TemplateManager({
+  templates,
+  onCreate,
+  onUpdate,
+  onDelete,
+  onClose,
+}: TemplateManagerProps) {
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   return (
@@ -38,29 +44,42 @@ export function TemplateManager({ templates, onCreate, onUpdate, onDelete, onClo
       >
         <header className={styles.sheethead}>
           <h2>Templates</h2>
-          <button type="button" className={styles.sheetclose} onClick={onClose} aria-label="Schließen">
+          <button
+            type="button"
+            className={styles.sheetclose}
+            onClick={onClose}
+            aria-label="Schließen"
+          >
             ×
           </button>
         </header>
         <p className={styles.sheetnote}>
-          Jede Zeile im Feld wird zu einer Notizzeile im neuen Block. Ein <strong>#</strong> davor macht daraus eine
-          Überschrift.
+          Jede Zeile im Feld wird zu einer Notizzeile im neuen Block. Ein{" "}
+          <strong>#</strong> davor macht daraus eine Überschrift.
         </p>
 
         <div className={styles.tpllist}>
           {templates.map((template) => (
-            <section key={template.id} data-template-id={template.id} className={`${styles.tplcard} hue-${template.hue}`}>
-              <div className={styles.tplrow}>
+            <section
+              key={template.id}
+              data-template-id={template.id}
+              className={`${styles.tplcard} hue-${template.hue}`}
+            >
+              <div className={`${styles.tplrow} typdot`}>
                 <input
                   className={styles.tplname}
                   value={template.label}
-                  onChange={(event) => onUpdate(template.id, { label: event.target.value })}
+                  onChange={(event) =>
+                    onUpdate(template.id, { label: event.target.value })
+                  }
                   aria-label="Name des Templates"
                 />
                 <select
                   className={styles.tplhue}
                   value={template.hue}
-                  onChange={(event) => onUpdate(template.id, { hue: event.target.value })}
+                  onChange={(event) =>
+                    onUpdate(template.id, { hue: event.target.value })
+                  }
                   aria-label="Farbe"
                 >
                   {TEMPLATE_HUES.map((hue) => (
@@ -71,7 +90,7 @@ export function TemplateManager({ templates, onCreate, onUpdate, onDelete, onClo
                 </select>
                 <button
                   type="button"
-                  className={styles.tplkill}
+                  className={`${styles.tplkill} label`}
                   onClick={() => setConfirmId(template.id)}
                   aria-label={`${template.label} entfernen`}
                 >
@@ -86,7 +105,10 @@ export function TemplateManager({ templates, onCreate, onUpdate, onDelete, onClo
                   onUpdate(template.id, {
                     seed: event.target.value
                       .split("\n")
-                      .filter((line, index, lines) => line.trim() !== "" || index < lines.length - 1),
+                      .filter(
+                        (line, index, lines) =>
+                          line.trim() !== "" || index < lines.length - 1,
+                      ),
                   })
                 }
                 placeholder={"# Teilnehmer\n# Agenda"}
@@ -96,7 +118,7 @@ export function TemplateManager({ templates, onCreate, onUpdate, onDelete, onClo
           ))}
         </div>
 
-        <button type="button" className={styles.newbtn} onClick={onCreate}>
+        <button type="button" className="btn" onClick={onCreate}>
           Template hinzufügen
         </button>
       </div>
@@ -105,8 +127,8 @@ export function TemplateManager({ templates, onCreate, onUpdate, onDelete, onClo
         <ConfirmDialog
           message={
             <>
-              „{templates.find((entry) => entry.id === confirmId)?.label ?? ""}“ löschen? Blöcke, die es nutzen, fallen
-              auf „Ohne Template“ zurück.
+              „{templates.find((entry) => entry.id === confirmId)?.label ?? ""}“
+              löschen? Blöcke, die es nutzen, fallen auf „Ohne Template“ zurück.
             </>
           }
           onConfirm={() => {

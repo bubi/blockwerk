@@ -11,9 +11,11 @@ Veraltetes findet, korrigiert es im selben Commit wie die Änderung, die es vera
 ## Für neue Mitarbeit
 
 Reihenfolge zum Einlesen: erst dieses Dokument, danach die Entscheidungsprotokolle in
-`/docs/adr`, danach der Code in `/src/domain`. `/prototype` ist Referenz für das Verhalten
-der Anwendung, nicht für ihre Struktur — siehe „Stand des Prototyps" am Ende dieses
-Dokuments.
+`/docs/adr`, danach der Code in `/src/domain`. Für die Oberfläche sind zusätzlich
+`design/DESIGN-SYSTEM.md` (verbindliche Spezifikation) und `design/tokens.css`
+(einzige Quelle für Farb-, Abstands-, Radien- und Schriftwerte) verbindlich. `/prototype`
+ist Referenz für das Verhalten, nicht für seine Struktur — siehe „Stand des Prototyps" am
+Ende dieses Dokuments.
 
 ---
 
@@ -44,13 +46,13 @@ Space (Bereich)     Person oder Thema
          └─ Item    note | task | event | ref
 ```
 
-| Entität  | Wichtige Felder |
-|----------|-----------------|
-| `space`  | `id`, `name`, `kind` (`person` \| `topic`), `short` (Kürzel), `email` (nur Person, eindeutig, für „ich" — ADR 0013) |
-| `page`   | `id`, `space_id`, `title` |
-| `block`  | `id`, `page_id`, `template_id`, `title`, `date` (jeder Block ist datiert) |
-| `item`   | `id`, `block_id`, `kind`, `position`, `text`, `heading` (1\|2\|null), `done`, `due_date`, `event_date`, `event_time`, `assignee_space_id`, `ref_block_id`, `parent_item_id` (nur `note`, verweist auf einen `task` — ADR 0014) |
-| `template` | `id`, `label`, `hue`, `seed` (Zeilen zur Vorbelegung) |
+| Entität    | Wichtige Felder                                                                                                                                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `space`    | `id`, `name`, `kind` (`person` \| `topic`), `short` (Kürzel), `email` (nur Person, eindeutig, für „ich" — ADR 0013)                                                                                                            |
+| `page`     | `id`, `space_id`, `title`                                                                                                                                                                                                      |
+| `block`    | `id`, `page_id`, `template_id`, `title`, `date` (jeder Block ist datiert)                                                                                                                                                      |
+| `item`     | `id`, `block_id`, `kind`, `position`, `text`, `heading` (1\|2\|null), `done`, `due_date`, `event_date`, `event_time`, `assignee_space_id`, `ref_block_id`, `parent_item_id` (nur `note`, verweist auf einen `task` — ADR 0014) |
+| `template` | `id`, `label`, `hue`, `seed` (Zeilen zur Vorbelegung)                                                                                                                                                                          |
 
 Regeln, die im Code gelten müssen:
 
@@ -145,6 +147,7 @@ Eine Zeile darf nicht verschwinden, weil jemand an anderer Stelle etwas gelösch
 /e2e            Playwright-Specs gegen die lokale Umgebung
 /scripts        Entwicklungshelfer (z. B. der E2E-Webserver)
 /docs/adr       kurze Entscheidungsprotokolle
+/design         verbindliche Spezifikation der Oberfläche: DESIGN-SYSTEM.md + tokens.css
 /prototype      der ursprüngliche Einzeldatei-Prototyp, als Referenz
 seed.sql        idempotentes Seed für die lokale Entwicklung (INSERT OR IGNORE)
 ```
@@ -233,7 +236,7 @@ stoppen, sonst belegt der Worker den Port.
 
 ## Nicht-Ziele
 
-Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
+Bewusst _nicht_ gebaut, bis jemand einen konkreten Bedarf zeigt:
 
 - Öffentliche Registrierung, Mandantenfähigkeit, Rollen- und Rechtemodell
   (interne Nutzung, Access regelt den Zugang)
@@ -247,18 +250,19 @@ Bewusst *nicht* gebaut, bis jemand einen konkreten Bedarf zeigt:
 
 ## Fahrplan
 
-| Phase | Ziel | Status |
-|-------|------|--------|
-| 0 | Repo-Skelett, Toolchain, `PROJECT.md` | erledigt |
-| 1 | Leere Seite deployt, hinter Access, CI grün | erledigt |
-| 2a | D1-Schema | erledigt |
-| 2b | API, Prototyp-Logik, State/Client, Oberfläche | erledigt |
-| 3 | Rest von 2b (Verwaltung), Tests, ADRs, Aufräumen | in Arbeit |
-| 4 | Features: Volltextsuche (erledigt), Rückverweise, Terminserien | in Arbeit |
-| 5 | Aufgabenüberblick (ADR 0011): Übersichtsroute, Team-/Personen-Ansicht, „Heute" als Einstieg | erledigt |
-| 6 | Mobile Gestalt (ADR 0012): Tab-Leiste Heute/Notizen/Suche unter 860px, Drill-down mit Verlauf, keine Datumsspalte | erledigt |
-| 7 | Identität (ADR 0013), @-Auswahl im Composer, Checkbox in der Datumsspalte, Aufräumen, Mitternachts-Fix | erledigt |
-| 8 | Notizen an Tasks (ADR 0014): eine Verschachtelungsebene, Kindnotizen unter dem Task, auch in der Übersicht | erledigt |
+| Phase | Ziel                                                                                                                         | Status    |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 0     | Repo-Skelett, Toolchain, `PROJECT.md`                                                                                        | erledigt  |
+| 1     | Leere Seite deployt, hinter Access, CI grün                                                                                  | erledigt  |
+| 2a    | D1-Schema                                                                                                                    | erledigt  |
+| 2b    | API, Prototyp-Logik, State/Client, Oberfläche                                                                                | erledigt  |
+| 3     | Rest von 2b (Verwaltung), Tests, ADRs, Aufräumen                                                                             | in Arbeit |
+| 4     | Features: Volltextsuche (erledigt), Rückverweise, Terminserien                                                               | in Arbeit |
+| 5     | Aufgabenüberblick (ADR 0011): Übersichtsroute, Team-/Personen-Ansicht, „Heute" als Einstieg                                  | erledigt  |
+| 6     | Mobile Gestalt (ADR 0012): Tab-Leiste Heute/Notizen/Suche unter 860px, Drill-down mit Verlauf, keine Datumsspalte            | erledigt  |
+| 7     | Identität (ADR 0013), @-Auswahl im Composer, Checkbox in der Datumsspalte, Aufräumen, Mitternachts-Fix                       | erledigt  |
+| 8     | Notizen an Tasks (ADR 0014): eine Verschachtelungsebene, Kindnotizen unter dem Task, auch in der Übersicht                   | erledigt  |
+| 9     | Design-System (design/DESIGN-SYSTEM.md, tokens.css): Oberfläche nach der Spezifikation, Sammelregeln, Tageskopf, Haltepunkte | erledigt  |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
 Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.
@@ -279,7 +283,10 @@ im Kopf (ADR 0010), der Aufgabenüberblick als Startansicht und Personen-Sicht
 und Drill-down mit Verlauf (ADR 0012) sowie die Verwaltung (Bereiche anlegen/löschen
 mit Rückfrage, Seiten anlegen/umbenennen, Block anlegen, Templates bearbeiten).
 
-Er ist **Referenz für das Verhalten, nicht für die Struktur.** Eine bewusste Abweichung:
+Er ist **Referenz für das Verhalten, nicht für die Struktur.** Das Aussehen der
+Oberfläche folgt nicht dem Prototyp, sondern der verbindlichen Spezifikation in
+`design/DESIGN-SYSTEM.md` mit den Token in `design/tokens.css` — die Referenz hält sie
+ein und dient als Beleg, ist aber nicht das Gesetz. Eine bewusste Abweichung:
 In der Datumsleiste des Prototyps stehen noch Block-Karten; die echte Anwendung zeigt dort
 nur Termine und Fälligkeiten (siehe „Die eine Idee" — ein Blockdatum ist automatisch, keine
 Zeitangabe). Der Prototyp bleibt in diesem Punkt bewusst stehen. Eine bewusste Erweiterung:

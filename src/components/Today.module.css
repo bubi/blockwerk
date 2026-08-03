@@ -2,14 +2,89 @@
   display: flex;
   flex-direction: column;
   min-height: 100%;
+  max-width: 1000px;
 }
 
-.head {
-  padding: 14px 22px 4px;
+/* Tageskopf (design-system 5). */
+.hero {
+  margin-bottom: var(--s6);
+  animation: rise 0.3s ease both;
 }
 
-.head strong {
-  font-size: 15px;
+.eyebrow {
+  margin: 0 0 var(--s2);
+}
+
+.herodate {
+  margin: 0 0 var(--s5);
+  display: flex;
+  align-items: baseline;
+  gap: var(--s4);
+  flex-wrap: wrap;
+}
+
+.heroday {
+  font-family: var(--display);
+  font-size: 44px;
   font-weight: 700;
-  color: var(--text);
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.herofull {
+  font-size: 14px;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+
+.herostats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: var(--s3);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s4) var(--s5);
+}
+
+.statnum {
+  font-family: var(--display);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.alarm .statnum {
+  color: var(--red);
+}
+
+.now .statnum {
+  color: var(--green-dk);
+}
+
+.time .statnum {
+  color: var(--blue);
+}
+
+/* Telefon: Auszeichnungsgrade genau eine Stufe kleiner (design-system 4.3). */
+@media (max-width: 860px) {
+  .hero {
+    margin-bottom: var(--s5);
+  }
+
+  .heroday {
+    font-size: 36px;
+  }
+
+  .statnum {
+    font-size: 28px;
+  }
 }

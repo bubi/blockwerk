@@ -5,7 +5,6 @@ import styles from "./SearchResults.module.css";
 interface SearchResultsProps {
   response: SearchResponse;
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
-  onClear: () => void;
 }
 
 const KIND_LABEL = {
@@ -22,20 +21,21 @@ const KIND_LABEL = {
  * show the path space · page. Ordering and matching come from the domain
  * (src/domain/search.ts); this component only renders.
  */
-export function SearchResults({ response, onJumpToBlock, onClear }: SearchResultsProps) {
+export function SearchResults({ response, onJumpToBlock }: SearchResultsProps) {
   const total = response.blocks.length + response.items.length;
 
   return (
     <div className={styles.results}>
-      <div className={styles.head}>
-        <p className={styles.rescount}>{total === 0 ? "Kein Treffer" : `${total} Treffer für „${response.query}“`}</p>
-        <button type="button" className={styles.clear} onClick={onClear}>
-          Suche verlassen
-        </button>
-      </div>
+      <p className="label">
+        {total === 0
+          ? "Kein Treffer"
+          : `${total} Treffer für „${response.query}“`}
+      </p>
 
       {total === 0 && (
-        <p className={styles.empty}>Suche nach Blocktiteln, Notizzeilen, Tasks oder Terminen.</p>
+        <p className="empty">
+          Suche nach Blocktiteln, Notizzeilen, Tasks oder Terminen.
+        </p>
       )}
 
       {response.blocks.map((hit) => (
@@ -45,7 +45,9 @@ export function SearchResults({ response, onJumpToBlock, onClear }: SearchResult
           className={styles.res}
           onClick={() => onJumpToBlock(hit.block.id, hit.page.id, hit.space.id)}
         >
-          <span className={styles.restype}>Block · {hit.templateLabel ?? "Ohne Template"}</span>
+          <span className={`${styles.restype} label label--muted`}>
+            Block · {hit.templateLabel ?? "Ohne Template"}
+          </span>
           <span className={styles.restitle}>{hit.block.title}</span>
           <span className={styles.respath}>
             {hit.space.name} · {hit.page.title} · {formatShort(hit.block.date)}
@@ -54,8 +56,15 @@ export function SearchResults({ response, onJumpToBlock, onClear }: SearchResult
       ))}
 
       {response.items.map((hit) => (
-        <button key={hit.item.id} type="button" className={styles.res} onClick={() => onJumpToBlock(hit.block.id, hit.page.id, hit.space.id)}>
-          <span className={styles.restype}>{KIND_LABEL[hit.item.kind]}</span>
+        <button
+          key={hit.item.id}
+          type="button"
+          className={styles.res}
+          onClick={() => onJumpToBlock(hit.block.id, hit.page.id, hit.space.id)}
+        >
+          <span className={`${styles.restype} label label--muted`}>
+            {KIND_LABEL[hit.item.kind]}
+          </span>
           <span className={styles.restitle}>{hit.item.text}</span>
           <span className={styles.respath}>
             {hit.space.name} · {hit.page.title} · {hit.block.title}

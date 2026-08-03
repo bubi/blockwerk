@@ -1,26 +1,28 @@
+/* Hinweis (design-system 5, .flash): unten mittig, dunkle Fläche, 13 px. */
 .stack {
   position: fixed;
-  bottom: 22px;
+  bottom: var(--s5);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--s2);
   z-index: 60;
   width: max-content;
-  max-width: calc(100vw - 24px);
+  max-width: calc(100vw - var(--s5));
 }
 
 .toast {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--s3);
   background: var(--red);
   color: #fff;
   font-size: 13px;
-  padding: 9px 14px;
-  border-radius: 6px;
-  box-shadow: 0 4px 14px rgba(29, 33, 37, 0.22);
+  padding: var(--s3) var(--s4);
+  border-radius: var(--r-sm);
+  box-shadow: 0 8px 24px rgba(29, 33, 37, 0.28);
+  animation: rise 0.2s ease both;
 }
 
 .message {
@@ -28,21 +30,21 @@
 }
 
 .dismiss {
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
   color: #fff;
   flex: none;
-  padding: 0 2px;
+  padding: 0 var(--s1);
 }
 
 .dismiss:hover {
   opacity: 0.8;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 860px) {
   .stack {
-    left: 12px;
-    right: 12px;
+    left: var(--s4);
+    right: var(--s4);
     transform: none;
     max-width: none;
   }

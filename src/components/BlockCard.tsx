@@ -14,6 +14,7 @@ import styles from "./BlockCard.module.css";
 interface BlockCardProps {
   block: BlockView;
   template: TemplateRow;
+  meSpaceId: string | null;
   spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
   spacesById: ReadonlyMap<string, SpaceRow>;
   blocksById: ReadonlyMap<string, BlockRow>;
@@ -36,6 +37,7 @@ interface BlockCardProps {
 export function BlockCard({
   block,
   template,
+  meSpaceId,
   spaces,
   spacesById,
   blocksById,
@@ -100,7 +102,10 @@ export function BlockCard({
         id,
         blockId: block.id,
         kind: "note",
-        position: insertPositionBetween(after ? after.position : null, before ? before.position : null),
+        position: insertPositionBetween(
+          after ? after.position : null,
+          before ? before.position : null,
+        ),
         text: "",
         heading: null,
         parentItemId: parentId,
@@ -118,7 +123,10 @@ export function BlockCard({
       id,
       blockId: block.id,
       kind: "note",
-      position: insertPositionBetween(after ? after.position : null, before ? before.position : null),
+      position: insertPositionBetween(
+        after ? after.position : null,
+        before ? before.position : null,
+      ),
       text: "",
       heading: null,
     });
@@ -146,7 +154,7 @@ export function BlockCard({
   const displayPrevId = (itemId: string) => {
     const order = block.sections.order;
     const index = order.indexOf(itemId);
-    return index > 0 ? order[index - 1] ?? null : null;
+    return index > 0 ? (order[index - 1] ?? null) : null;
   };
 
   const deleteRow = (itemId: string, prevId: string | null) => {
@@ -157,7 +165,10 @@ export function BlockCard({
   };
 
   const createComposerItem = (fields: ComposerItemFields) => {
-    const lastPosition = block.items.reduce((max, item) => Math.max(max, item.position), 0);
+    const lastPosition = block.items.reduce(
+      (max, item) => Math.max(max, item.position),
+      0,
+    );
     onCreateItem({
       id: newItemId(),
       blockId: block.id,
@@ -181,30 +192,34 @@ export function BlockCard({
       data-block-id={block.id}
     >
       <header className={styles.head}>
-        <div className={styles.top}>
-          <span className={styles.pill}>{template.label}</span>
+        <div className={`${styles.top} typdot`}>
+          <span className="badge badge--type">{template.label}</span>
           <label className={styles.datefield}>
             <span className="sr-only">Blockdatum</span>
             <input
               type="date"
               value={block.date}
-              onChange={(event) => event.target.value && onPatchBlock(block.id, { date: event.target.value })}
+              onChange={(event) =>
+                event.target.value &&
+                onPatchBlock(block.id, { date: event.target.value })
+              }
             />
           </label>
           <button
             type="button"
-            className={styles.kill}
+            className={`${styles.kill} label`}
             onClick={() => setConfirmDelete(true)}
             aria-label="Block entfernen"
-            title="Block entfernen"
           >
-            ×
+            Löschen
           </button>
         </div>
         <input
           className={styles.title}
           value={block.title}
-          onChange={(event) => onPatchBlock(block.id, { title: event.target.value })}
+          onChange={(event) =>
+            onPatchBlock(block.id, { title: event.target.value })
+          }
           aria-label="Blocktitel"
           placeholder="Titel"
         />
@@ -217,7 +232,9 @@ export function BlockCard({
             item={item}
             indent={indent}
             prevId={index > 0 ? block.sections.notes[index - 1]!.item.id : null}
-            targetBlock={item.refBlockId ? (blocksById.get(item.refBlockId) ?? null) : null}
+            targetBlock={
+              item.refBlockId ? (blocksById.get(item.refBlockId) ?? null) : null
+            }
             onPatch={onPatchItem}
             onJumpToBlock={onJumpToBlock}
             onInsertAfter={insertAfter}
@@ -227,13 +244,18 @@ export function BlockCard({
             onInputRef={(el) => registerInput(item.id, el)}
           />
         ))}
-        {block.sections.notes.length === 0 && <li className={styles.empty}>Noch keine Notizen</li>}
+        {block.sections.notes.length === 0 && (
+          <li className={styles.empty}>Noch keine Notizen</li>
+        )}
       </ul>
 
       {block.sections.tasks.length > 0 && (
         <section className={styles.group}>
-          <h4 className={styles.grouphead}>
-            Tasks <span>{doneCount}/{block.sections.tasks.length}</span>
+          <h4 className={`${styles.grouphead} label`}>
+            Tasks{" "}
+            <span className="badge badge--quiet">
+              {doneCount}/{block.sections.tasks.length}
+            </span>
           </h4>
           <ul className={styles.items}>
             {block.sections.tasks.map((task) => (
@@ -241,7 +263,12 @@ export function BlockCard({
                 <ItemRow
                   item={task}
                   prevId={displayPrevId(task.id)}
-                  assignee={task.assigneeSpaceId ? (spacesById.get(task.assigneeSpaceId) ?? null) : null}
+                  assignee={
+                    task.assigneeSpaceId
+                      ? (spacesById.get(task.assigneeSpaceId) ?? null)
+                      : null
+                  }
+                  meSpaceId={meSpaceId}
                   onPatch={onPatchItem}
                   onJumpToBlock={onJumpToBlock}
                   onInsertAfter={insertAfter}
@@ -274,8 +301,9 @@ export function BlockCard({
 
       {eventCount > 0 && (
         <section className={styles.group}>
-          <h4 className={styles.grouphead}>
-            Folgetermine <span>{eventCount}</span>
+          <h4 className={`${styles.grouphead} label`}>
+            Folgetermine{" "}
+            <span className="badge badge--quiet">{eventCount}</span>
           </h4>
           <ul className={styles.items}>
             {block.sections.events.map((event, index) => (
@@ -307,7 +335,8 @@ export function BlockCard({
         <ConfirmDialog
           message={
             <>
-              „{block.title || "ohne Titel"}“ mit allen Zeilen löschen? Verweise von außen verlieren ihr Ziel.
+              „{block.title || "ohne Titel"}“ mit allen Zeilen löschen? Verweise
+              von außen verlieren ihr Ziel.
             </>
           }
           onConfirm={() => {

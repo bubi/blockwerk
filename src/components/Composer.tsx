@@ -38,7 +38,13 @@ interface ComposerProps {
  * cannot resolve to the wrong person. Typed "@Name" without a menu selection
  * still falls back to the text parser.
  */
-export function Composer({ blockId, spaces, blocks, today, onCreateItem }: ComposerProps) {
+export function Composer({
+  blockId,
+  spaces,
+  blocks,
+  today,
+  onCreateItem,
+}: ComposerProps) {
   const [value, setValue] = useState("");
   const [mode, setMode] = useState<ComposerCommandKey | null>(null);
   const [selected, setSelected] = useState(0);
@@ -62,7 +68,9 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
     if (el && el.selectionStart !== caret) el.setSelectionRange(caret, caret);
   });
 
-  const menu = matchComposerCommands(value.startsWith("/") ? value.slice(1) : "");
+  const menu = matchComposerCommands(
+    value.startsWith("/") ? value.slice(1) : "",
+  );
   const menuOpen = value.startsWith("/") && menu.length > 0;
   const menuId = `composer-menu-${blockId}`;
 
@@ -72,10 +80,20 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
   const query = at ? at[1]!.toLowerCase() : "";
   const people = spaces.filter((space) => space.kind === "person");
   const mentions = at
-    ? people.filter((person) => !query || person.name.toLowerCase().split(" ").some((part) => part.startsWith(query)))
+    ? people.filter(
+        (person) =>
+          !query ||
+          person.name
+            .toLowerCase()
+            .split(" ")
+            .some((part) => part.startsWith(query)),
+      )
     : [];
   const mentionOpen = !mentionSuppressed && mentions.length > 0;
-  const mentionClamped = Math.min(mentionIndex, Math.max(0, mentions.length - 1));
+  const mentionClamped = Math.min(
+    mentionIndex,
+    Math.max(0, mentions.length - 1),
+  );
   const mentionId_ = `composer-mention-${blockId}`;
 
   const pick = (key: ComposerCommandKey) => {
@@ -108,7 +126,14 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
       setMode(null);
       return;
     }
-    const fields = composeItem({ mode: mode ?? "note", raw: value, refBlockId: null, spaces, today, mentionId });
+    const fields = composeItem({
+      mode: mode ?? "note",
+      raw: value,
+      refBlockId: null,
+      spaces,
+      today,
+      mentionId,
+    });
     if (!fields) return;
     onCreateItem(fields);
     setValue("");
@@ -138,7 +163,9 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
       }
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setMentionIndex((current) => (current - 1 + mentions.length) % mentions.length);
+        setMentionIndex(
+          (current) => (current - 1 + mentions.length) % mentions.length,
+        );
         return;
       }
       if (event.key === "Enter" || event.key === "Tab") {
@@ -197,7 +224,7 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
         {mode && (
           <button
             type="button"
-            className={styles.chip}
+            className={`${styles.chip} badge badge--own`}
             onClick={() => setMode(null)}
             title="Modus verwerfen"
             aria-label="Modus verwerfen"
@@ -240,11 +267,17 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
             onKeyDown={onKeyDown}
             onKeyUp={syncCaret}
             onClick={syncCaret}
-            placeholder={mode ? commandHint(mode) : "/ für Befehle, @ für Personen, # für eine Überschrift"}
+            placeholder={
+              mode
+                ? commandHint(mode)
+                : "/ für Befehle, @ für Personen, # für eine Überschrift"
+            }
             aria-label="Neue Zeile"
             role={menuOpen || mentionOpen ? "combobox" : undefined}
             aria-expanded={menuOpen || mentionOpen}
-            aria-controls={menuOpen ? menuId : mentionOpen ? mentionId_ : undefined}
+            aria-controls={
+              menuOpen ? menuId : mentionOpen ? mentionId_ : undefined
+            }
             aria-activedescendant={
               mentionOpen
                 ? `${mentionId_}-option-${mentionClamped}`
@@ -255,13 +288,18 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
           />
         )}
 
-        <button type="button" className={styles.go} onClick={commit}>
+        <button type="button" className={`${styles.go} label`} onClick={commit}>
           Hinzufügen
         </button>
       </div>
 
       {mentionOpen && (
-        <ul className={styles.menu} id={mentionId_} role="listbox" aria-label="Person wählen">
+        <ul
+          className={styles.menu}
+          id={mentionId_}
+          role="listbox"
+          aria-label="Person wählen"
+        >
           {mentions.map((person, index) => (
             <li key={person.id}>
               <button
@@ -269,11 +307,11 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
                 id={`${mentionId_}-option-${index}`}
                 role="option"
                 aria-selected={index === mentionClamped}
-                className={index === mentionClamped ? styles.optionSelected : styles.option}
+                className={`${styles.option} ${styles.optionAt} ${index === mentionClamped ? styles.optionSelected : ""}`}
                 onMouseEnter={() => setMentionIndex(index)}
                 onClick={() => pickMention(person)}
               >
-                <span className={styles.personBadge}>{deriveShort(person.name)}</span>
+                <span className="sbadge">{deriveShort(person.name)}</span>
                 <span className={styles.hint}>{person.name}</span>
               </button>
             </li>
@@ -282,7 +320,12 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
       )}
 
       {menuOpen && !mentionOpen && (
-        <ul className={styles.menu} id={menuId} role="listbox" aria-label="Befehl wählen">
+        <ul
+          className={styles.menu}
+          id={menuId}
+          role="listbox"
+          aria-label="Befehl wählen"
+        >
           {menu.map((command, index) => (
             <li key={command.key}>
               <button
@@ -290,7 +333,9 @@ export function Composer({ blockId, spaces, blocks, today, onCreateItem }: Compo
                 id={`${menuId}-option-${command.key}`}
                 role="option"
                 aria-selected={index === selected}
-                className={index === selected ? styles.optionSelected : styles.option}
+                className={
+                  index === selected ? styles.optionSelected : styles.option
+                }
                 onMouseEnter={() => setSelected(index)}
                 onClick={() => pick(command.key)}
               >

@@ -37,9 +37,15 @@ export function MobilePages({
         <ul className={styles.list}>
           {space?.kind === "person" && (
             <li className={styles.row}>
-              <button type="button" className={styles.body} onClick={() => onPickPage("mirror")}>
+              <button
+                type="button"
+                className={styles.body}
+                onClick={() => onPickPage("mirror")}
+              >
                 <span className={styles.name}>Zugewiesen</span>
-                {openCount > 0 && <span className={styles.count}>{openCount}</span>}
+                {openCount > 0 && (
+                  <span className="badge badge--quiet">{openCount}</span>
+                )}
                 <span className={styles.chevron} aria-hidden="true">
                   ›
                 </span>
@@ -48,7 +54,11 @@ export function MobilePages({
           )}
           {pages.map((page) => (
             <li key={page.id} className={styles.row}>
-              <button type="button" className={styles.body} onClick={() => onPickPage(page.id)}>
+              <button
+                type="button"
+                className={styles.body}
+                onClick={() => onPickPage(page.id)}
+              >
                 <span className={styles.name}>{page.title}</span>
                 <span className={styles.chevron} aria-hidden="true">
                   ›
@@ -78,7 +88,11 @@ export function MobilePages({
           />
         </div>
       ) : (
-        <button type="button" className={styles.add} onClick={() => setAdding(true)}>
+        <button
+          type="button"
+          className={styles.add}
+          onClick={() => setAdding(true)}
+        >
           + Seite
         </button>
       )}

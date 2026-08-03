@@ -1,47 +1,42 @@
 .composer {
-  margin-top: 10px;
-  padding-top: 9px;
-  border-top: 1px solid var(--line2);
   position: relative;
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line2);
 }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s2);
 }
 
+/* Die Eingabezeile ist unsichtbar wie eine Textzeile (design-system 3.6). */
 .input,
 .select {
   flex: 1;
   min-width: 0;
-  background: var(--side);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 6px 10px;
-}
-
-.input:focus,
-.select:focus {
-  background: var(--white);
-  outline: none;
-  box-shadow: 0 0 0 3px var(--green-soft);
+  font-size: 15px;
+  padding: var(--s1) 0;
+  background: none;
+  border: none;
 }
 
 .input::placeholder {
   color: var(--text3);
 }
 
+.select {
+  padding: var(--s1) var(--s2);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+}
+
 .chip {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 12px;
-  background: var(--green-soft);
-  color: var(--green-dk);
+  gap: var(--s2);
   flex: none;
 }
 
@@ -52,42 +47,52 @@
 
 .go {
   flex: none;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--green);
-  padding: 5px 10px;
+  color: var(--green-dk);
+  padding: 0;
+  opacity: 0;
 }
 
-.go:hover {
-  text-decoration: underline;
+.composer:hover .go,
+.composer:focus-within .go {
+  opacity: 1;
 }
 
+/* Befehls- und Personenliste. */
 .menu {
   position: absolute;
+  z-index: 30;
+  top: calc(100% + var(--s1));
   left: 0;
-  right: 0;
-  top: 100%;
-  margin-top: 4px;
+  min-width: 296px;
+  list-style: none;
+  margin: 0;
+  padding: var(--s1);
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(29, 33, 37, 0.12);
-  z-index: 10;
-  padding: 4px;
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 32px rgba(29, 33, 37, 0.16);
+  animation: rise 0.14s ease both;
 }
 
 .option,
 .optionSelected {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
   align-items: baseline;
+  gap: var(--s4);
   width: 100%;
-  padding: 7px 10px;
-  border-radius: 6px;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-xs);
 }
 
 .optionSelected {
   background: var(--green-soft);
+}
+
+.optionAt {
+  justify-content: flex-start;
+  align-items: center;
+  gap: var(--s3);
 }
 
 .command {
@@ -97,19 +102,13 @@
 }
 
 .hint {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text3);
 }
 
-.personBadge {
-  font-size: 10.5px;
-  font-weight: 600;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  flex: none;
-  color: #fff;
-  background: var(--grey);
+/* Ohne Zeiger sind Symbol- und Etikettenaktionen dauerhaft sichtbar. */
+@media (hover: none) {
+  .go {
+    opacity: 1;
+  }
 }

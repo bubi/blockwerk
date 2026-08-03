@@ -1,146 +1,155 @@
 .dates {
   border-left: 1px solid var(--line);
   background: var(--white);
-  padding: 14px 0 60px;
+  padding: var(--s5) 0 80px;
 }
 
 .monthbar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 14px;
+  gap: var(--s2);
+  padding: 0 var(--s5);
 }
 
 .mnav {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-sm);
   display: grid;
   place-items: center;
-  font-size: 17px;
-  color: var(--text2);
+  font-size: 20px;
   line-height: 1;
+  color: var(--text2);
+  flex: none;
 }
 
 .mnav:hover {
   background: var(--hover);
+  color: var(--text);
 }
 
 .monthtitle {
   flex: 1;
-  font-size: 15px;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--text);
 }
 
 .monthmeta {
-  font-size: 12px;
-  color: var(--text3);
-  padding: 2px 14px 10px;
   margin: 0;
+  padding: var(--s2) var(--s5) var(--s5);
+  color: var(--text3);
 }
 
 .ledger {
-  padding: 0 14px 8px;
+  padding: 0 var(--s5) var(--s3);
 }
 
-/* Ein Monat ganz ohne Termine und Fälligkeiten */
+/* Ein Monat ganz ohne Termine und Fälligkeiten. */
 .empty {
-  padding: 18px 14px;
-  margin: 0;
-  font-size: 13px;
-  color: var(--text3);
-  border-top: 1px solid var(--line2);
+  max-width: 60ch;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text2);
+  background: var(--white);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-md);
+  padding: var(--s5);
+  margin: var(--s3);
 }
 
-/* Ein Tag mit Einträgen */
+/* Ein Tag mit Einträgen: 56er-Spalte links, Einträge rechts. */
 .dayblock {
-  padding: 14px 0 4px;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  column-gap: var(--s4);
+  padding: var(--s4) 0 var(--s2);
   border-top: 1px solid var(--line2);
 }
 
 .dayblock:first-child {
   border-top: none;
-  padding-top: 2px;
+  padding-top: 0;
 }
 
 .dayhead {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
-  align-items: baseline;
-  gap: 7px;
-  margin-bottom: 8px;
-  padding-left: 2px;
-}
-
-.dwd {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .dnum {
-  font-size: 14.5px;
-  font-weight: 600;
+  font-family: var(--display);
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
   color: var(--text);
 }
 
-.todaytag {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--green);
-  border-radius: 10px;
-  padding: 1px 8px;
-  margin-left: auto;
-}
-
-.dayblock.isToday .dnum,
-.dayblock.isToday .dwd {
+/* Der heutige Tag wird eingefärbt, nicht unterlegt. */
+.isToday .dnum,
+.isToday .dwd,
+.isToday .dmon {
   color: var(--green-dk);
 }
 
-/* Zusammengefasste leere Tage */
+/* Leere Tagesläufe: eine Zeile mit gestrichelter Maßlinie und Anzahl. */
 .gap {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 2px;
+  gap: var(--s4);
+  padding: var(--s3) 0;
   border-top: 1px solid var(--line2);
+}
+
+.gap::before {
+  content: "";
+  width: 56px;
+  flex: none;
 }
 
 .gap::after {
   content: "";
   flex: 1;
   height: 1px;
-  background: var(--line2);
+  background: repeating-linear-gradient(
+    90deg,
+    var(--line) 0 3px,
+    transparent 3px 8px
+  );
 }
 
 .gap span {
-  font-size: 12px;
-  color: var(--text3);
   flex: none;
 }
 
-/* Eintragskarte: Checkbox (Tasks), Titel oben, Metazeile darunter */
+/* Eintragskarte: Titel, darunter die Metazeile. Typ über Schriftfarbe. */
 .card {
+  grid-column: 2;
   display: flex;
   align-items: flex-start;
-  gap: 9px;
+  gap: var(--s3);
   width: 100%;
+  text-align: left;
   background: var(--white);
   border: 1px solid var(--line);
-  border-left: 3px solid currentColor;
-  border-radius: 6px;
-  padding: 8px 11px;
-  margin-bottom: 6px;
-  text-align: left;
+  border-radius: var(--r-sm);
+  padding: var(--s3) var(--s4);
+  margin-bottom: var(--s2);
+  transition:
+    box-shadow 0.14s ease,
+    border-color 0.14s ease;
 }
 
 .card:hover {
-  background: #fbfcfb;
-  border-color: #cfd4d9;
+  box-shadow: 0 4px 12px rgba(29, 33, 37, 0.08);
+  border-color: var(--card-hover);
 }
 
 /* Der Fokus bleibt sichtbar, egal ob auf der Checkbox oder dem Datumsfeld. */
@@ -152,104 +161,6 @@
 .cardbody {
   flex: 1;
   min-width: 0;
-}
-
-.cardcheck,
-.cardcheckDone {
-  flex: none;
-  width: 18px;
-  height: 18px;
-  margin-top: 1px;
-  border-radius: 3px;
-  border: 1.5px solid #b6bcc3;
-  background: var(--white);
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
-}
-
-.cardcheck:hover {
-  border-color: var(--green);
-  background: var(--green-soft);
-}
-
-.cardcheck span {
-  width: 5px;
-  height: 9px;
-  border: 2px solid transparent;
-  border-top: 0;
-  border-left: 0;
-  transform: rotate(42deg) translateY(-1px);
-}
-
-.cardcheck:hover span {
-  border-color: var(--green);
-}
-
-.cardcheckDone {
-  border-color: var(--green);
-  background: var(--green);
-}
-
-.cardcheckDone span {
-  border-color: #fff;
-}
-
-.cardtitle {
-  display: block;
-  width: 100%;
-  padding: 0;
-  border: none;
-  background: none;
-  font-family: inherit;
-  font-size: 13.5px;
-  line-height: 1.4;
-  color: var(--text);
-  text-align: left;
-  margin-bottom: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.cardtitle:hover {
-  text-decoration: underline;
-}
-
-.cardmeta {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-}
-
-/* Das Datum der Karte: öffnet per Klick den Datepicker */
-.datefield input {
-  font-size: 12px;
-  color: var(--text2);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-variant-numeric: tabular-nums;
-}
-
-.cardkind {
-  font-size: 12px;
-  font-weight: 600;
-  color: currentColor;
-}
-
-.cardtime {
-  font-size: 12px;
-  color: var(--text2);
-  font-variant-numeric: tabular-nums;
-}
-
-.cardwho {
-  font-size: 12px;
-  color: var(--text2);
 }
 
 .cardEvent {
@@ -271,4 +182,57 @@
 .cardTask.isDone .cardtitle {
   color: var(--text3);
   text-decoration: line-through;
+}
+
+.cardtitle {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+  text-align: left;
+  margin-bottom: var(--s1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.cardtitle:hover {
+  text-decoration: underline;
+}
+
+.cardmeta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s2);
+}
+
+.cardkind {
+  color: currentColor;
+}
+
+.cardtime {
+  color: var(--blue);
+  font-variant-numeric: tabular-nums;
+}
+
+.cardwho {
+  color: var(--text2);
+  font-size: 12px;
+}
+
+/* Das Datum der Karte: öffnet per Klick den Datepicker. */
+.datefield input {
+  font-size: 12px;
+  color: var(--text2);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
 }

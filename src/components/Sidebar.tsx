@@ -22,6 +22,8 @@ interface SidebarProps {
   onSelectSpace: (spaceId: string) => void;
   onCreateSpace: (kind: SpaceRow["kind"], name: string, email: string) => void;
   onDeleteSpace: (spaceId: string) => void;
+  /** The rail footer's "Templates bearbeiten" (design-system 5). */
+  onManageTemplates: () => void;
 }
 
 export function Sidebar({
@@ -37,6 +39,7 @@ export function Sidebar({
   onSelectSpace,
   onCreateSpace,
   onDeleteSpace,
+  onManageTemplates,
 }: SidebarProps) {
   return (
     <div className={styles.rail}>
@@ -48,7 +51,9 @@ export function Sidebar({
           onClick={onHome}
         >
           <span className={styles.name}>Heute</span>
-          {overdueCount > 0 && <span className={styles.open}>{overdueCount}</span>}
+          {overdueCount > 0 && (
+            <span className="badge badge--warn">{overdueCount}</span>
+          )}
         </button>
       )}
 
@@ -74,6 +79,16 @@ export function Sidebar({
         onCreateSpace={onCreateSpace}
         onDeleteSpace={onDeleteSpace}
       />
+
+      <div className={styles.railfoot}>
+        <button
+          type="button"
+          className={styles.railbtn}
+          onClick={onManageTemplates}
+        >
+          Templates bearbeiten
+        </button>
+      </div>
     </div>
   );
 }
@@ -114,7 +129,7 @@ function SpaceGroup({
 
   return (
     <div className={styles.group}>
-      <h3 className={styles.grouphead}>
+      <h3 className={`${styles.grouphead} label label--muted`}>
         {title}
         <button
           type="button"
@@ -161,7 +176,11 @@ function SpaceGroup({
               aria-label="E-Mail des Bereichs"
             />
           )}
-          <button type="button" className={styles.saddgo} onClick={submit}>
+          <button
+            type="button"
+            className={`${styles.saddgo} label`}
+            onClick={submit}
+          >
             Anlegen
           </button>
         </div>
@@ -179,18 +198,30 @@ function SpaceGroup({
               aria-current={active ? "page" : undefined}
               onClick={() => onSelectSpace(space.id)}
             >
-              <span className={space.kind === "person" ? styles.badgePerson : styles.badgeTopic} aria-hidden="true">
+              <span
+                className={`sbadge ${space.kind === "topic" ? "sbadge--topic" : ""}`}
+                aria-hidden="true"
+              >
                 {deriveShort(space.name)}
               </span>
               <span className={styles.name}>
                 {space.name}
                 {isMe && (
-                  <em className={styles.me} aria-hidden="true">
+                  <em
+                    className={`${styles.me} badge badge--own`}
+                    aria-hidden="true"
+                  >
                     ich
                   </em>
                 )}
               </span>
-              {count > 0 && <span className={styles.open}>{count}</span>}
+              {count > 0 && (
+                <span
+                  className={`badge ${active ? "badge--active" : "badge--quiet"}`}
+                >
+                  {count}
+                </span>
+              )}
             </button>
             <button
               type="button"
@@ -204,14 +235,17 @@ function SpaceGroup({
           </div>
         );
       })}
-      {spaces.length === 0 && <p className={styles.grpempty}>Noch keiner angelegt</p>}
+      {spaces.length === 0 && (
+        <p className={styles.grpempty}>Noch keiner angelegt</p>
+      )}
 
       {confirmId !== null && (
         <ConfirmDialog
           message={
             <>
-              „{spaces.find((entry) => entry.id === confirmId)?.name ?? ""}“ wird gelöscht: Seiten und Blöcke gehen mit,
-              Tasks in anderen Bereichen verlieren nur ihre Zuständigkeit.
+              „{spaces.find((entry) => entry.id === confirmId)?.name ?? ""}“
+              wird gelöscht: Seiten und Blöcke gehen mit, Tasks in anderen
+              Bereichen verlieren nur ihre Zuständigkeit.
             </>
           }
           onConfirm={() => {

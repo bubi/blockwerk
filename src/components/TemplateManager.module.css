@@ -1,42 +1,44 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(29, 33, 37, 0.4);
+  background: rgba(29, 33, 37, 0.45);
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 5vh 16px;
+  padding: 6vh var(--s4);
   z-index: 70;
   overflow-y: auto;
 }
 
 .sheet {
   background: var(--white);
-  border-radius: 10px;
-  box-shadow: 0 16px 44px rgba(29, 33, 37, 0.25);
+  border-radius: var(--r-lg);
+  box-shadow: 0 24px 60px rgba(29, 33, 37, 0.3);
   width: 100%;
-  max-width: 560px;
-  padding: 18px 20px 22px;
+  max-width: 600px;
+  padding: var(--s5);
+  animation: rise 0.24s ease both;
 }
 
 .sheethead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: var(--s2);
 }
 
 .sheethead h2 {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 0;
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .sheetclose {
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1;
   color: var(--text3);
-  padding: 0 4px;
+  padding: 0 var(--s1);
 }
 
 .sheetclose:hover {
@@ -44,55 +46,55 @@
 }
 
 .sheetnote {
-  font-size: 12.5px;
-  color: var(--text3);
-  margin: 0 0 14px;
+  margin: 0 0 var(--s4);
+  font-size: 14px;
+  color: var(--text2);
+  line-height: 1.6;
 }
 
 .tpllist {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: var(--s3);
+  margin-bottom: var(--s4);
 }
 
 .tplcard {
   border: 1px solid var(--line);
-  border-left: 3px solid currentColor;
-  border-radius: 8px;
-  padding: 10px 12px;
+  border-radius: var(--r-md);
+  padding: var(--s4);
 }
 
 .tplrow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--s3);
   flex-wrap: wrap;
-  margin-bottom: 7px;
+  margin-bottom: var(--s2);
 }
 
 .tplname {
   flex: 1;
-  min-width: 120px;
-  font-size: 14.5px;
+  min-width: 140px;
+  font-family: var(--display);
+  font-size: 16px;
   font-weight: 600;
-  color: var(--text);
   background: none;
   border: none;
-  padding: 2px 0;
+  padding: 0;
+  color: var(--text);
 }
 
 .tplhue {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--text2);
   background: var(--side);
   border: 1px solid var(--line);
-  border-radius: 4px;
-  padding: 3px 6px;
+  border-radius: var(--r-xs);
+  padding: var(--s1) var(--s2);
 }
 
 .tplkill {
-  font-size: 12.5px;
   color: var(--text3);
   flex: none;
 }
@@ -103,32 +105,17 @@
 
 .tplseed {
   width: 100%;
-  font: inherit;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
   color: var(--text2);
   background: var(--bg);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 7px 9px;
+  border-radius: var(--r-sm);
+  padding: var(--s3);
   resize: vertical;
 }
 
 .tplseed:focus {
-  outline: none;
   border-color: var(--green);
   box-shadow: 0 0 0 3px var(--green-soft);
-}
-
-.newbtn {
-  font-size: 13.5px;
-  font-weight: 600;
-  padding: 7px 15px;
-  border-radius: 4px;
-  background: var(--green);
-  color: #fff;
-}
-
-.newbtn:hover {
-  background: var(--green-dk);
 }

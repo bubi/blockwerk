@@ -12,6 +12,8 @@ interface ItemRowProps {
   /** A task's own note (docs/adr/0014): rendered indented under its task. */
   isChild?: boolean;
   assignee?: Pick<SpaceRow, "short"> | null;
+  /** The "me" space (docs/adr/0013) — own tasks get the "eigen" badge. */
+  meSpaceId?: string | null;
   /** The ref's target block, when it still exists. */
   targetBlock?: Pick<BlockRow, "id" | "title" | "date"> | null;
   /** The row before this one in display order — where focus returns after a delete. */
@@ -56,6 +58,7 @@ export function ItemRow({
   indent,
   isChild,
   assignee,
+  meSpaceId,
   targetBlock,
   prevId,
   onPatch,
@@ -157,7 +160,8 @@ export function ItemRow({
     onPatch(item.id, { text: value });
   };
 
-  const kindClass = styles[`kind${item.kind[0]!.toUpperCase() + item.kind.slice(1)}`];
+  const kindClass =
+    styles[`kind${item.kind[0]!.toUpperCase() + item.kind.slice(1)}`];
   const rowClass = [
     styles.item,
     kindClass,
@@ -177,6 +181,7 @@ export function ItemRow({
       }}
       className={rowClass}
       data-item-id={item.id}
+      data-heading={item.heading ?? undefined}
       tabIndex={-1}
       onKeyDown={rowKeys}
     >
@@ -187,9 +192,21 @@ export function ItemRow({
         }}
         className={isHeading ? styles.headingInput : styles.text}
         value={item.text}
-        onChange={(event) => (isHeading ? onPatch(item.id, { text: event.target.value }) : handleTextChange(event.target.value))}
+        onChange={(event) =>
+          isHeading
+            ? onPatch(item.id, { text: event.target.value })
+            : handleTextChange(event.target.value)
+        }
         aria-label={isHeading ? "Überschrift" : KIND_LABEL[item.kind]}
-        placeholder={isHeading ? "Überschrift" : item.kind === "event" ? "Termin" : item.kind === "task" ? "Aufgabe" : "Notiz"}
+        placeholder={
+          isHeading
+            ? "Überschrift"
+            : item.kind === "event"
+              ? "Termin"
+              : item.kind === "task"
+                ? "Aufgabe"
+                : "Notiz"
+        }
       />
 
       {isHeading && (
@@ -211,7 +228,7 @@ export function ItemRow({
           role="checkbox"
           aria-checked={item.done}
           aria-label={`${item.text || "Aufgabe"} — ${item.done ? "wieder öffnen" : "als erledigt markieren"}`}
-          className={item.done ? styles.checkDone : styles.check}
+          className={item.done ? "check check--done" : "check"}
           tabIndex={-1}
           onClick={() => onPatch(item.id, { done: !item.done })}
         >
@@ -219,8 +236,16 @@ export function ItemRow({
         </button>
       )}
 
-      {item.kind === "task" && item.dueDate && <DueChip dueDate={item.dueDate} />}
-      {item.kind === "task" && assignee && <span className={styles.who}>{assignee.short}</span>}
+      {item.kind === "task" && item.dueDate && (
+        <DueChip dueDate={item.dueDate} />
+      )}
+      {item.kind === "task" && assignee && (
+        <span
+          className={`badge ${item.assigneeSpaceId !== null && item.assigneeSpaceId === meSpaceId ? "badge--own" : "badge--quiet"}`}
+        >
+          {assignee.short}
+        </span>
+      )}
 
       {item.kind === "task" && onAddNote && (
         <button
@@ -235,7 +260,9 @@ export function ItemRow({
         </button>
       )}
 
-      {item.kind === "event" && <span className={styles.eventTime}>{item.eventTime ?? "—"}</span>}
+      {item.kind === "event" && (
+        <span className="badge badge--time">{item.eventTime ?? "—"}</span>
+      )}
 
       {item.kind === "ref" &&
         (targetBlock ? (
@@ -246,7 +273,9 @@ export function ItemRow({
             onClick={() => onJumpToBlock(targetBlock.id)}
             aria-label={`Zum Block „${targetBlock.title || "ohne Titel"}" springen`}
           >
-            <span className={styles.refDate}>{formatShort(targetBlock.date)}</span>
+            <span className={styles.refDate}>
+              {formatShort(targetBlock.date)}
+            </span>
             {targetBlock.title || "Ohne Titel"}
           </button>
         ) : (
@@ -273,5 +302,9 @@ function DueChip({ dueDate }: { dueDate: string }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const late = fromISODate(dueDate).getTime() < today.getTime();
-  return <span className={late ? styles.dueLate : styles.due}>{relativeLabel(dueDate, today)}</span>;
+  return (
+    <span className={late ? styles.dueLate : styles.due}>
+      {relativeLabel(dueDate, today)}
+    </span>
+  );
 }

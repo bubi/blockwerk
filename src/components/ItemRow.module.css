@@ -1,35 +1,43 @@
 .item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 4px 0;
-  border-radius: 4px;
-}
-
-/* The selected row: the native focus ring plus a soft fill. */
-.item:focus-visible {
-  background: var(--hover);
+  gap: var(--s3);
+  flex-wrap: wrap;
+  padding: var(--s1) var(--s3);
+  margin: 0 calc(var(--s3) * -1);
+  border-radius: var(--r-xs);
 }
 
 .item:hover {
-  background: #fcfcfd;
+  background: var(--bg);
 }
 
+/* Fokussiert (Zeile): Fläche, der Tastaturring bleibt (design-system 3.8). */
+.item:focus-visible {
+  background: var(--green-soft);
+}
+
+.item:focus-visible .kill,
+.item:focus-visible .noteAdd {
+  color: var(--text3);
+}
+
+/* Einrückung unter Überschriften (design-system 5, Zeile). */
 .indented {
-  margin-left: 22px;
-  padding-left: 11px;
+  margin-left: var(--s4);
+  padding-left: var(--s3);
   border-left: 2px solid var(--line2);
 }
 
-/* A task's own note (docs/adr/0014): sits under the task, clearly attached. */
+/* Notiz an einem Task (docs/adr/0014), eine Stufe tiefer. */
 .child {
-  margin-left: 44px;
-  padding-left: 11px;
-  border-left: 2px solid var(--green-soft);
+  margin-left: var(--s6);
+  padding-left: var(--s3);
+  border-left: 2px solid var(--line2);
 }
 
 .child .text {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--text2);
 }
 
@@ -40,13 +48,18 @@
   min-width: 0;
   background: none;
   border: none;
-  padding: 2px 0;
+  padding: var(--s1) 0;
+  font-size: 15px;
   color: var(--text);
 }
 
-/* Headings (notes with heading 1/2) */
+.text::placeholder {
+  color: var(--text3);
+}
+
+/* Überschriften (Notizen mit heading 1/2). */
 .heading {
-  margin-top: 7px;
+  margin-top: var(--s3);
   align-items: baseline;
 }
 
@@ -59,10 +72,10 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--text3);
-  width: 22px;
+  width: 20px;
   flex: none;
   text-align: right;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.05em;
   cursor: pointer;
 }
 
@@ -71,101 +84,31 @@
 }
 
 .headingInput {
-  font-weight: 600;
+  font-family: var(--display);
+  font-weight: 700;
   color: var(--text);
-  background: none;
-  border: none;
-  padding: 2px 0;
-  min-width: 0;
-  flex: 1;
+  font-size: 16px;
 }
 
-.kindNote.heading .headingInput {
-  font-size: 15.5px;
+/* Überschrift Ebene 2: eine Stufe kleiner und leiser. */
+.item[data-heading="2"] .headingInput {
+  font-size: 15px;
+  color: var(--text2);
 }
 
-/* Task checkbox */
-.check,
-.checkDone {
-  order: 0;
-  width: 18px;
-  height: 18px;
-  border: 1.5px solid #b6bcc3;
-  border-radius: 3px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  background: var(--white);
-  transition: border-color 0.12s, background 0.12s;
-}
-
-.check:hover {
-  border-color: var(--green);
-  background: var(--green-soft);
-}
-
-.check span {
-  width: 5px;
-  height: 9px;
-  border: 2px solid transparent;
-  border-top: 0;
-  border-left: 0;
-  transform: rotate(42deg) translateY(-1px);
-}
-
-.kindTask:not(.done) .check:hover span {
-  border-color: var(--green);
-}
-
-.checkDone {
-  background: var(--green);
-  border-color: var(--green);
-}
-
-.checkDone span {
-  border-color: #fff;
-}
-
+/* Erledigt: Text3 plus Durchstreichung (design-system 3.8). */
 .done .text {
   color: var(--text3);
   text-decoration: line-through;
 }
 
-.who {
-  order: 2;
-  font-size: 11px;
-  font-style: normal;
-  font-weight: 600;
-  background: var(--side);
-  color: var(--text2);
-  border-radius: 10px;
-  padding: 1px 7px;
-  flex: none;
-}
-
-/* The task row's "+" — visible, not hover-only: adds a note under the task. */
-.noteAdd {
-  order: 2;
-  width: 20px;
-  height: 20px;
-  flex: none;
-  font-size: 15px;
-  line-height: 1;
-  color: var(--green);
-  background: var(--green-soft);
-  border-radius: 4px;
-}
-
-.noteAdd:hover {
-  background: var(--green);
-  color: #fff;
-}
-
+/* Fälligkeit in der Zeile (12/400, überfällig rot). */
 .due,
 .dueLate {
   order: 2;
   font-size: 12px;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   flex: none;
 }
 
@@ -178,26 +121,14 @@
   font-weight: 600;
 }
 
-/* Events */
-.eventTime {
-  order: 2;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--blue);
-  background: var(--blue-soft);
-  border-radius: 4px;
-  padding: 1px 7px;
-  flex: none;
-}
-
-/* Refs */
+/* Verweise: blaue Sprungziele. */
 .refLink {
   order: 2;
   display: flex;
-  gap: 9px;
+  gap: var(--s2);
   align-items: baseline;
+  flex: 1;
   color: var(--blue);
-  margin-left: auto;
 }
 
 .refLink:hover {
@@ -211,19 +142,37 @@
 
 .refGone {
   order: 2;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--text3);
   font-style: italic;
-  margin-left: auto;
   flex: none;
 }
 
-/* Per-row delete button — appears on hover, like the space remove buttons. */
+/* Das "+" an der Taskzeile (docs/adr/0014). */
+.noteAdd {
+  order: 2;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text3);
+  border-radius: var(--r-xs);
+  display: grid;
+  place-items: center;
+}
+
+.noteAdd:hover {
+  color: var(--green-dk);
+  background: var(--hover);
+}
+
+/* Zeile entfernen — Glyphe 20, erst beim Überfahren der Zeile sichtbar. */
 .kill {
   order: 3;
-  width: 20px;
+  width: 24px;
   flex: none;
-  font-size: 15px;
+  font-size: 20px;
   line-height: 1;
   color: transparent;
   text-align: center;

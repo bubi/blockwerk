@@ -33,8 +33,12 @@ Unter `(max-width: 860px)` bekommt die Anwendung eine eigene Gestalt
   wiederverwendet die bestehende `Sidebar` (Anlegen, Löschen mit Rückfrage,
   offene Zähler); nur der „Heute"-Eintrag entfällt (die Tab-Leiste hat ihn).
 
-Die Ebenen über der mobilen Grenze bleiben unverändert: drei Spalten über
-980px, die PR-1-Panebar (mit Datum) in der Zwischenbreite 861–980px.
+Die Ebenen über der mobilen Grenze folgen dem Design-System (Abschnitt 4.2):
+drei Spalten über 1320px (274 / flexibel / 384), schmalere Spalten mit
+kleineren Auszeichnungsgraden bei 1101–1320px, und unter 1101px eine
+Zwei-Spalten-Desktopfassung (Bereichsleiste 224, ohne Datumsspalte). Eine
+Tablet-Panebar gibt es nicht mehr — die frühere Zwischenbreite 861–980px
+mit Panebar ist bewusst zugunsten der Spec-Haltepunkte zurückgenommen.
 
 ## Konsequenzen
 
@@ -44,10 +48,10 @@ Die Ebenen über der mobilen Grenze bleiben unverändert: drei Spalten über
 - Der geteilte `spaceId`/`pageId`-Zustand macht den Wechsel über die
   Breitengrenze hinweg stetig: Was auf dem Telefon offen ist, ist es nach
   dem Hochkanten auch (und umgekehrt).
-- Die Datumsspalte ist nur noch Desktop/Tablet; der Kalender-Load bleibt
+- Die Datumsspalte ist nur noch Desktop; der Kalender-Load bleibt
   harmlos stehen.
-- Eine dritte Zwischenbreite (861–980) bleibt bewusst: mobil ist strikt
-  < 860px.
+- Mobil ist strikt ≤ 860px; zwischen 861px und 1100px ist die Oberfläche
+  eine Zwei-Spalten-Desktopfassung, keine Telefonfassung.
 
 ## Verworfene Alternativen
 

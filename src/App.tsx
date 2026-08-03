@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import type { SpaceWithPages } from "../shared/api.ts";
 import type { SpaceKind } from "../shared/db.ts";
-import type { BlockPatch, ItemPatch, TemplatePatch } from "../shared/schemas.ts";
+import type {
+  BlockPatch,
+  ItemPatch,
+  TemplatePatch,
+} from "../shared/schemas.ts";
 import { Dates } from "./components/Dates.tsx";
 import { Header } from "./components/Header.tsx";
 import { MobileHeader } from "./components/MobileHeader.tsx";
@@ -11,15 +15,26 @@ import { SearchResults } from "./components/SearchResults.tsx";
 import { Sidebar } from "./components/Sidebar.tsx";
 import { Stream } from "./components/Stream.tsx";
 import { TabBar, type MobileTab } from "./components/TabBar.tsx";
+import { TemplateManager } from "./components/TemplateManager.tsx";
 import { Today } from "./components/Today.tsx";
 import { formatError } from "./components/errorText.ts";
 import { LoadError, Loading } from "./components/status.tsx";
 import { monthLedger } from "./domain/calendar.ts";
 import { fromISODate, refreshToday, toISODate } from "./domain/dates.ts";
 import { detectHeading } from "./domain/headings.ts";
-import { newBlockId, newItemId, newPageId, newSpaceId, newTemplateId } from "./domain/ids.ts";
+import {
+  newBlockId,
+  newItemId,
+  newPageId,
+  newSpaceId,
+  newTemplateId,
+} from "./domain/ids.ts";
 import { deriveShort } from "./domain/naming.ts";
-import { readScope, writeScope, type TodayScope } from "./domain/preferences.ts";
+import {
+  readScope,
+  writeScope,
+  type TodayScope,
+} from "./domain/preferences.ts";
 import type { ItemCreateInput } from "./state/operations.ts";
 import {
   selectCalendar,
@@ -55,10 +70,20 @@ export function App() {
 
   const [spaceId, setSpaceId] = useState<string | null>(null);
   const [pageId, setPageId] = useState<string | "mirror" | null>(null);
-  const [pane, setPane] = useState<"today" | "spaces" | "stream" | "dates">("today");
+  // The desktop stream column shows either the "Heute" start view or a
+  // space's stream — the rail's "Heute" button toggles it (design-system 5).
+  const [home, setHome] = useState(true);
   const { today, todayDate } = useToday();
-  const [month, setMonth] = useState({ year: todayDate.getFullYear(), month: todayDate.getMonth() });
-  const [jump, setJump] = useState<{ blockId: string; pageId: string; focusComposer?: boolean } | null>(null);
+  const [month, setMonth] = useState({
+    year: todayDate.getFullYear(),
+    month: todayDate.getMonth(),
+  });
+  const [jump, setJump] = useState<{
+    blockId: string;
+    pageId: string;
+    focusComposer?: boolean;
+  } | null>(null);
+  const [tplOpen, setTplOpen] = useState(false);
   const [bootRetries, setBootRetries] = useState(0);
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<TodayScope>(() => readScope());
@@ -82,7 +107,10 @@ export function App() {
   // Anchor the app's own history trail so the in-app back button and the
   // browser back gesture never leave the page.
   useEffect(() => {
-    window.history.replaceState({ mTab: "heute", nLevel: "spaces", spaceId: null, pageId: null }, "");
+    window.history.replaceState(
+      { mTab: "heute", nLevel: "spaces", spaceId: null, pageId: null },
+      "",
+    );
   }, []);
 
   // Browser back/forward restores the mobile navigation snapshot.
@@ -118,7 +146,10 @@ export function App() {
   const templates = selectTemplates(state);
   // Null means "no explicit choice yet" — fall back to the first topic space.
   const resolvedSpaceId = spaceId ?? defaultSpace(spaces)?.id ?? null;
-  const space = resolvedSpaceId !== null ? (spaces.find((entry) => entry.id === resolvedSpaceId) ?? null) : null;
+  const space =
+    resolvedSpaceId !== null
+      ? (spaces.find((entry) => entry.id === resolvedSpaceId) ?? null)
+      : null;
   const isPerson = space?.kind === "person";
   const activeSpaceId = resolvedSpaceId;
   const pages = space?.pages ?? [];
@@ -128,14 +159,17 @@ export function App() {
       ? null
       : pageId === "mirror" && isPerson
         ? "mirror"
-        : pageId !== null && pageId !== "mirror" && pages.some((page) => page.id === pageId)
+        : pageId !== null &&
+            pageId !== "mirror" &&
+            pages.some((page) => page.id === pageId)
           ? pageId
           : isPerson
             ? "mirror"
             : (pages[0]?.id ?? null);
 
   const mirrorMode = resolvedPageId === "mirror";
-  const activePageId = resolvedPageId !== null && !mirrorMode ? resolvedPageId : null;
+  const activePageId =
+    resolvedPageId !== null && !mirrorMode ? resolvedPageId : null;
 
   const monthFrom = toISODate(new Date(month.year, month.month, 1));
   const monthTo = toISODate(new Date(month.year, month.month + 1, 0));
@@ -157,12 +191,13 @@ export function App() {
   // Notizen stream level.
   useEffect(() => {
     if (narrow) {
-      if (nLevel === "stream" && activePageId !== null) void ops.loadPage(activePageId);
+      if (nLevel === "stream" && activePageId !== null)
+        void ops.loadPage(activePageId);
       return;
     }
-    if (pane === "today") return;
+    if (home) return;
     if (activePageId !== null) void ops.loadPage(activePageId);
-  }, [pane, activePageId, nLevel, narrow, ops]);
+  }, [home, activePageId, nLevel, narrow, ops]);
 
   // Load the calendar window for the displayed month.
   useEffect(() => {
@@ -194,8 +229,9 @@ export function App() {
   // "Erneut versuchen" buttons remain the last resort.
   useEffect(() => {
     if (bootRetries >= MAX_BOOT_RETRIES) return;
-    const page = activePageId !== null ? selectPageView(state, activePageId) : null;
-    const pageNeeded = narrow ? nLevel === "stream" : pane !== "today";
+    const page =
+      activePageId !== null ? selectPageView(state, activePageId) : null;
+    const pageNeeded = narrow ? nLevel === "stream" : !home;
     const pending =
       spacesView.status !== "loaded" ||
       overviewView.status !== "loaded" ||
@@ -206,10 +242,16 @@ export function App() {
     const timer = window.setTimeout(() => {
       if (spacesView.status !== "loaded") void ops.loadSpaces();
       if (overviewView.status !== "loaded") void ops.loadOverview(today);
-      if (pageNeeded && activePageId !== null && page !== null && page.status !== "loaded") {
+      if (
+        pageNeeded &&
+        activePageId !== null &&
+        page !== null &&
+        page.status !== "loaded"
+      ) {
         void ops.loadPage(activePageId);
       }
-      if (calendarView.status !== "loaded") void ops.loadCalendar(monthFrom, monthTo);
+      if (calendarView.status !== "loaded")
+        void ops.loadCalendar(monthFrom, monthTo);
       setBootRetries((n) => n + 1);
     }, 1500);
     return () => window.clearTimeout(timer);
@@ -219,7 +261,7 @@ export function App() {
     calendarView,
     overviewView,
     activePageId,
-    pane,
+    home,
     nLevel,
     narrow,
     today,
@@ -230,14 +272,17 @@ export function App() {
   ]);
 
   // After a jump, scroll to the block once its page is loaded.
-  const pageViewStatus = activePageId !== null ? selectPageView(state, activePageId).status : "idle";
+  const pageViewStatus =
+    activePageId !== null ? selectPageView(state, activePageId).status : "idle";
   useEffect(() => {
-    if (!jump || resolvedPageId !== jump.pageId || pageViewStatus !== "loaded") return;
+    if (!jump || resolvedPageId !== jump.pageId || pageViewStatus !== "loaded")
+      return;
     const timer = window.setTimeout(() => {
       const element = document.getElementById(`blk-${jump.blockId}`);
       if (element) {
         element.scrollIntoView({ behavior: "smooth", block: "center" });
-        if (jump.focusComposer) document.getElementById(`composer-${jump.blockId}`)?.focus();
+        if (jump.focusComposer)
+          document.getElementById(`composer-${jump.blockId}`)?.focus();
       }
       setJump(null);
     }, 60);
@@ -257,7 +302,9 @@ export function App() {
       const next = defaultSpace(spaces.filter((entry) => entry.id !== id));
       if (next) {
         setSpaceId(next.id);
-        setPageId(next.kind === "person" ? "mirror" : (next.pages[0]?.id ?? null));
+        setPageId(
+          next.kind === "person" ? "mirror" : (next.pages[0]?.id ?? null),
+        );
       } else {
         setSpaceId(null);
         setPageId(null);
@@ -265,10 +312,13 @@ export function App() {
     }
   };
 
-  const pageBlocks = activePageId !== null ? selectPageBlocks(state, activePageId) : [];
+  const pageBlocks =
+    activePageId !== null ? selectPageBlocks(state, activePageId) : [];
   const teamView = selectTeamOverview(state, today, scope, meSpaceId, spaces);
   const personView =
-    isPerson && activeSpaceId !== null ? selectPersonOverview(state, today, activeSpaceId, spaces) : null;
+    isPerson && activeSpaceId !== null
+      ? selectPersonOverview(state, today, activeSpaceId, spaces)
+      : null;
   const calendar = selectCalendar(state, monthFrom, monthTo);
   const ledger = monthLedger(calendar, monthFrom, monthTo);
 
@@ -283,6 +333,18 @@ export function App() {
   const openCounts = selectOpenTaskCounts(state);
   const overdueCount = teamView.overdue.length;
 
+  // The Tageskopf's fourth reading "erledigt in sieben Tagen" (design-system
+  // 5): the data model has no done_at, so the moment a task is checked off is
+  // tracked in this session only — it resets on reload and the tile degrades
+  // to zero rather than claiming a server truth it does not have.
+  const [doneAt, setDoneAt] = useState<ReadonlyMap<string, number>>(
+    () => new Map(),
+  );
+  const [weekCutoff] = useState(() => Date.now() - 7 * 86_400_000);
+  const doneWeek = [...doneAt.values()].filter(
+    (time) => time > weekCutoff,
+  ).length;
+
   const templatesById = new Map(templates.map((entry) => [entry.id, entry]));
   const spacesById = new Map(spaces.map((entry) => [entry.id, entry]));
 
@@ -291,14 +353,15 @@ export function App() {
   const selectSpace = (id: string) => {
     const next = spaces.find((entry) => entry.id === id);
     if (!next) return;
-    const nextPageId: string | "mirror" | null = next.kind === "person" ? "mirror" : (next.pages[0]?.id ?? null);
+    const nextPageId: string | "mirror" | null =
+      next.kind === "person" ? "mirror" : (next.pages[0]?.id ?? null);
     setJump(null);
     if (narrow) {
       commitNav({ nLevel: "pages", spaceId: id, pageId: nextPageId });
     } else {
       setSpaceId(id);
       setPageId(nextPageId);
-      setPane("stream");
+      setHome(false);
     }
   };
 
@@ -308,22 +371,28 @@ export function App() {
       commitNav({ nLevel: "stream", pageId: id });
     } else {
       setPageId(id);
-      setPane("stream");
+      setHome(false);
     }
   };
 
   const goHome = () => {
-    setPane("today");
+    setHome(true);
     setJump(null);
     setQuery("");
   };
 
-  const patchBlock = (id: string, patch: BlockPatch) => void ops.updateBlock(id, patch);
-  const patchItem = (id: string, patch: ItemPatch) => void ops.updateItem(id, patch);
+  const patchBlock = (id: string, patch: BlockPatch) =>
+    void ops.updateBlock(id, patch);
+  const patchItem = (id: string, patch: ItemPatch) =>
+    void ops.updateItem(id, patch);
   const createItem = (input: ItemCreateInput) => void ops.createItem(input);
   const deleteItem = (id: string) => void ops.deleteItem(id);
 
-  const createSpace = async (kind: SpaceKind, rawName: string, rawEmail = "") => {
+  const createSpace = async (
+    kind: SpaceKind,
+    rawName: string,
+    rawEmail = "",
+  ) => {
     const name = rawName.trim();
     if (!name) return;
     const email = rawEmail.trim() || null;
@@ -334,16 +403,27 @@ export function App() {
     // async continuation could revert a selection the user already changed.
     setJump(null);
     if (narrow) {
-      commitNav({ mTab: "notizen", nLevel: "stream", spaceId: id, pageId: nextPageId });
+      commitNav({
+        mTab: "notizen",
+        nLevel: "stream",
+        spaceId: id,
+        pageId: nextPageId,
+      });
     } else {
       setSpaceId(id);
       setPageId(nextPageId);
-      setPane("stream");
+      setHome(false);
     }
     // The page references the space, so its PUT must not race the space's
     // (both rows are optimistic already; the page's request follows once
     // the space is confirmed on the server).
-    const space = ops.createSpace({ id, name, kind, short: deriveShort(name), email });
+    const space = ops.createSpace({
+      id,
+      name,
+      kind,
+      short: deriveShort(name),
+      email,
+    });
     await space;
     ops.createPage({ id: pageId, spaceId: id, title: "Notizen" });
   };
@@ -357,6 +437,7 @@ export function App() {
       commitNav({ nLevel: "stream", pageId });
     } else {
       setPageId(pageId);
+      setHome(false);
     }
   };
 
@@ -406,10 +487,16 @@ export function App() {
   };
 
   const createTemplate = () => {
-    ops.createTemplate({ id: newTemplateId(), label: "Neues Template", hue: "ink", seed: [] });
+    ops.createTemplate({
+      id: newTemplateId(),
+      label: "Neues Template",
+      hue: "ink",
+      seed: [],
+    });
   };
 
-  const updateTemplate = (id: string, patch: TemplatePatch) => void ops.updateTemplate(id, patch);
+  const updateTemplate = (id: string, patch: TemplatePatch) =>
+    void ops.updateTemplate(id, patch);
   const deleteTemplate = (id: string) => void ops.deleteTemplate(id);
 
   const jumpToBlock = (blockId: string) => {
@@ -428,7 +515,7 @@ export function App() {
     } else {
       if (page) setSpaceId(page.spaceId);
       setPageId(block.pageId);
-      setPane("stream");
+      setHome(false);
     }
   };
 
@@ -443,14 +530,14 @@ export function App() {
     } else {
       setSpaceId(spaceId);
       setPageId(pageId);
-      setPane("stream");
+      setHome(false);
     }
   };
 
   const handleQueryChange = (value: string) => {
     setQuery(value);
-    // On tablet screens the panes are mutually exclusive; show the results.
-    if (value.trim() !== "") setPane("stream");
+    // A search query replaces the stream column with its results.
+    if (value.trim() !== "") setHome(false);
   };
 
   const handleScopeChange = (next: TodayScope) => {
@@ -469,9 +556,15 @@ export function App() {
 
   const renderSearchResults = () =>
     searchView.view.status === "failed" ? (
-      <LoadError message={formatError(searchView.view.error)} onRetry={() => void ops.search(searchView.query)} />
+      <LoadError
+        message={formatError(searchView.view.error)}
+        onRetry={() => void ops.search(searchView.query)}
+      />
     ) : searchView.results ? (
-      <SearchResults response={searchView.results} onJumpToBlock={jumpToTarget} onClear={() => setQuery("")} />
+      <SearchResults
+        response={searchView.results}
+        onJumpToBlock={jumpToTarget}
+      />
     ) : (
       <Loading label="Suche läuft…" />
     );
@@ -484,9 +577,25 @@ export function App() {
       scope={scope}
       meSpaceId={meSpaceId}
       spacesById={spacesById}
+      doneWeek={doneWeek}
       showHead={showHead}
       onScopeChange={handleScopeChange}
-      onToggle={(id, done) => patchItem(id, { done })}
+      onToggle={(id, done) => {
+        if (done) {
+          setDoneAt((previous) => {
+            const next = new Map(previous);
+            next.set(id, Date.now());
+            return next;
+          });
+        } else {
+          setDoneAt((previous) => {
+            const next = new Map(previous);
+            next.delete(id);
+            return next;
+          });
+        }
+        patchItem(id, { done });
+      }}
       onJumpToBlock={jumpToTarget}
       onRetry={() => void ops.loadOverview(today)}
     />
@@ -494,7 +603,10 @@ export function App() {
 
   // The block stream is the same on mobile and desktop (docs/adr/0012) — it
   // is deliberately not reworked here.
-  const renderStream = (s: SpaceWithPages, selectedPageId: string | "mirror") => (
+  const renderStream = (
+    s: SpaceWithPages,
+    selectedPageId: string | "mirror",
+  ) => (
     <Stream
       space={s}
       selectedPageId={selectedPageId}
@@ -526,9 +638,7 @@ export function App() {
       onDeletePage={deletePage}
       onCreateBlock={createBlock}
       onDeleteBlock={deleteBlock}
-      onCreateTemplate={createTemplate}
-      onUpdateTemplate={updateTemplate}
-      onDeleteTemplate={deleteTemplate}
+      onManageTemplates={() => setTplOpen(true)}
     />
   );
 
@@ -542,7 +652,11 @@ export function App() {
           mTab={mTab}
           nLevel={nLevel}
           spaceName={space?.name ?? ""}
-          pageTitle={activePageId !== null ? (state.pages.get(activePageId)?.title ?? "") : ""}
+          pageTitle={
+            activePageId !== null
+              ? (state.pages.get(activePageId)?.title ?? "")
+              : ""
+          }
           mirrorMode={mirrorMode}
           query={query}
           onQueryChange={handleQueryChange}
@@ -550,13 +664,17 @@ export function App() {
         />
 
         <main className={styles.msheet}>
-          {mTab === "heute" && renderToday(false)}
+          {mTab === "heute" && renderToday(true)}
 
-          {mTab === "notizen" && nLevel === "spaces" &&
+          {mTab === "notizen" &&
+            nLevel === "spaces" &&
             (spacesView.status === "idle" || spacesView.status === "loading" ? (
               <Loading label="Bereiche werden geladen…" />
             ) : spacesView.status === "failed" ? (
-              <LoadError message={formatError(spacesView.error)} onRetry={() => void ops.loadSpaces()} />
+              <LoadError
+                message={formatError(spacesView.error)}
+                onRetry={() => void ops.loadSpaces()}
+              />
             ) : (
               <Sidebar
                 people={people}
@@ -571,6 +689,7 @@ export function App() {
                 onSelectSpace={selectSpace}
                 onCreateSpace={createSpace}
                 onDeleteSpace={deleteSpace}
+                onManageTemplates={() => setTplOpen(true)}
               />
             ))}
 
@@ -578,87 +697,128 @@ export function App() {
             <MobilePages
               space={space}
               pages={pages}
-              openCount={isPerson && activeSpaceId !== null ? selectPersonOpenCount(state, activeSpaceId) : 0}
+              openCount={
+                isPerson && activeSpaceId !== null
+                  ? selectPersonOpenCount(state, activeSpaceId)
+                  : 0
+              }
               onPickPage={selectPage}
               onAddPage={createPage}
             />
           )}
 
-          {mTab === "notizen" && nLevel === "stream" &&
+          {mTab === "notizen" &&
+            nLevel === "stream" &&
             (spacesView.status === "failed" ? (
-              <LoadError message={formatError(spacesView.error)} onRetry={() => void ops.loadSpaces()} />
-            ) : spacesView.status === "idle" || spacesView.status === "loading" ? (
+              <LoadError
+                message={formatError(spacesView.error)}
+                onRetry={() => void ops.loadSpaces()}
+              />
+            ) : spacesView.status === "idle" ||
+              spacesView.status === "loading" ? (
               <Loading />
             ) : space === null ? (
-              <p className={styles.empty}>Noch keine Bereiche. Sobald der erste Bereich angelegt ist, erscheint er hier.</p>
+              <p className="empty">
+                Noch keine Bereiche. Sobald der erste Bereich angelegt ist,
+                erscheint er hier.
+              </p>
             ) : resolvedPageId === null ? (
-              <p className={styles.empty}>Dieser Bereich hat noch keine Seite.</p>
+              <p className="empty">Dieser Bereich hat noch keine Seite.</p>
             ) : (
               renderStream(space, resolvedPageId)
             ))}
 
           {mTab === "suche" &&
-            (searchActive ? renderSearchResults() : (
-              <p className={styles.mempty}>Suche nach Blocktiteln, Notizzeilen, Tasks oder Terminen.</p>
+            (searchActive ? (
+              renderSearchResults()
+            ) : (
+              <p className="empty">
+                Suche nach Blocktiteln, Notizzeilen, Tasks oder Terminen.
+              </p>
             ))}
         </main>
 
         <TabBar tab={mTab} overdueCount={overdueCount} onTab={mobileTab} />
 
-        <Notifications notifications={state.notifications} onDismiss={(id) => ops.dismissNotification(id)} />
+        <Notifications
+          notifications={state.notifications}
+          onDismiss={(id) => ops.dismissNotification(id)}
+        />
+
+        {tplOpen && (
+          <TemplateManager
+            templates={templates}
+            onCreate={createTemplate}
+            onUpdate={updateTemplate}
+            onDelete={deleteTemplate}
+            onClose={() => setTplOpen(false)}
+          />
+        )}
       </div>
     );
   }
 
   // ============================================================
-  // Desktop / tablet layout: header, three columns (or panebar below 980px).
+  // Desktop / tablet layout: header and the column grid. The date band is
+  // part of the grid above 1100px and hidden below (design-system 4.2).
   // ============================================================
   return (
     <div className={styles.app}>
-      <Header query={query} onQueryChange={handleQueryChange} />
+      <Header query={query} today={today} onQueryChange={handleQueryChange} />
 
       <div className={styles.grid}>
-        <aside className={`${styles.col} ${pane === "spaces" ? styles.open : ""}`}>
+        <aside className={`${styles.col} ${styles.rail}`}>
           {spacesView.status === "idle" || spacesView.status === "loading" ? (
             <Loading label="Bereiche werden geladen…" />
           ) : spacesView.status === "failed" ? (
-            <LoadError message={formatError(spacesView.error)} onRetry={() => void ops.loadSpaces()} />
+            <LoadError
+              message={formatError(spacesView.error)}
+              onRetry={() => void ops.loadSpaces()}
+            />
           ) : (
             <Sidebar
               people={people}
               topics={topics}
               openCounts={openCounts}
-              selectedSpaceId={pane === "today" ? null : activeSpaceId}
+              selectedSpaceId={home ? null : activeSpaceId}
               overdueCount={overdueCount}
               meSpaceId={meSpaceId}
-              homeActive={pane === "today"}
+              homeActive={home}
               onHome={goHome}
               onSelectSpace={selectSpace}
               onCreateSpace={createSpace}
               onDeleteSpace={deleteSpace}
+              onManageTemplates={() => setTplOpen(true)}
             />
           )}
         </aside>
 
-        <main className={`${styles.col} ${styles.stream} ${pane === "stream" || pane === "today" ? styles.open : ""}`}>
+        <main className={`${styles.col} ${styles.stream}`}>
           {searchActive ? (
             renderSearchResults()
-          ) : pane === "today" ? (
+          ) : home ? (
             renderToday(true)
           ) : spacesView.status === "failed" ? (
-            <LoadError message={formatError(spacesView.error)} onRetry={() => void ops.loadSpaces()} />
-          ) : spacesView.status === "idle" || spacesView.status === "loading" ? (
+            <LoadError
+              message={formatError(spacesView.error)}
+              onRetry={() => void ops.loadSpaces()}
+            />
+          ) : spacesView.status === "idle" ||
+            spacesView.status === "loading" ? (
             <Loading />
           ) : space === null ? (
-            <p className={styles.empty}>Noch keine Bereiche. Sobald der erste Bereich angelegt ist, erscheint er hier.</p>
+            <p className="empty">
+              Noch keine Bereiche. Sobald der erste Bereich angelegt ist,
+              erscheint er hier.
+            </p>
           ) : resolvedPageId === null ? (
-            <p className={styles.empty}>Dieser Bereich hat noch keine Seite.</p>
+            <p className="empty">Dieser Bereich hat noch keine Seite.</p>
           ) : (
             renderStream(space, resolvedPageId)
           )}
         </main>
 
-        <aside className={`${styles.col} ${pane === "dates" ? styles.open : ""}`}>
+        <aside className={`${styles.col} ${styles.dates}`}>
           <Dates
             month={month}
             view={calendarView}
@@ -675,22 +835,20 @@ export function App() {
         </aside>
       </div>
 
-      <nav className={styles.panebar} aria-label="Ansicht wählen">
-        <button type="button" className={pane === "today" ? styles.paneOn : undefined} onClick={goHome}>
-          Heute
-        </button>
-        <button type="button" className={pane === "spaces" ? styles.paneOn : undefined} onClick={() => setPane("spaces")}>
-          Bereiche
-        </button>
-        <button type="button" className={pane === "stream" ? styles.paneOn : undefined} onClick={() => setPane("stream")}>
-          Stream
-        </button>
-        <button type="button" className={pane === "dates" ? styles.paneOn : undefined} onClick={() => setPane("dates")}>
-          Datum
-        </button>
-      </nav>
+      <Notifications
+        notifications={state.notifications}
+        onDismiss={(id) => ops.dismissNotification(id)}
+      />
 
-      <Notifications notifications={state.notifications} onDismiss={(id) => ops.dismissNotification(id)} />
+      {tplOpen && (
+        <TemplateManager
+          templates={templates}
+          onCreate={createTemplate}
+          onUpdate={updateTemplate}
+          onDelete={deleteTemplate}
+          onClose={() => setTplOpen(false)}
+        />
+      )}
     </div>
   );
 }

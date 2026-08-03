@@ -40,12 +40,15 @@ export function TabBar({
             <span className={styles.icon}>
               <TabIcon name={entry.key} />
               {entry.key === "heute" && overdueCount > 0 && (
-                <span className={styles.badge} aria-label={`${overdueCount} überfällig`}>
+                <span
+                  className={styles.badge}
+                  aria-label={`${overdueCount} überfällig`}
+                >
                   {overdueCount > 9 ? "9+" : overdueCount}
                 </span>
               )}
             </span>
-            <span className={styles.label}>{entry.label}</span>
+            <span className="label">{entry.label}</span>
           </button>
         );
       })}
@@ -73,7 +76,10 @@ function TabIcon({ name }: { name: MobileTab }) {
   if (name === "notizen") {
     return (
       <svg viewBox="0 0 24 24" width="23" height="23" aria-hidden="true">
-        <path d="M6 3.5h9.5L20 8v12.5H6a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 6 3.5Z" {...stroke} />
+        <path
+          d="M6 3.5h9.5L20 8v12.5H6a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 6 3.5Z"
+          {...stroke}
+        />
         <path d="M15 3.5V8h5M8.5 12.5h7M8.5 16h4.5" {...stroke} />
       </svg>
     );
