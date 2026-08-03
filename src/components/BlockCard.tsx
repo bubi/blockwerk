@@ -8,6 +8,7 @@ import type { ItemCreateInput } from "../state/operations.ts";
 import type { BlockView } from "../state/selectors.ts";
 import { Composer } from "./Composer.tsx";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
+import { GrowingTextarea } from "./GrowingTextarea.tsx";
 import { ItemRow } from "./ItemRow.tsx";
 import styles from "./BlockCard.module.css";
 
@@ -51,7 +52,7 @@ export function BlockCard({
   onJumpToBlock,
 }: BlockCardProps) {
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
-  const inputRefs = useRef(new Map<string, HTMLInputElement>());
+  const inputRefs = useRef(new Map<string, HTMLTextAreaElement>());
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const doneCount = block.sections.tasks.filter((task) => task.done).length;
@@ -61,7 +62,7 @@ export function BlockCard({
     if (el) rowRefs.current.set(id, el);
     else rowRefs.current.delete(id);
   };
-  const registerInput = (id: string, el: HTMLInputElement | null) => {
+  const registerInput = (id: string, el: HTMLTextAreaElement | null) => {
     if (el) inputRefs.current.set(id, el);
     else inputRefs.current.delete(id);
   };
@@ -214,14 +215,15 @@ export function BlockCard({
             Löschen
           </button>
         </div>
-        <input
+        <GrowingTextarea
           className={styles.title}
           value={block.title}
-          onChange={(event) =>
-            onPatchBlock(block.id, { title: event.target.value })
-          }
-          aria-label="Blocktitel"
+          onChange={(value) => onPatchBlock(block.id, { title: value })}
+          ariaLabel="Blocktitel"
           placeholder="Titel"
+          onKeyDown={(event) => {
+            if (event.key === "Enter") event.preventDefault();
+          }}
         />
       </header>
 

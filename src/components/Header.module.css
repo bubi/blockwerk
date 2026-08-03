@@ -1,8 +1,9 @@
+/* Kopfleiste: bleibt verankert, ihr Inhalt richtet sich an der Shell-Kante aus. */
 .top {
   display: flex;
   align-items: center;
   gap: var(--s5);
-  padding: 0 var(--s5);
+  padding: 0 max(var(--s5), calc((100% - var(--shell)) / 2));
   height: 64px;
   flex: none;
   background: var(--white);

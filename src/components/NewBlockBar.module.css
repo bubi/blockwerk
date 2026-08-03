@@ -5,7 +5,8 @@
   gap: var(--s3);
   flex-wrap: wrap;
   margin-bottom: var(--s4);
-  max-width: 1000px;
+  max-width: var(--measure);
+  margin-inline: auto;
 }
 
 .tmenu {

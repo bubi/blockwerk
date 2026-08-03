@@ -1,5 +1,6 @@
 .results {
-  max-width: 820px;
+  max-width: var(--measure);
+  margin-inline: auto;
 }
 
 .results > p {

@@ -1,7 +1,5 @@
 .dates {
-  border-left: 1px solid var(--line);
-  background: var(--white);
-  padding: var(--s5) 0 80px;
+  padding: var(--s5);
 }
 
 .monthbar {

@@ -1,5 +1,6 @@
 .today {
-  max-width: 1000px;
+  max-width: var(--measure);
+  margin-inline: auto;
 }
 
 .sec {

@@ -1,9 +1,9 @@
 .item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--s3);
   flex-wrap: wrap;
-  padding: var(--s1) var(--s3);
+  padding: var(--s2) var(--s3);
   margin: 0 calc(var(--s3) * -1);
   border-radius: var(--r-xs);
 }
@@ -48,13 +48,26 @@
   min-width: 0;
   background: none;
   border: none;
-  padding: var(--s1) 0;
+  padding: 0;
   font-size: 15px;
   color: var(--text);
 }
 
-.text::placeholder {
+.text::placeholder,
+.headingInput::placeholder {
   color: var(--text3);
+}
+
+/* Die Bedienelemente richten sich an der ersten Textzeile aus (2px optisch). */
+.item:not(.heading) > .due,
+.item:not(.heading) > .dueLate,
+.item:not(.heading) > .noteAdd,
+.item:not(.heading) > .kill,
+.item:not(.heading) > .refLink,
+.item:not(.heading) > .refGone,
+.item:not(.heading) > :global(.check),
+.item:not(.heading) > :global(.badge) {
+  margin-top: 2px;
 }
 
 /* Überschriften (Notizen mit heading 1/2). */

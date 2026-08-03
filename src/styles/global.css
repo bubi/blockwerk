@@ -54,6 +54,10 @@
   --r-md: 12px;
   --r-lg: 16px;
 
+  /* Deckelung: die gesamte Komposition und die Textspalte der Arbeitsfläche. */
+  --shell: 1720px;
+  --measure: 820px;
+
   --sans:
     "Frutiger LT Std", "Frutiger LT Pro", "Frutiger Neue LT", Frutiger,
     "Source Sans 3", "Source Sans Pro", "Segoe UI", "Myriad Pro", -apple-system,
@@ -69,7 +73,7 @@
 
 body {
   margin: 0;
-  background: var(--white);
+  background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
   font-size: 15px;

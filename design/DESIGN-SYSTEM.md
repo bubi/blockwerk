@@ -46,25 +46,25 @@ Maschinenlesbar in `tokens.css`. Kein Token-Wert darf in einer Komponente wieder
 
 ### 2.1 Farbe
 
-| Token | Wert | Bedeutung |
-|---|---|---|
-| `--white` | `#FFFFFF` | Karten, Panels, Kopfleiste |
-| `--bg` | `#FAFAFA` | Arbeitsfläche hinter den Karten |
-| `--side` | `#F5F6F8` | Bereichsleiste, ruhige Plaketten, Eingabefelder |
-| `--hover` | `#EDEEF0` | Überfahren bei Bedienelementen |
-| `--line` | `#E4E6E9` | Rahmen, trennende Linien |
-| `--line2` | `#EFF0F2` | Trennung innerhalb einer Fläche |
-| `--text` | `#1D2125` | Fließtext, Titel |
-| `--text2` | `#6B7075` | Beitext, Etiketten, Metadaten |
-| `--text3` | `#9BA0A6` | Platzhalter, ruhende Symbole, leere Zustände |
-| `--green` | `#00A82D` | Auswahl, Bestätigung, Hauptaktion |
-| `--green-dk` | `#00922A` | Grün auf heller Fläche (Kontrast) |
-| `--green-soft` | `#E8F6EC` | Fläche eines aktiven oder eigenen Elements |
-| `--blue` / `--blue-soft` | `#2F80ED` / `#E9F1FD` | Termine, Verweise |
-| `--red` / `--red-soft` | `#E5484D` / `#FDECEC` | Überfällig, Löschen |
-| `--purple`, `--orange`, `--grey` | `#7A5AF8`, `#E8883A`, `#7A828A` | ausschließlich Blocktyp-Farben |
+| Token                                                                            | Wert                                                  | Bedeutung                                                            |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| `--white`                                                                        | `#FFFFFF`                                             | Karten, Panels, Kopfleiste                                           |
+| `--bg`                                                                           | `#FAFAFA`                                             | Arbeitsfläche hinter den Karten                                      |
+| `--side`                                                                         | `#F5F6F8`                                             | Bereichsleiste, ruhige Plaketten, Eingabefelder                      |
+| `--hover`                                                                        | `#EDEEF0`                                             | Überfahren bei Bedienelementen                                       |
+| `--line`                                                                         | `#E4E6E9`                                             | Rahmen, trennende Linien                                             |
+| `--line2`                                                                        | `#EFF0F2`                                             | Trennung innerhalb einer Fläche                                      |
+| `--text`                                                                         | `#1D2125`                                             | Fließtext, Titel                                                     |
+| `--text2`                                                                        | `#6B7075`                                             | Beitext, Etiketten, Metadaten                                        |
+| `--text3`                                                                        | `#9BA0A6`                                             | Platzhalter, ruhende Symbole, leere Zustände                         |
+| `--green`                                                                        | `#00A82D`                                             | Auswahl, Bestätigung, Hauptaktion                                    |
+| `--green-dk`                                                                     | `#00922A`                                             | Grün auf heller Fläche (Kontrast)                                    |
+| `--green-soft`                                                                   | `#E8F6EC`                                             | Fläche eines aktiven oder eigenen Elements                           |
+| `--blue` / `--blue-soft`                                                         | `#2F80ED` / `#E9F1FD`                                 | Termine, Verweise                                                    |
+| `--red` / `--red-soft`                                                           | `#E5484D` / `#FDECEC`                                 | Überfällig, Löschen                                                  |
+| `--purple`, `--orange`, `--grey`                                                 | `#7A5AF8`, `#E8883A`, `#7A828A`                       | ausschließlich Blocktyp-Farben                                       |
 | `--check-line`, `--badge-person`, `--badge-topic`, `--card-hover`, `--green-lit` | `#B6BCC3`, `#8C93A0`, `#B0B6BF`, `#CFD4D9`, `#7FE0A0` | abgeleitete Grauwerte, gegen eine bestimmte Nachbarfarbe ausgemischt |
-| `--hue` | erbt | Farbe des aktuellen Blocktyps |
+| `--hue`                                                                          | erbt                                                  | Farbe des aktuellen Blocktyps                                        |
 
 **Regel zu `--green` und `--green-dk`:** Grün als Fläche oder als Symbol auf weißem Grund nutzt `--green`. Grün als **Text** auf heller Fläche nutzt immer `--green-dk`.
 
@@ -76,28 +76,35 @@ Maschinenlesbar in `tokens.css`. Kein Token-Wert darf in einer Komponente wieder
 
 Gebrauch:
 
-| Stufe | Wofür |
-|---|---|
-| `--s1` 4 | Innenabstand von Symbolschaltern, Abstand in Reitern |
-| `--s2` 8 | Abstand zwischen eng gehörigen Dingen, Kartenabstand im Datumsband |
+| Stufe     | Wofür                                                                                    |
+| --------- | ---------------------------------------------------------------------------------------- |
+| `--s1` 4  | Innenabstand von Symbolschaltern, Abstand in Reitern                                     |
+| `--s2` 8  | Abstand zwischen eng gehörigen Dingen, Kartenabstand im Datumsband                       |
 | `--s3` 12 | Standardabstand in einer Zeile, Zeilenhöhe in Listen, Abstand zwischen Karten in Rastern |
-| `--s4` 16 | Innenabstand kleiner Karten, Abstand zwischen Karten im Strom, Gruppentrennung im Block |
-| `--s5` 24 | Innenabstand großer Karten und Panels, Abstand zwischen Kopf und Inhalt |
-| `--s6` 32 | Abstand zwischen Abschnitten einer Ansicht |
-| `--s7` 40 | seitlicher Rand der Arbeitsfläche |
+| `--s4` 16 | Innenabstand kleiner Karten, Abstand zwischen Karten im Strom, Gruppentrennung im Block  |
+| `--s5` 24 | Innenabstand großer Karten und Panels, Abstand zwischen Kopf und Inhalt                  |
+| `--s6` 32 | Abstand zwischen Abschnitten einer Ansicht                                               |
+| `--s7` 40 | seitlicher Rand der Arbeitsfläche                                                        |
 
 Zwei dokumentierte Ausnahmen: `2px` als Abstand zwischen Titel und Beitext innerhalb eines Textpaars, `-1px` für die Überlappung der Reiterlinie mit ihrer Grundlinie. Sonst nichts.
+
+### 2.5b Deckelung
+
+Zwei weitere Werte, keine Abstandsstufen:
+
+- `--shell` `1720px` — die gesamte Komposition (Bereichsleiste + Arbeitsfläche + Datumsband), mittig auf der Grundfläche.
+- `--measure` `820px` — die Breite der Textspalte in der Arbeitsfläche, eine Lesbarkeitsgrenze: 820 px bei 15 px Schrift ergeben 65–80 Zeichen pro Zeile, nicht die über 110 Zeichen, die 1000 px ergeben. Auf breiten Bildschirmen bleibt der übrige Platz leer — das ist das Ergebnis, nicht ein ungelöstes Problem.
 
 ### 2.3 Radius
 
 `--r-xs` 6 · `--r-sm` 8 · `--r-md` 12 · `--r-lg` 16
 
-| Stufe | Wofür |
-|---|---|
-| `--r-xs` 6 | Plaketten, Kontrollkästchen, Menüeinträge, Zeilen, kleine Symbolschalter |
-| `--r-sm` 8 | Schaltflächen, Eingabefelder, Eintragskarten im Datumsband, Bereichszeilen |
-| `--r-md` 12 | Blockkarten, Kennzahlkacheln, Listen, Suchtreffer, Menüs |
-| `--r-lg` 16 | Panels, die über der Oberfläche liegen |
+| Stufe       | Wofür                                                                      |
+| ----------- | -------------------------------------------------------------------------- |
+| `--r-xs` 6  | Plaketten, Kontrollkästchen, Menüeinträge, Zeilen, kleine Symbolschalter   |
+| `--r-sm` 8  | Schaltflächen, Eingabefelder, Eintragskarten im Datumsband, Bereichszeilen |
+| `--r-md` 12 | Blockkarten, Kennzahlkacheln, Listen, Suchtreffer, Menüs                   |
+| `--r-lg` 16 | Panels, die über der Oberfläche liegen                                     |
 
 Punkte sind `50%`. Sonst kommt kein anderer Radius vor.
 
@@ -109,19 +116,19 @@ Stack: `--sans`, beginnend mit den lizenzierten Frutiger-Schnitten, dann Source 
 
 **Textleiter** — elf Grade, mehr gibt es nicht:
 
-| Grad | Gewicht | Sperrung | Rolle |
-|---|---|---|---|
-| 11 | 600 | .12em, versal | Etikett (siehe 3.2) |
-| 12 | 400 | – | Datumsangaben in Zeilen, Hilfstext |
-| 13 | 400 | – | Metatext, Formularwerte, Hinweisbanner |
-| 14 | 400 | – | dichte Listen, Kartentitel im Datumsband, Panelfließtext |
-| 15 | 400 | – | Fließtext, Notiz- und Eingabezeilen, Listentitel |
-| 16 | 600 | – | Überschrift Ebene 1 in Notizen, Gruppentitel, Navigationsziel |
-| 18 | 600 | −.02em | Suchtreffer-Titel |
-| 22 | 700 | −.02em | Blocktitel, Panelüberschrift, Wortmarke, Monatsname |
-| 28 | 700 | −.03em | Bereichsname über dem Blockstrom |
-| 36 | 700 | −.04em | Kennzahl, Tagesziffer im Datumsband |
-| 44 | 700 | −.04em | Tagesdatum im Tageskopf |
+| Grad | Gewicht | Sperrung      | Rolle                                                         |
+| ---- | ------- | ------------- | ------------------------------------------------------------- |
+| 11   | 600     | .12em, versal | Etikett (siehe 3.2)                                           |
+| 12   | 400     | –             | Datumsangaben in Zeilen, Hilfstext                            |
+| 13   | 400     | –             | Metatext, Formularwerte, Hinweisbanner                        |
+| 14   | 400     | –             | dichte Listen, Kartentitel im Datumsband, Panelfließtext      |
+| 15   | 400     | –             | Fließtext, Notiz- und Eingabezeilen, Listentitel              |
+| 16   | 600     | –             | Überschrift Ebene 1 in Notizen, Gruppentitel, Navigationsziel |
+| 18   | 600     | −.02em        | Suchtreffer-Titel                                             |
+| 22   | 700     | −.02em        | Blocktitel, Panelüberschrift, Wortmarke, Monatsname           |
+| 28   | 700     | −.03em        | Bereichsname über dem Blockstrom                              |
+| 36   | 700     | −.04em        | Kennzahl, Tagesziffer im Datumsband                           |
+| 44   | 700     | −.04em        | Tagesdatum im Tageskopf                                       |
 
 Sperrungsregel: unter 18 px keine Sperrung, 18–22 px −0.02em, 28 px −0.03em, ab 36 px −0.04em.
 
@@ -147,14 +154,14 @@ Ein Sonderfall: `pulse` — ein grüner Ring, der über 1,4 s ausläuft, wenn au
 
 ### 3.1 Fläche
 
-| Rolle | Hintergrund | Rahmen | Radius | Innenabstand |
-|---|---|---|---|---|
-| Große Karte (Block) | `--white` | 1px `--line` | `--r-md` | `--s5` |
-| Kachel (Kennzahl, Auslastung) | `--white` | 1px `--line` | `--r-md` | `--s4` … `--s5` |
-| Kleine Karte (Datumsband) | `--white` | 1px `--line` | `--r-sm` | `--s3` `--s4` |
-| Liste | `--white` | 1px `--line` | `--r-md` | 0, Zeilen tragen den Abstand |
-| Panel | `--white` | – | `--r-lg` | `--s5` |
-| Leerer Zustand | `--white` | 1px **gestrichelt** `--line` | `--r-md` | `--s5` |
+| Rolle                         | Hintergrund | Rahmen                       | Radius   | Innenabstand                 |
+| ----------------------------- | ----------- | ---------------------------- | -------- | ---------------------------- |
+| Große Karte (Block)           | `--white`   | 1px `--line`                 | `--r-md` | `--s5`                       |
+| Kachel (Kennzahl, Auslastung) | `--white`   | 1px `--line`                 | `--r-md` | `--s4` … `--s5`              |
+| Kleine Karte (Datumsband)     | `--white`   | 1px `--line`                 | `--r-sm` | `--s3` `--s4`                |
+| Liste                         | `--white`   | 1px `--line`                 | `--r-md` | 0, Zeilen tragen den Abstand |
+| Panel                         | `--white`   | –                            | `--r-lg` | `--s5`                       |
+| Leerer Zustand                | `--white`   | 1px **gestrichelt** `--line` | `--r-md` | `--s5`                       |
 
 Schatten trägt nur, was über der Oberfläche liegt: Karten `0 1px 2px rgba(29,33,37,.04)`, Menüs `0 12px 32px rgba(29,33,37,.14–.16)`, Panels `0 24px 60px rgba(29,33,37,.3)`, Hinweise `0 8px 24px rgba(29,33,37,.28)`. Beim Überfahren einer Eintragskarte `0 4px 12px rgba(29,33,37,.08)` — kein Anheben, kein `transform`.
 
@@ -179,14 +186,14 @@ padding: 2px var(--s2); letter-spacing: .04em;
 
 Ebenfalls eine geteilte Sammelregel. Farbvarianten:
 
-| Variante | Fläche | Schrift |
-|---|---|---|
-| ruhig | `--side` | `--text2` |
-| aktiv | `--green` | `#fff` |
-| eigen | `--green-soft` | `--green-dk` |
-| warnend | `--red` | `#fff` |
-| Termin | `--blue-soft` | `--blue` |
-| Blocktyp | `--hue` bei 12 % auf Weiß | `--hue` |
+| Variante | Fläche                    | Schrift      |
+| -------- | ------------------------- | ------------ |
+| ruhig    | `--side`                  | `--text2`    |
+| aktiv    | `--green`                 | `#fff`       |
+| eigen    | `--green-soft`            | `--green-dk` |
+| warnend  | `--red`                   | `#fff`       |
+| Termin   | `--blue-soft`             | `--blue`     |
+| Blocktyp | `--hue` bei 12 % auf Weiß | `--hue`      |
 
 ### 3.4 Typpunkt
 
@@ -200,17 +207,19 @@ Technisch als `::before` der umgebenden Flex-Zeile umzusetzen, damit kein zusät
 
 ### 3.6 Eingabefeld
 
-Zwei Ausprägungen. **Sichtbar** — Fläche `--side` oder `--white`, Rahmen 1 px `--line`, Radius `--r-sm`, Innenabstand `--s2` `--s4`. Bei Fokus: Fläche weiß, Rahmen `--line`, dazu `0 0 0 3px var(--green-soft)`. **Unsichtbar** — Notiz-, Aufgaben- und Titelzeilen tragen keinen Rahmen und keine Fläche; sie sehen aus wie Text und verhalten sich wie Text. Das ist der Normalfall im Blockstrom.
+Zwei Ausprägungen. **Sichtbar** — Fläche `--side` oder `--white`, Rahmen 1 px `--line`, Radius `--r-sm`, Innenabstand `--s2` `--s4`. Bei Fokus: Fläche weiß, Rahmen `--line`, dazu `0 0 0 3px var(--green-soft)`. **Unsichtbar** — Notiz-, Aufgaben-, Termin-, Überschrift- und Titelzeilen sowie die Eingabezeile tragen keinen Rahmen und keine Fläche; sie sehen aus wie Text und verhalten sich wie Text. Das ist der Normalfall im Blockstrom.
+
+**Wachsende Felder.** Die unsichtbaren Felder sind `<textarea rows="1">`, deren Höhe nach jeder Änderung aus `scrollHeight` gesetzt wird (erst `height: auto`, dann `height: scrollHeight` — synchron vor dem Zeichnen und zusätzlich bei `input`). Stil: `resize: none; overflow: hidden; white-space: pre-wrap; overflow-wrap: break-word; display: block; font-family: inherit`, Zeilenhöhe 1.6 (Blocktitel 1.3). Der Text bricht weich um, das Feld wächst mit, nichts scrollt waagerecht. **Enter erzeugt nie einen Umbruch**, auch nicht mit Shift+Enter (bewusst unbelegt) — die Zeilenlogik entscheidet. Pfeil hoch/runter bewegt im Feld zuerst den Cursor durch den Text; erst wenn die Auswahl leer ist und der Cursor am Textanfang (hoch) bzw. Textende (runter) steht, springt er zur Nachbarzeile. Datums-, Auswahl- und Namensfelder bleiben einzeilige `<input>`.
 
 ### 3.7 Schaltfläche
 
-| Rolle | Aussehen |
-|---|---|
-| Hauptaktion | Fläche `--green`, Schrift weiß, 14/600, Radius `--r-sm`, `--s3` `--s5` |
-| Nebenaktion | ohne Fläche, Schrift `--text2`, Überfahren `--hover` |
-| Etikettenaktion | wie Etikett (3.2), Farbe `--green-dk` |
-| Zerstörend | Schrift `--red`, immer mit vorgeschalteter Rückfrage an Ort und Stelle |
-| Symbolschalter | Glyphengröße aus 2.4, Farbe `--text3`, Fläche erst beim Überfahren |
+| Rolle           | Aussehen                                                               |
+| --------------- | ---------------------------------------------------------------------- |
+| Hauptaktion     | Fläche `--green`, Schrift weiß, 14/600, Radius `--r-sm`, `--s3` `--s5` |
+| Nebenaktion     | ohne Fläche, Schrift `--text2`, Überfahren `--hover`                   |
+| Etikettenaktion | wie Etikett (3.2), Farbe `--green-dk`                                  |
+| Zerstörend      | Schrift `--red`, immer mit vorgeschalteter Rückfrage an Ort und Stelle |
+| Symbolschalter  | Glyphengröße aus 2.4, Farbe `--text3`, Fläche erst beim Überfahren     |
 
 Symbolschalter innerhalb einer Zeile sind im Ruhezustand durchsichtig und erscheinen erst beim Überfahren der Zeile. Auf Geräten ohne Zeigegerät (`hover: none`) sind sie dauerhaft sichtbar.
 
@@ -218,14 +227,14 @@ Symbolschalter innerhalb einer Zeile sind im Ruhezustand durchsichtig und ersche
 
 Zustände tragen **niemals** eine Kante (siehe 1.2), sondern Fläche und Schriftfarbe.
 
-| Zustand | Darstellung |
-|---|---|
+| Zustand                      | Darstellung                                                 |
+| ---------------------------- | ----------------------------------------------------------- |
 | Ausgewählt (Bereich, Reiter) | Fläche `--green-soft`, Schrift `--green-dk`, Plaketten grün |
-| Fokussiert (Zeile) | Fläche `--green-soft` |
-| Mir zugewiesen | Zuständigkeit als Plakette „eigen" |
-| Überfällig | Schrift `--red` in Datum und Rubrik |
-| Erledigt | `--text3` plus Durchstreichung |
-| Tastaturfokus | `outline: 2px solid var(--green); outline-offset: 2px` |
+| Fokussiert (Zeile)           | Fläche `--green-soft`                                       |
+| Mir zugewiesen               | Zuständigkeit als Plakette „eigen"                          |
+| Überfällig                   | Schrift `--red` in Datum und Rubrik                         |
+| Erledigt                     | `--text3` plus Durchstreichung                              |
+| Tastaturfokus                | `outline: 2px solid var(--green); outline-offset: 2px`      |
 
 ---
 
@@ -233,18 +242,22 @@ Zustände tragen **niemals** eine Kante (siehe 1.2), sondern Fläche und Schrift
 
 ### 4.1 Raster
 
-Drei Spalten: Bereichsleiste `274px` · Arbeitsfläche `minmax(0,1fr)` · Datumsband `384px`. Jede Spalte scrollt für sich; der Rahmen bleibt stehen.
+Drei Spalten: Bereichsleiste `272px` · Arbeitsfläche `minmax(0,1fr)` · Datumsband `384px`. Jede Spalte scrollt für sich.
 
-Der Inhalt der Arbeitsfläche ist auf `1000px` begrenzt, Suchtreffer auf `820px`, Fließtext in leeren Zuständen auf `60ch`.
+Die Grundfläche der Anwendung ist `--bg`. Bereichsleiste und Datumsband sind **Karten, die auf der Arbeitsfläche liegen** — dieselbe Flächensprache wie Blöcke, Kacheln und Listen: `border: 1px solid var(--line)`, `border-radius: var(--r-md)`, `box-shadow: 0 1px 2px rgba(29,33,37,.04)` (der Kartenschatten, nicht der Panelschatten). Die Bereichsleiste behält ihre Fläche `--side`, das Datumsband `--white`; die bisherigen `border-right`/`border-left` entfallen. Die Arbeitsfläche dazwischen trägt keine eigene Fläche — sie ist der Hintergrund, auf dem alles liegt; Innenabstand `--s3` `--s5` `--s7`. Die Kopfleiste bleibt ausdrücklich verankert: volle Breite, bündig, weiß, untere Linie; nur ihr Inhalt richtet sich mit `padding: 0 max(var(--s5), calc((100% - var(--shell)) / 2))` an derselben Kante aus wie das Raster.
+
+Die gesamte Komposition ist auf `--shell` gedeckelt: `width: 100%; max-width: var(--shell); margin: 0 auto; padding: var(--s4); gap: var(--s4)`. Auf breiten Bildschirmen liegt links und rechts `--bg`.
+
+Der Inhalt der Arbeitsfläche — Tageskopf, Kopfbereich, Anlegeleiste, Blockstrom, Übersichtslisten, Suchtreffer — ist auf `var(--measure)` begrenzt (`margin-inline: auto`), Fließtext in leeren Zuständen auf `60ch`.
 
 ### 4.2 Haltepunkte
 
-| Breite | Verhalten |
-|---|---|
-| ab 1321 | drei Spalten in voller Breite |
-| 1101–1320 | Spalten auf 248 / 344, Ränder auf `--s5`, Auszeichnungsgrade eine Stufe kleiner |
-| 861–1100 | Datumsband entfällt, zwei Spalten, Bereichsleiste 224 |
-| bis 860 | Telefonfassung (4.3) |
+| Breite    | Verhalten                                                                                                                                                 |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ab 1321   | drei Spalten in voller Breite                                                                                                                             |
+| 1101–1320 | Spalten auf 248 / 344, Rand und Spaltenabstand auf `--s3`, Innenabstand der Arbeitsfläche auf `--s2` `--s4` `--s6`, Auszeichnungsgrade eine Stufe kleiner |
+| 861–1100  | Datumsband entfällt, zwei Spalten, Bereichsleiste 224                                                                                                     |
+| bis 860   | Telefonfassung (4.3)                                                                                                                                      |
 
 ### 4.3 Telefon
 
@@ -258,18 +271,18 @@ Die Auszeichnungsgrade fallen genau eine Stufe: 44 → 36, 36 → 28, 28 → 22.
 
 Maße, die nicht genannt sind, folgen den Leitern. Die Klassennamen der Referenzimplementierung stehen in Klammern.
 
-| Komponente | Festlegungen |
-|---|---|
-| **Kopfleiste** (`.top`) | 64 hoch, weiß, untere Linie. Marke links, Suchfeld rechtsbündig bis 520 breit, Tagesstempel ganz rechts (Wochentag als Etikett, Tageszahl 22/700, Monat als Etikett). |
-| **Bereichsleiste** (`.rail`) | Fläche `--side`. Oben Sprung auf „Heute" mit Zähler überfälliger Aufgaben, darunter Gruppen „Personen" und „Themen", unten angeheftet Templates und Identität. Zeilen 8/12 innen, Plakette 28 × 28. |
-| **Tageskopf** (`.hero`) | Rubrik, Wochentag 44/700, vollständiges Datum daneben, darunter vier Kennzahlkacheln in einem Raster ab 148 px Spaltenbreite: überfällig, heute fällig, Termine heute, erledigt in sieben Tagen. Die Zahl trägt die Bedeutungsfarbe. |
-| **Blockkarte** (`.blk`) | Kopf: Typpunkt, Typplakette, Datum, Zielseite, Löschen rechtsbündig. Darunter Titel 22/700. Inhalt in Gruppen: Notizen, Aufgaben, Folgetermine, Verweise hierher — jede Gruppe mit Etikettenrubrik und Zähler, getrennt durch `--line2`. Abschluss: die Eingabezeile. |
-| **Zeile** (`.it`) | Ein Muster für Notiz, Überschrift, Aufgabe, Termin und Verweis. Höhe aus Inhalt, Innenabstand `--s1` `--s3`. Zwei Bedienmodi: Zeile ausgewählt (Leertaste hakt ab, Pfeile wandern) oder Textcursor im Feld. Einrückung unter Überschriften `--s4`, Notizen an Aufgaben `--s6`, jeweils mit 2 px Führungslinie in `--line2`. |
-| **Eingabezeile** (`.comp`) | Am Fuß jeder Blockkarte. `/` öffnet die Befehlsliste, `@` die Personenliste, `#` macht eine Überschrift. Erkennt `!heute`, `!morgen`, Wochentage, Datumsangaben und Uhrzeiten im Fließtext. Der gewählte Modus erscheint als Plakette links und ist dort abwählbar. |
-| **Datumsband** (`.dates`) | Monatskopf mit Blättern, darunter je Tag mit Einträgen eine Zeile: Wochentag, Tageszahl 36/700 und Monat in einer 56 px breiten Spalte, Einträge rechts daneben. Der heutige Tag wird eingefärbt, nicht unterlegt. Läufe leerer Tage werden zu einer Zeile mit gestrichelter Maßlinie und Anzahl zusammengefasst. |
-| **Übersichtsliste** (`.mlist`) | Weiße Liste, Radius `--r-md`, Zeilen durch `--line2` getrennt. Je Zeile: Kontrollkästchen oder Uhrzeit, Titel, darunter Beitext aus Zuständigkeit, Fälligkeit und Herkunftsblock. Überfälliges wird nach Person gruppiert. |
-| **Panel** (`.overlay` / `.sheet`) | Abdunklung `rgba(29,33,37,.45)`, Blatt bis 600 breit, oben ausgerichtet mit 6 vh Abstand. Schließt über Escape, Kreuz und Klick daneben. |
-| **Hinweis** (`.flash`) | Unten mittig, dunkle Fläche, 13 px. Zerstörende Aktionen liefern hier neun Sekunden lang „Rückgängig". |
+| Komponente                        | Festlegungen                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Kopfleiste** (`.top`)           | 64 hoch, weiß, untere Linie. Marke links, Suchfeld rechtsbündig bis 520 breit, Tagesstempel ganz rechts (Wochentag als Etikett, Tageszahl 22/700, Monat als Etikett).                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Bereichsleiste** (`.rail`)      | Fläche `--side`. Oben Sprung auf „Heute" mit Zähler überfälliger Aufgaben, darunter Gruppen „Personen" und „Themen", unten angeheftet Templates und Identität. Zeilen 8/12 innen, Plakette 28 × 28.                                                                                                                                                                                                                                                                                                                                                                                                      |
+| **Tageskopf** (`.hero`)           | Rubrik, Wochentag 44/700, vollständiges Datum daneben, darunter vier Kennzahlkacheln in einem Raster ab 148 px Spaltenbreite: überfällig, heute fällig, Termine heute, erledigt in sieben Tagen. Die Zahl trägt die Bedeutungsfarbe.                                                                                                                                                                                                                                                                                                                                                                     |
+| **Blockkarte** (`.blk`)           | Kopf: Typpunkt, Typplakette, Datum, Zielseite, Löschen rechtsbündig. Darunter Titel 22/700. Inhalt in Gruppen: Notizen, Aufgaben, Folgetermine, Verweise hierher — jede Gruppe mit Etikettenrubrik und Zähler, getrennt durch `--line2`. Abschluss: die Eingabezeile.                                                                                                                                                                                                                                                                                                                                    |
+| **Zeile** (`.it`)                 | Ein Muster für Notiz, Überschrift, Aufgabe, Termin und Verweis. Höhe aus Inhalt, Innenabstand `--s2` `--s3`. Zwei Bedienmodi: Zeile ausgewählt (Leertaste hakt ab, Pfeile wandern) oder Textcursor im Feld. Die Zeile ist `align-items: flex-start` — die Bedienelemente (Kästchen, Uhrzeit, Zuständigkeit, Löschen) richten sich an der ersten Textzeile aus (2 px optischer Ausgleich), der Innenabstand des Feldes ist 0; Überschriftenzeilen bleiben an der Grundlinie ausgerichtet. Einrückung unter Überschriften `--s4`, Notizen an Aufgaben `--s6`, jeweils mit 2 px Führungslinie in `--line2`. |
+| **Eingabezeile** (`.comp`)        | Am Fuß jeder Blockkarte. `/` öffnet die Befehlsliste, `@` die Personenliste, `#` macht eine Überschrift. Erkennt `!heute`, `!morgen`, Wochentage, Datumsangaben und Uhrzeiten im Fließtext. Der gewählte Modus erscheint als Plakette links und ist dort abwählbar.                                                                                                                                                                                                                                                                                                                                      |
+| **Datumsband** (`.dates`)         | Monatskopf mit Blättern, darunter je Tag mit Einträgen eine Zeile: Wochentag, Tageszahl 36/700 und Monat in einer 56 px breiten Spalte, Einträge rechts daneben. Der heutige Tag wird eingefärbt, nicht unterlegt. Läufe leerer Tage werden zu einer Zeile mit gestrichelter Maßlinie und Anzahl zusammengefasst.                                                                                                                                                                                                                                                                                        |
+| **Übersichtsliste** (`.mlist`)    | Weiße Liste, Radius `--r-md`, Zeilen durch `--line2` getrennt. Je Zeile: Kontrollkästchen oder Uhrzeit, Titel, darunter Beitext aus Zuständigkeit, Fälligkeit und Herkunftsblock. Überfälliges wird nach Person gruppiert.                                                                                                                                                                                                                                                                                                                                                                               |
+| **Panel** (`.overlay` / `.sheet`) | Abdunklung `rgba(29,33,37,.45)`, Blatt bis 600 breit, oben ausgerichtet mit 6 vh Abstand. Schließt über Escape, Kreuz und Klick daneben.                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **Hinweis** (`.flash`)            | Unten mittig, dunkle Fläche, 13 px. Zerstörende Aktionen liefern hier neun Sekunden lang „Rückgängig".                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ---
 
@@ -302,18 +315,18 @@ Deutsch, Satzfall, keine Versalien außer im Etikett. Kein „Sie", kein „Du" 
 
 Vor Abgabe maschinell prüfbar. Alle Ausdrücke beziehen sich auf den fertigen Bogen.
 
-| # | Prüfung | Erwartung |
-|---|---|---|
-| 1 | `padding\|margin\|gap` mit rohem `px` | nur `2px` und `-1px`, sonst ausschließlich `var(--s*)` |
-| 2 | `border-radius` | nur `var(--r-*)`, `50%`, `0` |
-| 3 | `font-size` | nur 11, 12, 13, 14, 15, 16, 18, 22, 28, 36, 44 sowie die Glyphengrößen 16, 20, 24, 28 |
-| 4 | `letter-spacing` negativ | nur −.02, −.03, −.04 sowie die dokumentierte Ausnahme −.05 an der Rautenmarke |
-| 5 | Farbliterale außerhalb der Token-Schicht | ausschließlich `#fff` als Schrift auf Farbfläche |
-| 6 | `border-left` mit Farbe, `box-shadow: inset` mit Farbe | kommt nicht vor (Grundsatz 1.2) |
-| 7 | Zweite Betonfarbe neben Grün | kommt nicht vor |
-| 8 | `outline: none` ohne eigene Fokusdarstellung | kommt nicht vor |
-| 9 | Etiketten- und Plakettenwerte | stehen genau einmal, als Sammelregel |
-| 10 | `prefers-reduced-motion` | vorhanden und schaltet Animation und Übergang ab |
+| #   | Prüfung                                                | Erwartung                                                                             |
+| --- | ------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| 1   | `padding\|margin\|gap` mit rohem `px`                  | nur `2px` und `-1px`, sonst ausschließlich `var(--s*)`                                |
+| 2   | `border-radius`                                        | nur `var(--r-*)`, `50%`, `0`                                                          |
+| 3   | `font-size`                                            | nur 11, 12, 13, 14, 15, 16, 18, 22, 28, 36, 44 sowie die Glyphengrößen 16, 20, 24, 28 |
+| 4   | `letter-spacing` negativ                               | nur −.02, −.03, −.04 sowie die dokumentierte Ausnahme −.05 an der Rautenmarke         |
+| 5   | Farbliterale außerhalb der Token-Schicht               | ausschließlich `#fff` als Schrift auf Farbfläche                                      |
+| 6   | `border-left` mit Farbe, `box-shadow: inset` mit Farbe | kommt nicht vor (Grundsatz 1.2)                                                       |
+| 7   | Zweite Betonfarbe neben Grün                           | kommt nicht vor                                                                       |
+| 8   | `outline: none` ohne eigene Fokusdarstellung           | kommt nicht vor                                                                       |
+| 9   | Etiketten- und Plakettenwerte                          | stehen genau einmal, als Sammelregel                                                  |
+| 10  | `prefers-reduced-motion`                               | vorhanden und schaltet Animation und Übergang ab                                      |
 
 Zusätzlich von Hand: die Anwendung bei 1440, 1200, 1000 und 380 px Breite ansehen und in jeder Breite einen Block anlegen, eine Aufgabe abhaken und eine Zeile löschen.
 

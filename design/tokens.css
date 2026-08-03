@@ -14,40 +14,40 @@
 :root,
 .bw {
   /* ---------- Fläche und Linie ---------- */
-  --white:   #FFFFFF;  /* Karten, Panels, Kopfleiste */
-  --bg:      #FAFAFA;  /* Arbeitsfläche hinter den Karten */
-  --side:    #F5F6F8;  /* Bereichsleiste, ruhige Plaketten, Eingabefelder */
-  --hover:   #EDEEF0;  /* Überfahren bei Bedienelementen */
-  --line:    #E4E6E9;  /* Rahmen und trennende Linien */
-  --line2:   #EFF0F2;  /* Trennung innerhalb einer Fläche, eine Stufe leiser */
+  --white: #ffffff; /* Karten, Panels, Kopfleiste */
+  --bg: #fafafa; /* Arbeitsfläche hinter den Karten */
+  --side: #f5f6f8; /* Bereichsleiste, ruhige Plaketten, Eingabefelder */
+  --hover: #edeef0; /* Überfahren bei Bedienelementen */
+  --line: #e4e6e9; /* Rahmen und trennende Linien */
+  --line2: #eff0f2; /* Trennung innerhalb einer Fläche, eine Stufe leiser */
 
   /* ---------- Schriftfarbe ---------- */
-  --text:    #1D2125;  /* Fließtext, Titel */
-  --text2:   #6B7075;  /* Beitext, Etiketten, Metadaten */
-  --text3:   #9BA0A6;  /* Platzhalter, ruhende Symbole, leere Zustände */
+  --text: #1d2125; /* Fließtext, Titel */
+  --text2: #6b7075; /* Beitext, Etiketten, Metadaten */
+  --text3: #9ba0a6; /* Platzhalter, ruhende Symbole, leere Zustände */
 
   /* ---------- Bedeutungstragende Farbe ----------
      Grün ist die einzige Betonfarbe der Anwendung. Blau, Rot, Violett und
      Orange tragen ausschließlich Bedeutung und werden nie dekorativ gesetzt. */
-  --green:      #00A82D;  /* Auswahl, Bestätigung, Hauptaktion */
-  --green-dk:   #00922A;  /* Grün auf heller Fläche, kontrastsicher */
-  --green-soft: #E8F6EC;  /* Fläche eines aktiven oder eigenen Elements */
-  --blue:       #2F80ED;  /* Termine und Verweise */
-  --blue-soft:  #E9F1FD;
-  --red:        #E5484D;  /* Überfällig, Löschen */
-  --red-soft:   #FDECEC;
-  --purple:     #7A5AF8;  /* nur als Blocktyp-Farbe */
-  --orange:     #E8883A;  /* nur als Blocktyp-Farbe */
-  --grey:       #7A828A;  /* nur als Blocktyp-Farbe */
+  --green: #00a82d; /* Auswahl, Bestätigung, Hauptaktion */
+  --green-dk: #00922a; /* Grün auf heller Fläche, kontrastsicher */
+  --green-soft: #e8f6ec; /* Fläche eines aktiven oder eigenen Elements */
+  --blue: #2f80ed; /* Termine und Verweise */
+  --blue-soft: #e9f1fd;
+  --red: #e5484d; /* Überfällig, Löschen */
+  --red-soft: #fdecec;
+  --purple: #7a5af8; /* nur als Blocktyp-Farbe */
+  --orange: #e8883a; /* nur als Blocktyp-Farbe */
+  --grey: #7a828a; /* nur als Blocktyp-Farbe */
 
   /* ---------- Abgeleitete Grauwerte ----------
      Fünf Werte, die sich aus keiner der Stufen oben ergeben, weil sie
      gegen eine bestimmte Nachbarfarbe ausgemischt sind. */
-  --check-line:   #B6BCC3;  /* Rahmen des Kontrollkästchens */
-  --badge-person: #8C93A0;  /* Plakette einer Person */
-  --badge-topic:  #B0B6BF;  /* Plakette eines Themas */
-  --card-hover:   #CFD4D9;  /* Rahmen einer überfahrenen Eintragskarte */
-  --green-lit:    #7FE0A0;  /* Grün auf dunkler Fläche, etwa im Hinweis */
+  --check-line: #b6bcc3; /* Rahmen des Kontrollkästchens */
+  --badge-person: #8c93a0; /* Plakette einer Person */
+  --badge-topic: #b0b6bf; /* Plakette eines Themas */
+  --card-hover: #cfd4d9; /* Rahmen einer überfahrenen Eintragskarte */
+  --green-lit: #7fe0a0; /* Grün auf dunkler Fläche, etwa im Hinweis */
 
   /* Farbe des aktuellen Blocktyps. Wird von .hue-* gesetzt und von
      Typpunkt und Plakette gelesen. Sonst nirgends. */
@@ -55,8 +55,8 @@
 
   /* ---------- Abstandsleiter ----------
      Jeder Abstand im Interface ist genau einer dieser Werte. */
-  --s1:  4px;
-  --s2:  8px;
+  --s1: 4px;
+  --s2: 8px;
   --s3: 12px;
   --s4: 16px;
   --s5: 24px;
@@ -64,14 +64,19 @@
   --s7: 40px;
 
   /* ---------- Radienleiter ---------- */
-  --r-xs:  6px;  /* Plaketten, Kontrollkästchen, Menüeinträge, Zeilen */
-  --r-sm:  8px;  /* Schaltflächen, Eingabefelder, kleine Karten */
-  --r-md: 12px;  /* Karten und Listen */
-  --r-lg: 16px;  /* Panels über der Oberfläche */
+  --r-xs: 6px; /* Plaketten, Kontrollkästchen, Menüeinträge, Zeilen */
+  --r-sm: 8px; /* Schaltflächen, Eingabefelder, kleine Karten */
+  --r-md: 12px; /* Karten und Listen */
+  --r-lg: 16px; /* Panels über der Oberfläche */
+
+  /* ---------- Deckelung ---------- */
+  --shell: 1720px; /* gesamte Komposition (Bereichsleiste + Arbeitsfläche + Datumsband) */
+  --measure: 820px; /* Breite der Textspalte in der Arbeitsfläche */
 
   /* ---------- Schrift ---------- */
-  --sans: 'Frutiger LT Std','Frutiger LT Pro','Frutiger Neue LT',Frutiger,
-          'Source Sans 3','Source Sans Pro','Segoe UI','Myriad Pro',
-          -apple-system,BlinkMacSystemFont,Roboto,sans-serif;
-  --display: var(--sans);   /* eine Familie in allen Rollen, siehe Spec */
+  --sans:
+    "Frutiger LT Std", "Frutiger LT Pro", "Frutiger Neue LT", Frutiger,
+    "Source Sans 3", "Source Sans Pro", "Segoe UI", "Myriad Pro", -apple-system,
+    BlinkMacSystemFont, Roboto, sans-serif;
+  --display: var(--sans); /* eine Familie in allen Rollen, siehe Spec */
 }

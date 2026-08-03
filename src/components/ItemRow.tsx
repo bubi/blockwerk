@@ -3,6 +3,7 @@ import type { BlockRow, ItemRow, SpaceRow } from "../../shared/db.ts";
 import type { ItemPatch } from "../../shared/schemas.ts";
 import { formatShort, fromISODate, relativeLabel } from "../domain/dates.ts";
 import { detectHeading } from "../domain/headings.ts";
+import { GrowingTextarea } from "./GrowingTextarea.tsx";
 import styles from "./ItemRow.module.css";
 
 interface ItemRowProps {
@@ -28,7 +29,7 @@ interface ItemRowProps {
   /** Arrow keys move the row selection through the block's display order. */
   onNav?: (itemId: string, dir: -1 | 1) => void;
   onRowRef?: (el: HTMLLIElement | null) => void;
-  onInputRef?: (el: HTMLInputElement | null) => void;
+  onInputRef?: (el: HTMLTextAreaElement | null) => void;
 }
 
 const KIND_LABEL: Record<ItemRow["kind"], string> = {
@@ -71,7 +72,7 @@ export function ItemRow({
   onInputRef,
 }: ItemRowProps) {
   const rowRef = useRef<HTMLLIElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const isHeading = item.kind === "note" && item.heading !== null;
 
@@ -85,33 +86,48 @@ export function ItemRow({
   };
 
   const rowKeys = (event: React.KeyboardEvent<HTMLLIElement>) => {
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      onNav?.(item.id, 1);
-      return;
-    }
-    if (event.key === "ArrowUp") {
-      event.preventDefault();
-      onNav?.(item.id, -1);
+    const inField = event.target === inputRef.current;
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      if (!inField) {
+        event.preventDefault();
+        onNav?.(item.id, event.key === "ArrowDown" ? 1 : -1);
+        return;
+      }
+      // In a text field the cursor walks the text first; only when the
+      // selection is empty and the cursor sits at the start (up) or end
+      // (down) of the field does the arrow move the selection to the
+      // neighbor row. Otherwise the field itself moves the cursor.
+      const el = inputRef.current;
+      if (el && el.selectionStart === el.selectionEnd) {
+        const atEdge =
+          event.key === "ArrowDown"
+            ? el.selectionStart === el.value.length
+            : el.selectionStart === 0;
+        if (atEdge) {
+          event.preventDefault();
+          onNav?.(item.id, event.key === "ArrowDown" ? 1 : -1);
+          return;
+        }
+      }
       return;
     }
 
-    const inField = event.target === inputRef.current;
     if (inField) {
       if (event.key === "Escape") {
         event.preventDefault();
         focusRow();
         return;
       }
-      // Enter in a note inserts a note below it; Enter in a task adds a
-      // note under the task (docs/adr/0014). Both route through
-      // onInsertAfter — the caller knows which row kind it is.
-      if (item.kind === "note" || item.kind === "task") {
-        if (event.key === "Enter") {
-          event.preventDefault();
+      // Enter never creates a line break in a field — not even with Shift
+      // (Shift+Enter stays deliberately unassigned). Note and task rows
+      // route it to onInsertAfter (docs/adr/0014); the other kinds just
+      // swallow it.
+      if (event.key === "Enter") {
+        event.preventDefault();
+        if (item.kind === "note" || item.kind === "task")
           onInsertAfter?.(item.id);
-          return;
-        }
+        return;
       }
       if (item.kind === "note") {
         if (event.key === "Backspace" && item.text === "") {
@@ -185,19 +201,19 @@ export function ItemRow({
       tabIndex={-1}
       onKeyDown={rowKeys}
     >
-      <input
+      <GrowingTextarea
         ref={(el) => {
           inputRef.current = el;
           onInputRef?.(el);
         }}
         className={isHeading ? styles.headingInput : styles.text}
         value={item.text}
-        onChange={(event) =>
+        onChange={(value) =>
           isHeading
-            ? onPatch(item.id, { text: event.target.value })
-            : handleTextChange(event.target.value)
+            ? onPatch(item.id, { text: value })
+            : handleTextChange(value)
         }
-        aria-label={isHeading ? "Überschrift" : KIND_LABEL[item.kind]}
+        ariaLabel={isHeading ? "Überschrift" : KIND_LABEL[item.kind]}
         placeholder={
           isHeading
             ? "Überschrift"

@@ -1,0 +1,10 @@
+/* Das wachsende Feld: bricht weich um, scrollt nie waagerecht. */
+.field {
+  resize: none;
+  overflow: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  display: block;
+  font-family: inherit;
+  line-height: 1.6;
+}

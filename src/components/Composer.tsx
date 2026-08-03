@@ -10,6 +10,7 @@ import {
 } from "../domain/composer.ts";
 import { formatShort } from "../domain/dates.ts";
 import { deriveShort } from "../domain/naming.ts";
+import { GrowingTextarea } from "./GrowingTextarea.tsx";
 import styles from "./Composer.module.css";
 
 interface ComposerProps {
@@ -53,7 +54,7 @@ export function Composer({
   const [mentionIndex, setMentionIndex] = useState(0);
   const [mentionId, setMentionId] = useState<string | null>(null);
   const [mentionSuppressed, setMentionSuppressed] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   /**
    * Keep the DOM caret in sync with the caret state after every render. A
@@ -142,19 +143,19 @@ export function Composer({
     setMentionSuppressed(false);
   };
 
-  const onChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(event.target.value);
-    setCaret(event.target.selectionStart ?? 0);
+  const onChange = (value: string) => {
+    setValue(value);
+    setCaret(inputRef.current?.selectionStart ?? 0);
     setSelected(0);
     setMentionIndex(0);
     setMentionSuppressed(false);
   };
 
-  const syncCaret = (event: React.SyntheticEvent<HTMLInputElement>) => {
+  const syncCaret = (event: React.SyntheticEvent<HTMLTextAreaElement>) => {
     setCaret(event.currentTarget.selectionStart ?? 0);
   };
 
-  const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (mentionOpen) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
@@ -258,7 +259,7 @@ export function Composer({
               ))}
           </select>
         ) : (
-          <input
+          <GrowingTextarea
             ref={inputRef}
             id={`composer-${blockId}`}
             className={styles.input}
@@ -272,13 +273,13 @@ export function Composer({
                 ? commandHint(mode)
                 : "/ für Befehle, @ für Personen, # für eine Überschrift"
             }
-            aria-label="Neue Zeile"
-            role={menuOpen || mentionOpen ? "combobox" : undefined}
-            aria-expanded={menuOpen || mentionOpen}
-            aria-controls={
+            ariaLabel="Neue Zeile"
+            combobox
+            ariaExpanded={menuOpen || mentionOpen}
+            ariaControls={
               menuOpen ? menuId : mentionOpen ? mentionId_ : undefined
             }
-            aria-activedescendant={
+            ariaActiveDescendant={
               mentionOpen
                 ? `${mentionId_}-option-${mentionClamped}`
                 : menuOpen
