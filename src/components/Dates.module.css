@@ -208,6 +208,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--s2);
+  flex-wrap: wrap;
 }
 
 .cardkind {
@@ -222,6 +223,11 @@
 .cardwho {
   color: var(--text2);
   font-size: 12px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 /* Das Datum der Karte: öffnet per Klick den Datepicker. */

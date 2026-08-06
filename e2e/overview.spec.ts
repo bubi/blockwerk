@@ -30,7 +30,9 @@ async function expandFoldedSections(page: Page) {
   }
 }
 
-test("the Heute view is the start view: every open task, sectioned and with the workload", async ({ page }) => {
+test("the Heute view is the start view: every open task, sectioned and with the workload", async ({
+  page,
+}) => {
   await page.goto("/");
 
   // The start view, not a space: the team overview with its workload.
@@ -48,21 +50,29 @@ test("the Heute view is the start view: every open task, sectioned and with the 
 
   // The workload names every person space. (Earlier specs in the shared local
   // DB may have added tasks, so exact counts are not asserted.)
-  const load = page.locator("section", { has: page.getByRole("heading", { name: "Auslastung" }) });
+  const load = page.locator("section", {
+    has: page.getByRole("heading", { name: "Auslastung" }),
+  });
   await expect(load).toContainText("Amira Sy");
   await expect(load).toContainText("Lena Brandt");
   await expect(load).toContainText("Tomas Kirsch");
 });
 
-test("overdue tasks are grouped by person and a row jumps to its source block", async ({ page }) => {
+test("overdue tasks are grouped by person and a row jumps to its source block", async ({
+  page,
+}) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Auslastung" })).toBeVisible();
 
   const overdue = OPEN_TASKS.filter((task) => task.due < TODAY);
   if (overdue.length > 0) {
-    await expect(page.getByRole("heading", { name: /Überfällig/ })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /Überfällig/ }),
+    ).toBeVisible();
     // Grouped under person headings (not one flat list).
-    await expect(page.getByRole("heading", { name: /(Brandt|Kirsch|Sy)/ })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /(Brandt|Kirsch|Sy)/ }).first(),
+    ).toBeVisible();
   }
 
   // A row's body navigates to the block it came from.
@@ -70,7 +80,9 @@ test("overdue tasks are grouped by person and a row jumps to its source block", 
   await expect(page.locator("[data-block-id='b1']")).toBeVisible();
 });
 
-test("the scope toggle persists and, with an identity, narrows to my tasks", async ({ page }) => {
+test("the scope toggle persists and, with an identity, narrows to my tasks", async ({
+  page,
+}) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Auslastung" })).toBeVisible();
 
@@ -90,10 +102,15 @@ test("the scope toggle persists and, with an identity, narrows to my tasks", asy
   await expect(page.locator("[data-item-id='b1-t1']")).toHaveCount(0);
 
   // Own rows are marked as such.
-  await expect(page.locator("[data-item-id='b1-t3']").getByText("ich", { exact: true })).toBeVisible();
+  await expect(
+    page.locator("[data-item-id='b1-t3']").getByText("ich", { exact: true }),
+  ).toBeVisible();
 
   // The choice is a per-device preference and survives a reload.
   await page.goto("/");
-  await expect(page.getByRole("tab", { name: "Nur meine" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Nur meine" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await expect(page.locator("[data-item-id='b1-t3']")).toBeVisible();
 });

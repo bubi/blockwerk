@@ -130,7 +130,6 @@
   flex-direction: column;
   gap: var(--s4);
   max-width: var(--measure);
-  margin-inline: auto;
 }
 
 @media (max-width: 640px) {

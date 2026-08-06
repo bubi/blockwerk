@@ -207,6 +207,14 @@ function DayBlock({
                 {task.text}
               </button>
               <span className={`${styles.cardmeta} label`}>
+                {task.assigneeSpaceId && (
+                  <span className={styles.cardwho}>
+                    {spacesById.get(task.assigneeSpaceId)?.name.split(" ")[0]}
+                  </span>
+                )}
+                <span className={styles.cardkind}>
+                  {task.done ? "erledigt" : late ? "überfällig" : "fällig"}
+                </span>
                 <DateField
                   value={task.dueDate ?? ""}
                   label="Neues Fälligkeitsdatum wählen"
@@ -214,14 +222,6 @@ function DayBlock({
                     onReschedule(task.id, { dueDate: value })
                   }
                 />
-                <span className={styles.cardkind}>
-                  {task.done ? "erledigt" : late ? "überfällig" : "fällig"}
-                </span>
-                {task.assigneeSpaceId && (
-                  <span className={styles.cardwho}>
-                    {spacesById.get(task.assigneeSpaceId)?.name.split(" ")[0]}
-                  </span>
-                )}
               </span>
             </div>
           </div>

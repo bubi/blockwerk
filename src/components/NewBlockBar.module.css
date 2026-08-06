@@ -6,7 +6,6 @@
   flex-wrap: wrap;
   margin-bottom: var(--s4);
   max-width: var(--measure);
-  margin-inline: auto;
 }
 
 .tmenu {
