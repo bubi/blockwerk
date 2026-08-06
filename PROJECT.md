@@ -37,6 +37,32 @@ falsch. Lieber nachfragen, bevor sie umgesetzt wird.
 
 ---
 
+## Wissen festhalten
+
+Sitzungen sind kurzlebig und teilen kein Gedächtnis. Was nicht im
+Repo steht, ist verloren. Deshalb gilt:
+
+- Am Ende jeder Arbeitseinheit, nicht erst am Ende einer Sitzung:
+  PROJECT.md, HANDOFF.md und die ADRs auf Stand bringen.
+- Eine Entscheidung mit Konsequenzen über den aktuellen PR hinaus
+  wird zum ADR — kurz, eine Seite, inklusive der verworfenen
+  Alternative.
+- Eine Erkenntnis ohne Entscheidungscharakter (eine Falle, ein
+  überraschendes Verhalten, ein Irrweg) kommt nach HANDOFF.md
+  unter „Fehler, die wir schon gemacht haben".
+- Ändert sich der Umsetzungsstand, wird der Abschnitt „Stand" in
+  HANDOFF.md korrigiert. Er ist die Landkarte für die nächste
+  Sitzung; ist er falsch, startet sie in die falsche Richtung.
+- Wird eine Regel durch eine Änderung überholt, wird sie im
+  selben Commit korrigiert — nicht in einem Folge-Commit.
+
+Umgekehrt gilt die Sparsamkeitsregel: Diese Dokumente werden
+gelesen, bevor irgendetwas passiert. Was niemand für eine
+Entscheidung braucht, gehört nicht hinein. Lieber einen Satz
+streichen als einen Absatz anhängen.
+
+---
+
 ## Domänenmodell
 
 ```
@@ -64,8 +90,10 @@ Regeln, die im Code gelten müssen:
   ihm innerhalb der Task-Gruppe, untereinander nach `position` sortiert — die drei
   Gruppen bleiben drei. Diese Regel ist **genau einmal** definiert (in `/src/domain`,
   `orderBlockItems`); der Worker ruft sie von dort auf und sortiert nicht zusätzlich in
-  SQL. Dasselbe gilt für die Block-Reihenfolge einer Seite (neuestes Datum zuerst):
-  `orderPageBlocks` ist die einzige Definition, Worker und Client rufen sie beide auf.
+  SQL. Dasselbe gilt für die Block-Reihenfolge einer Seite (neuestes Datum zuerst, bei
+  gleichem Datum neueste Anlage zuerst, dann id — der eindeutige Zweitschlüssel macht auch
+  identische Zeitstempel deterministisch): `orderPageBlocks` ist die einzige Definition,
+  Worker und Client rufen sie beide auf, auch die Suche ordnet Blocktreffer darüber.
 - **Positionen:** Lücken zulassen (Schritt 1000), bei Erschöpfung Respace des Blocks
   (eine Anweisung, Reihenfolge bleibt erhalten — siehe [ADR 0009](docs/adr/0009-position-respace.md)).
 - **Überschriften:** Ein Item mit `heading` ist eine Überschrift; alle folgenden Notiz- und

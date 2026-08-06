@@ -77,7 +77,17 @@ function compareBlockItems(a: ItemRow, b: ItemRow): number {
   return a.position - b.position || a.id.localeCompare(b.id);
 }
 
-/** A page's blocks in display order — newest date first, id ascending on ties. */
+/**
+ * A page's blocks in display order — newest date first, then newest
+ * creation first, then id, so two blocks with the same date and the same
+ * created_at still order deterministically (the same lesson as items: no
+ * unique secondary key, and the id is the final tiebreak).
+ */
 export function orderPageBlocks(blocks: readonly BlockRow[]): BlockRow[] {
-  return [...blocks].sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+  return [...blocks].sort(
+    (a, b) =>
+      b.date.localeCompare(a.date) ||
+      b.createdAt - a.createdAt ||
+      a.id.localeCompare(b.id),
+  );
 }

@@ -30,3 +30,32 @@ export function readScope(storage: ScopeStorage | undefined = defaultStorage()):
 export function writeScope(scope: TodayScope, storage: ScopeStorage | undefined = defaultStorage()): void {
   storage?.setItem(SCOPE_KEY, scope);
 }
+
+/** The task overview's folded sections ("Später fällig", "Ohne Datum"). */
+export interface OverviewFolds {
+  later: boolean;
+  undated: boolean;
+}
+
+const FOLDS_KEY = "blockwerk.overviewFolds";
+
+const DEFAULT_FOLDS: OverviewFolds = { later: true, undated: true };
+
+/** The stored fold state, defaulting to open; a missing or broken entry opens. */
+export function readFolds(storage: ScopeStorage | undefined = defaultStorage()): OverviewFolds {
+  const raw = storage?.getItem(FOLDS_KEY);
+  if (!raw) return DEFAULT_FOLDS;
+  try {
+    const parsed = JSON.parse(raw) as Partial<OverviewFolds>;
+    return {
+      later: parsed.later !== false,
+      undated: parsed.undated !== false,
+    };
+  } catch {
+    return DEFAULT_FOLDS;
+  }
+}
+
+export function writeFolds(folds: OverviewFolds, storage: ScopeStorage | undefined = defaultStorage()): void {
+  storage?.setItem(FOLDS_KEY, JSON.stringify(folds));
+}

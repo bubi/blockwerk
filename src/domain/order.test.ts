@@ -118,6 +118,27 @@ describe("orderPageBlocks", () => {
     expect(orderPageBlocks(blocks).map((entry) => entry.id)).toEqual(["new", "tie-a", "tie-b", "mid", "old"]);
   });
 
+  it("orders by creation within the same date, and is deterministic even for identical timestamps", () => {
+    // Same date, same created_at: the id is the final tiebreak, so the order
+    // is stable across repeated sorts (and thus across reloads).
+    const blocks = [
+      block({ id: "z", pageId: "p1", date: "2026-08-10", createdAt: 100 }),
+      block({ id: "a", pageId: "p1", date: "2026-08-10", createdAt: 100 }),
+      block({ id: "m", pageId: "p1", date: "2026-08-10", createdAt: 100 }),
+    ];
+    const first = orderPageBlocks(blocks).map((entry) => entry.id);
+    const second = orderPageBlocks(blocks).map((entry) => entry.id);
+    expect(first).toEqual(second);
+    expect(first).toEqual(["a", "m", "z"]);
+
+    // A later-created block comes first within the same date.
+    const byCreation = [
+      block({ id: "old", pageId: "p1", date: "2026-08-10", createdAt: 100 }),
+      block({ id: "new", pageId: "p1", date: "2026-08-10", createdAt: 200 }),
+    ];
+    expect(orderPageBlocks(byCreation).map((entry) => entry.id)).toEqual(["new", "old"]);
+  });
+
   it("does not mutate the input", () => {
     const blocks = [block({ id: "old", pageId: "p1", date: "2026-08-01" }), block({ id: "new", pageId: "p1", date: "2026-08-20" })];
     orderPageBlocks(blocks);

@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type { SpaceRow } from "../../shared/db.ts";
 import { isOverdueTask } from "../domain/calendar.ts";
 import {
@@ -9,7 +9,12 @@ import {
   weekdayShort,
 } from "../domain/dates.ts";
 import type { OverviewRow, TaskOverviewView } from "../domain/overview.ts";
-import type { TodayScope } from "../domain/preferences.ts";
+import {
+  readFolds,
+  writeFolds,
+  type OverviewFolds,
+  type TodayScope,
+} from "../domain/preferences.ts";
 import styles from "./TaskOverview.module.css";
 
 /**
@@ -45,8 +50,13 @@ export function TaskOverview({
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
 }) {
   const team = mode === "team";
-  const [laterOpen, setLaterOpen] = useState(false);
-  const [undatedOpen, setUndatedOpen] = useState(false);
+  // "Später fällig" und "Ohne Datum" sind standardmäßig aufgeklappt; der
+  // Zustand überlebt einen Reload über dieselbe Präferenz-Ablage wie der
+  // Umfang-Schalter (localStorage, src/domain/preferences.ts).
+  const [folds, setFolds] = useState<OverviewFolds>(() => readFolds());
+  useEffect(() => {
+    writeFolds(folds);
+  }, [folds]);
 
   const nothing =
     view.overdue.length === 0 &&
@@ -224,11 +234,11 @@ export function TaskOverview({
       <FoldSection
         label="Später fällig"
         rows={view.later}
-        open={laterOpen}
+        open={folds.later}
         team={team}
         meSpaceId={meSpaceId}
         spacesById={spacesById}
-        onToggleOpen={() => setLaterOpen((open) => !open)}
+        onToggleOpen={() => setFolds((current) => ({ ...current, later: !current.later }))}
         today={today}
         onToggle={onToggle}
         onJumpToBlock={onJumpToBlock}
@@ -236,11 +246,11 @@ export function TaskOverview({
       <FoldSection
         label="Ohne Datum"
         rows={view.undated}
-        open={undatedOpen}
+        open={folds.undated}
         team={team}
         meSpaceId={meSpaceId}
         spacesById={spacesById}
-        onToggleOpen={() => setUndatedOpen((open) => !open)}
+        onToggleOpen={() => setFolds((current) => ({ ...current, undated: !current.undated }))}
         today={today}
         onToggle={onToggle}
         onJumpToBlock={onJumpToBlock}
