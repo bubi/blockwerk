@@ -107,9 +107,12 @@ Regeln, die im Code gelten müssen:
   `-`), wie `heading` ein Merkmal auf dem Notiz-Item — **keine** eigene `item.kind`. `kind`
   steuert die Gruppenreihenfolge im Block; eine vierte Art würde sie mehrdeutig. `- ` und
   `* ` am Zeilenanfang wandeln um (Erkennung in `/src/domain/headings.ts` neben der
-  Überschriftenerkennung), Enter setzt die Liste mit einem weiteren Punkt fort, Enter auf
-  einem leeren Punkt verlässt die Liste. Keine Verschachtelung; eine Notiz ist entweder
-  Überschrift oder Listenpunkt, nie beides (CHECK wie bei `heading`: nur `kind='note'`).
+  Überschriftenerkennung), der Marker steht im Text. **Enter ist ein weicher Umbruch
+  innerhalb derselben Notiz**: Er fügt den nächsten Punkt derselben Liste hinzu
+  (`\n` + Marker), es entsteht **kein** neuer Block-Eintrag — mehrere Aufzählungspunkte
+  leben in einer Blockzeile. Enter auf einem leeren Punkt verlässt die Liste. Keine
+  Verschachtelung; eine Notiz ist entweder Überschrift oder Listenpunkt, nie beides
+  (CHECK wie bei `heading`: nur `kind='note'`).
 - **Aufgabenüberblick statt Spiegel (ADR 0011):** Offene Tasks erscheinen an genau einer
   Stelle — dem Überblick, einer Komponente mit zwei Modi (Team „Heute" und die Person im
   Tab „Zugewiesen"). Der Überblick ist `SELECT … WHERE kind = 'task' AND done = 0` mit

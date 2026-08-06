@@ -92,8 +92,8 @@ export function BlockCard({
     }
     // A task's note: Enter creates the next note of the same task. The
     // position only orders it among its siblings — display groups children
-    // under the task, it never reads the raw gap to the task. A list point
-    // continues the list with the same marker.
+    // under the task, it never reads the raw gap to the task. (A list point
+    // never reaches this path: its Enter is a soft break inside the row.)
     for (const [parentId, siblings] of block.sections.taskNotes) {
       const index = siblings.findIndex((note) => note.id === itemId);
       if (index === -1) continue;
@@ -110,7 +110,6 @@ export function BlockCard({
         ),
         text: "",
         heading: null,
-        listMark: after ? after.listMark : null,
         parentItemId: parentId,
       });
       focusInput(id);
@@ -132,7 +131,6 @@ export function BlockCard({
       ),
       text: "",
       heading: null,
-      listMark: after ? after.listMark : null,
     });
     focusInput(id);
   };

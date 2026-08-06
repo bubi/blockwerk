@@ -119,19 +119,40 @@ export function ItemRow({
         focusRow();
         return;
       }
-      // Enter never creates a line break in a field — not even with Shift
-      // (Shift+Enter stays deliberately unassigned). On an empty list point
-      // it leaves the list: the marker goes, the line becomes a normal note.
-      // Otherwise note and task rows route it to onInsertAfter, and events
-      // just swallow it (docs/adr/0014).
+      // A list point's Enter is a line break within the row: another bullet
+      // of the same marker joins the text, no new block line is created.
+      // On an empty trailing bullet it leaves the list instead. For the
+      // other rows Enter never creates a line break — not even with Shift
+      // (Shift+Enter stays deliberately unassigned); note and task rows
+      // route it to onInsertAfter, and events just swallow it.
       if (event.key === "Enter") {
         event.preventDefault();
-        if (
-          item.kind === "note" &&
-          item.listMark !== null &&
-          item.text === ""
-        ) {
-          onPatch(item.id, { listMark: null });
+        if (item.kind === "note" && item.listMark !== null) {
+          const mark = item.listMark;
+          const caret = inputRef.current?.selectionStart ?? item.text.length;
+          // Enter on an empty trailing bullet: the empty point goes.
+          if (caret === item.text.length && /(?:^|\n)[*-] ?$/.test(item.text)) {
+            const next = item.text.replace(/(?:^|\n)[*-] ?$/, "");
+            onPatch(
+              item.id,
+              next === "" ? { text: "", listMark: null } : { text: next },
+            );
+            return;
+          }
+          const insert = `\n${mark} `;
+          const next =
+            item.text.slice(0, caret) + insert + item.text.slice(caret);
+          onPatch(item.id, { text: next });
+          // Land the cursor after the fresh marker so the next bullet can be
+          // typed right away.
+          window.requestAnimationFrame(() => {
+            if (inputRef.current) {
+              inputRef.current.setSelectionRange(
+                caret + insert.length,
+                caret + insert.length,
+              );
+            }
+          });
           return;
         }
         if (item.kind === "note" || item.kind === "task")
@@ -193,7 +214,9 @@ export function ItemRow({
       }
       const list = detectListMark(value);
       if (list) {
-        onPatch(item.id, { listMark: list.mark, text: list.text });
+        // The marker stays in the text: a list point is multi-line text, and
+        // each line carries its marker (Enter inserts the next one inline).
+        onPatch(item.id, { listMark: list.mark, text: value });
         return;
       }
     }
@@ -209,7 +232,6 @@ export function ItemRow({
     isChild ? styles.child : "",
     item.done ? styles.done : "",
     isHeading ? styles.heading : "",
-    item.listMark !== null ? styles.kindList : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -260,19 +282,6 @@ export function ItemRow({
           title="In normalen Text umwandeln"
         >
           {item.heading === 1 ? "#" : "##"}
-        </button>
-      )}
-
-      {item.kind === "note" && item.listMark !== null && (
-        <button
-          type="button"
-          className={styles.lmark}
-          tabIndex={-1}
-          onClick={() => onPatch(item.id, { listMark: null })}
-          aria-label="In normalen Text umwandeln"
-          title="In normalen Text umwandeln"
-        >
-          •
         </button>
       )}
 

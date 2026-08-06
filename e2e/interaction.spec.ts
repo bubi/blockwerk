@@ -425,7 +425,7 @@ test("a note wraps and grows; arrow keys walk the text and only jump at the edge
   await expect(noteInputs).toHaveCount(notesBefore + 1);
 });
 
-test("a list point converts from - or *, continues on Enter, and leaves the list on an empty Enter", async ({
+test("a list point is a line break inside the row: Enter adds the next bullet, empty Enter leaves the list", async ({
   page,
 }) => {
   await page.goto("/");
@@ -435,49 +435,30 @@ test("a list point converts from - or *, continues on Enter, and leaves the list
   const b1 = page.locator("[data-block-id='b1']");
   const noteInputs = b1.locator("textarea[aria-label='Notiz']");
   const notesBefore = await noteInputs.count();
-  const bulletIn = (rowId: string) =>
-    b1
-      .locator(`[data-item-id='${rowId}']`)
-      .getByRole("button", { name: "In normalen Text umwandeln" });
 
-  // "- " at the line start converts the note into a list point.
+  // "- " at the line start converts the note into a list point; the marker
+  // stays in the text.
   const converted = b1.locator("[data-item-id='b1-n1'] textarea");
   await converted.fill("");
   await converted.focus();
   await page.keyboard.type("- erster Punkt");
-  await expect(converted).toHaveValue("erster Punkt");
-  await expect(bulletIn("b1-n1")).toBeVisible();
+  await expect(converted).toHaveValue("- erster Punkt");
 
-  // Enter continues the list with another point of the same marker.
+  // Enter is a soft break within the same row: the next bullet of the same
+  // marker joins the text, no new block line appears.
   await page.keyboard.press("Enter");
-  await expect(noteInputs).toHaveCount(notesBefore + 1);
-  await expect(page.locator(":focus").locator("..")).not.toHaveAttribute(
-    "data-item-id",
-    "b1-n1",
-  );
-  const secondId = (await page
-    .locator(":focus")
-    .locator("..")
-    .getAttribute("data-item-id"))!;
-  await expect(bulletIn(secondId)).toBeVisible();
+  await expect(converted).toHaveValue("- erster Punkt\n- ");
+  await expect(noteInputs).toHaveCount(notesBefore);
+
   await page.keyboard.type("zweiter Punkt");
+  await expect(converted).toHaveValue("- erster Punkt\n- zweiter Punkt");
 
-  // A third, empty point, still a list point…
+  // Enter again adds a fresh empty bullet…
   await page.keyboard.press("Enter");
-  await expect(noteInputs).toHaveCount(notesBefore + 2);
-  await expect(page.locator(":focus").locator("..")).not.toHaveAttribute(
-    "data-item-id",
-    secondId,
-  );
-  const thirdId = (await page
-    .locator(":focus")
-    .locator("..")
-    .getAttribute("data-item-id"))!;
-  await expect(bulletIn(thirdId)).toBeVisible();
+  await expect(converted).toHaveValue("- erster Punkt\n- zweiter Punkt\n- ");
 
-  // …and Enter on the empty point leaves the list: the marker goes, the
-  // line stays a normal note, no new row appears.
+  // …and Enter on that empty bullet leaves the list again.
   await page.keyboard.press("Enter");
-  await expect(bulletIn(thirdId)).toHaveCount(0);
-  await expect(noteInputs).toHaveCount(notesBefore + 2);
+  await expect(converted).toHaveValue("- erster Punkt\n- zweiter Punkt");
+  await expect(noteInputs).toHaveCount(notesBefore);
 });
