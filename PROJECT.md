@@ -250,6 +250,12 @@ schadet also nicht. `npm run test:e2e` setzt den lokalen D1-Zustand zurück
 (`rm -rf .wrangler/state`), damit die Wege deterministisch sind — erst `npm run dev`
 stoppen, sonst belegt der Worker den Port.
 
+**Deploy:** Normalerweise über CI (GitHub Actions → `wrangler deploy`). Ist CI nicht
+verfügbar (z. B. verbrauchte Monatsminuten), wird manuell ausgeliefert:
+`npm run build && npx wrangler deploy` — **nach jedem Push auf `main`**.
+Remote-Migrationen bleiben davon getrennt und laufen nur auf ausdrückliche
+Anweisung (`npm run db:migrate:remote`).
+
 ---
 
 ## Arbeitsweise
