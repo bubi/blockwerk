@@ -1,4 +1,10 @@
-import type { BlockRow, ItemRow, PageRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
+import type {
+  BlockRow,
+  ItemRow,
+  PageRow,
+  SpaceRow,
+  TemplateRow,
+} from "../../shared/db.ts";
 
 /** Raw row shapes as they come back from D1 — snake_case, SQLite's 0/1 booleans, JSON-as-TEXT. */
 
@@ -53,6 +59,7 @@ export interface RawItemRow {
   assignee_space_id: string | null;
   ref_block_id: string | null;
   parent_item_id: string | null;
+  list_mark: string | null;
   created_at: number;
   updated_at: number;
 }
@@ -117,6 +124,7 @@ export function mapItem(row: RawItemRow): ItemRow {
     eventTime: row.event_time,
     refBlockId: row.ref_block_id,
     parentItemId: row.parent_item_id,
+    listMark: row.list_mark as ItemRow["listMark"],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

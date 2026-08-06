@@ -46,13 +46,13 @@ Space (Bereich)     Person oder Thema
          └─ Item    note | task | event | ref
 ```
 
-| Entität    | Wichtige Felder                                                                                                                                                                                                                |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `space`    | `id`, `name`, `kind` (`person` \| `topic`), `short` (Kürzel), `email` (nur Person, eindeutig, für „ich" — ADR 0013)                                                                                                            |
-| `page`     | `id`, `space_id`, `title`                                                                                                                                                                                                      |
-| `block`    | `id`, `page_id`, `template_id`, `title`, `date` (jeder Block ist datiert)                                                                                                                                                      |
-| `item`     | `id`, `block_id`, `kind`, `position`, `text`, `heading` (1\|2\|null), `done`, `due_date`, `event_date`, `event_time`, `assignee_space_id`, `ref_block_id`, `parent_item_id` (nur `note`, verweist auf einen `task` — ADR 0014) |
-| `template` | `id`, `label`, `hue`, `seed` (Zeilen zur Vorbelegung)                                                                                                                                                                          |
+| Entität    | Wichtige Felder                                                                                                                                                                                                                                                                                    |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `space`    | `id`, `name`, `kind` (`person` \| `topic`), `short` (Kürzel), `email` (nur Person, eindeutig, für „ich" — ADR 0013)                                                                                                                                                                                |
+| `page`     | `id`, `space_id`, `title`                                                                                                                                                                                                                                                                          |
+| `block`    | `id`, `page_id`, `template_id`, `title`, `date` (jeder Block ist datiert)                                                                                                                                                                                                                          |
+| `item`     | `id`, `block_id`, `kind`, `position`, `text`, `heading` (1\|2\|null), `list_mark` (`*`\|`-`\|null, nur `note`, wie `heading` ein Marker), `done`, `due_date`, `event_date`, `event_time`, `assignee_space_id`, `ref_block_id`, `parent_item_id` (nur `note`, verweist auf einen `task` — ADR 0014) |
+| `template` | `id`, `label`, `hue`, `seed` (Zeilen zur Vorbelegung)                                                                                                                                                                                                                                              |
 
 Regeln, die im Code gelten müssen:
 
@@ -75,6 +75,13 @@ Regeln, die im Code gelten müssen:
   unter ihm eingerückt dargestellt. Ein Task unter einem Task ist ausgeschlossen; das wäre
   der Anfang eines Baums, den man nicht wieder los wird, und die Gruppenreihenfolge im
   Block würde mehrdeutig.
+- **Listenpunkte:** Eine Notiz kann einen Listenpunkt-Marker tragen (`list_mark`, `*` oder
+  `-`), wie `heading` ein Merkmal auf dem Notiz-Item — **keine** eigene `item.kind`. `kind`
+  steuert die Gruppenreihenfolge im Block; eine vierte Art würde sie mehrdeutig. `- ` und
+  `* ` am Zeilenanfang wandeln um (Erkennung in `/src/domain/headings.ts` neben der
+  Überschriftenerkennung), Enter setzt die Liste mit einem weiteren Punkt fort, Enter auf
+  einem leeren Punkt verlässt die Liste. Keine Verschachtelung; eine Notiz ist entweder
+  Überschrift oder Listenpunkt, nie beides (CHECK wie bei `heading`: nur `kind='note'`).
 - **Aufgabenüberblick statt Spiegel (ADR 0011):** Offene Tasks erscheinen an genau einer
   Stelle — dem Überblick, einer Komponente mit zwei Modi (Team „Heute" und die Person im
   Tab „Zugewiesen"). Der Überblick ist `SELECT … WHERE kind = 'task' AND done = 0` mit
@@ -250,19 +257,20 @@ Bewusst _nicht_ gebaut, bis jemand einen konkreten Bedarf zeigt:
 
 ## Fahrplan
 
-| Phase | Ziel                                                                                                                         | Status    |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------- | --------- |
-| 0     | Repo-Skelett, Toolchain, `PROJECT.md`                                                                                        | erledigt  |
-| 1     | Leere Seite deployt, hinter Access, CI grün                                                                                  | erledigt  |
-| 2a    | D1-Schema                                                                                                                    | erledigt  |
-| 2b    | API, Prototyp-Logik, State/Client, Oberfläche                                                                                | erledigt  |
-| 3     | Rest von 2b (Verwaltung), Tests, ADRs, Aufräumen                                                                             | in Arbeit |
-| 4     | Features: Volltextsuche (erledigt), Rückverweise, Terminserien                                                               | in Arbeit |
-| 5     | Aufgabenüberblick (ADR 0011): Übersichtsroute, Team-/Personen-Ansicht, „Heute" als Einstieg                                  | erledigt  |
-| 6     | Mobile Gestalt (ADR 0012): Tab-Leiste Heute/Notizen/Suche unter 860px, Drill-down mit Verlauf, keine Datumsspalte            | erledigt  |
-| 7     | Identität (ADR 0013), @-Auswahl im Composer, Checkbox in der Datumsspalte, Aufräumen, Mitternachts-Fix                       | erledigt  |
-| 8     | Notizen an Tasks (ADR 0014): eine Verschachtelungsebene, Kindnotizen unter dem Task, auch in der Übersicht                   | erledigt  |
-| 9     | Design-System (design/DESIGN-SYSTEM.md, tokens.css): Oberfläche nach der Spezifikation, Sammelregeln, Tageskopf, Haltepunkte | erledigt  |
+| Phase | Ziel                                                                                                                                                                                                              | Status    |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| 0     | Repo-Skelett, Toolchain, `PROJECT.md`                                                                                                                                                                             | erledigt  |
+| 1     | Leere Seite deployt, hinter Access, CI grün                                                                                                                                                                       | erledigt  |
+| 2a    | D1-Schema                                                                                                                                                                                                         | erledigt  |
+| 2b    | API, Prototyp-Logik, State/Client, Oberfläche                                                                                                                                                                     | erledigt  |
+| 3     | Rest von 2b (Verwaltung), Tests, ADRs, Aufräumen                                                                                                                                                                  | in Arbeit |
+| 4     | Features: Volltextsuche (erledigt), Rückverweise, Terminserien                                                                                                                                                    | in Arbeit |
+| 5     | Aufgabenüberblick (ADR 0011): Übersichtsroute, Team-/Personen-Ansicht, „Heute" als Einstieg                                                                                                                       | erledigt  |
+| 6     | Mobile Gestalt (ADR 0012): Tab-Leiste Heute/Notizen/Suche unter 860px, Drill-down mit Verlauf, keine Datumsspalte                                                                                                 | erledigt  |
+| 7     | Identität (ADR 0013), @-Auswahl im Composer, Checkbox in der Datumsspalte, Aufräumen, Mitternachts-Fix                                                                                                            | erledigt  |
+| 8     | Notizen an Tasks (ADR 0014): eine Verschachtelungsebene, Kindnotizen unter dem Task, auch in der Übersicht                                                                                                        | erledigt  |
+| 9     | Design-System (design/DESIGN-SYSTEM.md, tokens.css): Oberfläche nach der Spezifikation, Sammelregeln, Tageskopf, Haltepunkte                                                                                      | erledigt  |
+| 10    | Bug- und Change-Sammlung 06.08.2026: Breiten (gemeinsames Maß, Metazeile), Editor (leerer Notizbereich, sichtbare Eingabezeile, Listenpunkte), Sortierung + Klappzustand, Feinschliff (Block anlegen, Umschalter) | erledigt  |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
 Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.

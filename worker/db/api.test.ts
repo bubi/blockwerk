@@ -4,19 +4,42 @@ import worker from "../index.ts";
 import type { Env } from "../env.ts";
 import { countingD1 } from "./testing/counting-d1.ts";
 import { getTestDb } from "./testing/get-test-db.ts";
-import { createBlock, createItem, createPage, createSpace, createTemplate, loadPageBlocks, updateSpace } from "./index.ts";
-import type { CalendarResponse, ItemWriteResponse, OverviewResponse, PageResponse, SearchResponse, SpacesResponse } from "../../shared/api.ts";
+import {
+  createBlock,
+  createItem,
+  createPage,
+  createSpace,
+  createTemplate,
+  loadPageBlocks,
+  updateSpace,
+} from "./index.ts";
+import type {
+  CalendarResponse,
+  ItemWriteResponse,
+  OverviewResponse,
+  PageResponse,
+  SearchResponse,
+  SpacesResponse,
+} from "../../shared/api.ts";
 import { insertPositionBetween } from "../../src/domain/position.ts";
 
 const NOW = 1_700_000_000_000;
 const DEV_EMAIL = "tester@example.com";
 
 interface ErrorBody {
-  error: { code: string; message?: string; issues?: { path: string; code: string }[] };
+  error: {
+    code: string;
+    message?: string;
+    issues?: { path: string; code: string }[];
+  };
 }
 
 function makeEnv(db: D1Database): Env {
-  return { ...env, DB: db as unknown as D1Database, DEV_ACCESS_EMAIL: DEV_EMAIL };
+  return {
+    ...env,
+    DB: db as unknown as D1Database,
+    DEV_ACCESS_EMAIL: DEV_EMAIL,
+  };
 }
 
 function apiRequest(
@@ -29,21 +52,42 @@ function apiRequest(
     init.headers = { "content-type": "application/json" };
     init.body = JSON.stringify(body);
   }
-  return new Request<unknown, IncomingRequestCfProperties<unknown>>(`https://blockwerk.test${path}`, init);
+  return new Request<unknown, IncomingRequestCfProperties<unknown>>(
+    `https://blockwerk.test${path}`,
+    init,
+  );
 }
 
-async function call(method: string, path: string, body?: unknown, db?: D1Database): Promise<Response> {
+async function call(
+  method: string,
+  path: string,
+  body?: unknown,
+  db?: D1Database,
+): Promise<Response> {
   const testDb = db ?? (await getTestDb());
   return worker.fetch(apiRequest(method, path, body), makeEnv(testDb));
 }
 
-async function json<T = unknown>(method: string, path: string, body?: unknown, db?: D1Database) {
+async function json<T = unknown>(
+  method: string,
+  path: string,
+  body?: unknown,
+  db?: D1Database,
+) {
   const response = await call(method, path, body, db);
   return { status: response.status, body: (await response.json()) as T };
 }
 
-async function seedSpace(db: D1Database, id: string, kind: "person" | "topic" = "topic") {
-  return createSpace(db, { id, name: id, kind, short: id.slice(0, 2).toUpperCase() }, NOW);
+async function seedSpace(
+  db: D1Database,
+  id: string,
+  kind: "person" | "topic" = "topic",
+) {
+  return createSpace(
+    db,
+    { id, name: id, kind, short: id.slice(0, 2).toUpperCase() },
+    NOW,
+  );
 }
 
 async function seedPage(db: D1Database, id: string, spaceId: string) {
@@ -51,7 +95,11 @@ async function seedPage(db: D1Database, id: string, spaceId: string) {
 }
 
 async function seedBlock(db: D1Database, id: string, pageId: string) {
-  return createBlock(db, { id, pageId, templateId: null, title: id, date: "2026-08-01" }, NOW);
+  return createBlock(
+    db,
+    { id, pageId, templateId: null, title: id, date: "2026-08-01" },
+    NOW,
+  );
 }
 
 describe("GET /api/spaces", () => {
@@ -60,7 +108,11 @@ describe("GET /api/spaces", () => {
     await seedSpace(db, "list-b", "person");
     await seedPage(db, "list-b-page", "list-b");
     await seedSpace(db, "list-a", "topic");
-    await createTemplate(db, { id: "list-tpl", label: "Meeting", hue: "steel", seed: [] }, NOW);
+    await createTemplate(
+      db,
+      { id: "list-tpl", label: "Meeting", hue: "steel", seed: [] },
+      NOW,
+    );
 
     const { status, body } = await json<SpacesResponse>("GET", "/api/spaces");
 
@@ -69,9 +121,13 @@ describe("GET /api/spaces", () => {
     expect(body.spaces[0]).toMatchObject({ id: "list-a", pages: [] });
     expect(body.spaces[1]).toMatchObject({
       id: "list-b",
-      pages: [expect.objectContaining({ id: "list-b-page", spaceId: "list-b" })],
+      pages: [
+        expect.objectContaining({ id: "list-b-page", spaceId: "list-b" }),
+      ],
     });
-    expect(body.templates).toEqual([expect.objectContaining({ id: "list-tpl" })]);
+    expect(body.templates).toEqual([
+      expect.objectContaining({ id: "list-tpl" }),
+    ]);
   });
 
   it("resolves meSpaceId from the Access email against a person space", async () => {
@@ -95,15 +151,98 @@ describe("GET /api/pages/:id", () => {
     await seedPage(db, "order-page", "order-space");
     await seedBlock(db, "order-block", "order-page");
     // Inserted deliberately out of display order.
-    await createItem(db, { id: "o-event-late", blockId: "order-block", position: 100, kind: "event", text: "late", eventDate: "2026-08-10", eventTime: "09:00" }, NOW);
-    await createItem(db, { id: "o-task-z", blockId: "order-block", position: 5000, kind: "task", text: "z", dueDate: null, assigneeSpaceId: null }, NOW);
-    await createItem(db, { id: "o-ref", blockId: "order-block", position: 200, kind: "ref", refBlockId: null }, NOW);
-    await createItem(db, { id: "o-note-b", blockId: "order-block", position: 2000, kind: "note", text: "b", heading: null }, NOW);
-    await createItem(db, { id: "o-event-early", blockId: "order-block", position: 300, kind: "event", text: "early", eventDate: "2026-08-09", eventTime: "10:00" }, NOW);
-    await createItem(db, { id: "o-note-a", blockId: "order-block", position: 1000, kind: "note", text: "a", heading: 1 }, NOW);
-    await createItem(db, { id: "o-task-a", blockId: "order-block", position: 4000, kind: "task", text: "a", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "o-event-late",
+        blockId: "order-block",
+        position: 100,
+        kind: "event",
+        text: "late",
+        eventDate: "2026-08-10",
+        eventTime: "09:00",
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "o-task-z",
+        blockId: "order-block",
+        position: 5000,
+        kind: "task",
+        text: "z",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "o-ref",
+        blockId: "order-block",
+        position: 200,
+        kind: "ref",
+        refBlockId: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "o-note-b",
+        blockId: "order-block",
+        position: 2000,
+        kind: "note",
+        text: "b",
+        heading: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "o-event-early",
+        blockId: "order-block",
+        position: 300,
+        kind: "event",
+        text: "early",
+        eventDate: "2026-08-09",
+        eventTime: "10:00",
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "o-note-a",
+        blockId: "order-block",
+        position: 1000,
+        kind: "note",
+        text: "a",
+        heading: 1,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "o-task-a",
+        blockId: "order-block",
+        position: 4000,
+        kind: "task",
+        text: "a",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<PageResponse>("GET", "/api/pages/order-page");
+    const { status, body } = await json<PageResponse>(
+      "GET",
+      "/api/pages/order-page",
+    );
 
     expect(status).toBe(200);
     expect(body.page.id).toBe("order-page");
@@ -119,7 +258,10 @@ describe("GET /api/pages/:id", () => {
   });
 
   it("returns 404 for a missing page", async () => {
-    const { status, body } = await json<ErrorBody>("GET", "/api/pages/no-such-page");
+    const { status, body } = await json<ErrorBody>(
+      "GET",
+      "/api/pages/no-such-page",
+    );
     expect(status).toBe(404);
     expect(body.error.code).toBe("not_found");
   });
@@ -132,11 +274,51 @@ describe("GET /api/overview", () => {
     await seedSpace(db, "ov-topic");
     await seedPage(db, "ov-page", "ov-topic");
     await seedBlock(db, "ov-block", "ov-page");
-    await createItem(db, { id: "ov-open", blockId: "ov-block", position: 1000, kind: "task", text: "open", dueDate: "2026-08-10", assigneeSpaceId: "ov-person" }, NOW);
-    await createItem(db, { id: "ov-done", blockId: "ov-block", position: 2000, kind: "task", text: "done", dueDate: "2026-08-10", assigneeSpaceId: "ov-person", done: true }, NOW);
-    await createItem(db, { id: "ov-event", blockId: "ov-block", position: 3000, kind: "event", text: "e", eventDate: "2026-08-12", eventTime: "14:00" }, NOW);
+    await createItem(
+      db,
+      {
+        id: "ov-open",
+        blockId: "ov-block",
+        position: 1000,
+        kind: "task",
+        text: "open",
+        dueDate: "2026-08-10",
+        assigneeSpaceId: "ov-person",
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "ov-done",
+        blockId: "ov-block",
+        position: 2000,
+        kind: "task",
+        text: "done",
+        dueDate: "2026-08-10",
+        assigneeSpaceId: "ov-person",
+        done: true,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "ov-event",
+        blockId: "ov-block",
+        position: 3000,
+        kind: "event",
+        text: "e",
+        eventDate: "2026-08-12",
+        eventTime: "14:00",
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<OverviewResponse>("GET", "/api/overview?today=2026-08-10");
+    const { status, body } = await json<OverviewResponse>(
+      "GET",
+      "/api/overview?today=2026-08-10",
+    );
 
     expect(status).toBe(200);
     const taskIds = body.tasks.map((task) => task.id);
@@ -163,12 +345,59 @@ describe("GET /api/calendar", () => {
     const db = await getTestDb();
     await seedSpace(db, "cal-space");
     await seedPage(db, "cal-page", "cal-space");
-    await createBlock(db, { id: "cal-block", pageId: "cal-page", templateId: null, title: "cal-block", date: "2026-12-10" }, NOW);
-    await createItem(db, { id: "cal-task", blockId: "cal-block", position: 1000, kind: "task", text: "t", dueDate: "2026-12-11", assigneeSpaceId: null }, NOW);
-    await createItem(db, { id: "cal-event", blockId: "cal-block", position: 2000, kind: "event", text: "e", eventDate: "2026-12-10", eventTime: "14:00" }, NOW);
-    await createBlock(db, { id: "cal-other-block", pageId: "cal-page", templateId: null, title: "other", date: "2026-12-01" }, NOW);
+    await createBlock(
+      db,
+      {
+        id: "cal-block",
+        pageId: "cal-page",
+        templateId: null,
+        title: "cal-block",
+        date: "2026-12-10",
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "cal-task",
+        blockId: "cal-block",
+        position: 1000,
+        kind: "task",
+        text: "t",
+        dueDate: "2026-12-11",
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "cal-event",
+        blockId: "cal-block",
+        position: 2000,
+        kind: "event",
+        text: "e",
+        eventDate: "2026-12-10",
+        eventTime: "14:00",
+      },
+      NOW,
+    );
+    await createBlock(
+      db,
+      {
+        id: "cal-other-block",
+        pageId: "cal-page",
+        templateId: null,
+        title: "other",
+        date: "2026-12-01",
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<CalendarResponse>("GET", "/api/calendar?from=2026-12-10&to=2026-12-11");
+    const { status, body } = await json<CalendarResponse>(
+      "GET",
+      "/api/calendar?from=2026-12-10&to=2026-12-11",
+    );
 
     expect(status).toBe(200);
     expect(Object.hasOwn(body, "blocks")).toBe(false);
@@ -181,26 +410,65 @@ describe("GET /api/calendar", () => {
     expect(missing.status).toBe(400);
     expect(missing.body.error.code).toBe("validation");
 
-    const malformed = await json<ErrorBody>("GET", "/api/calendar?from=2026-13-01&to=2026-08-11");
+    const malformed = await json<ErrorBody>(
+      "GET",
+      "/api/calendar?from=2026-13-01&to=2026-08-11",
+    );
     expect(malformed.status).toBe(400);
-    expect(malformed.body.error.issues).toEqual(expect.arrayContaining([{ path: "from", code: "invalid_date" }]));
+    expect(malformed.body.error.issues).toEqual(
+      expect.arrayContaining([{ path: "from", code: "invalid_date" }]),
+    );
 
-    const reversed = await json<ErrorBody>("GET", "/api/calendar?from=2026-08-11&to=2026-08-10");
+    const reversed = await json<ErrorBody>(
+      "GET",
+      "/api/calendar?from=2026-08-11&to=2026-08-10",
+    );
     expect(reversed.status).toBe(400);
-    expect(reversed.body.error.issues).toEqual([{ path: "from", code: "from_after_to" }]);
+    expect(reversed.body.error.issues).toEqual([
+      { path: "from", code: "from_after_to" },
+    ]);
   });
 });
 
 describe("GET /api/search", () => {
   it("finds block titles and item text with context for a result row", async () => {
     const db = await getTestDb();
-    await createTemplate(db, { id: "s-meeting", label: "Meeting", hue: "steel", seed: [] }, NOW);
+    await createTemplate(
+      db,
+      { id: "s-meeting", label: "Meeting", hue: "steel", seed: [] },
+      NOW,
+    );
     await seedSpace(db, "s-road", "topic");
     await seedPage(db, "s-plan", "s-road");
-    await createBlock(db, { id: "s-b1", pageId: "s-plan", templateId: "s-meeting", title: "Quartalsplanung Q3", date: "2026-07-31" }, NOW);
-    await createItem(db, { id: "s-task", blockId: "s-b1", position: 1000, kind: "task", text: "Kapazitätsplan für Q3 aufstellen", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createBlock(
+      db,
+      {
+        id: "s-b1",
+        pageId: "s-plan",
+        templateId: "s-meeting",
+        title: "Quartalsplanung Q3",
+        date: "2026-07-31",
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "s-task",
+        blockId: "s-b1",
+        position: 1000,
+        kind: "task",
+        text: "Kapazitätsplan für Q3 aufstellen",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<SearchResponse>("GET", "/api/search?q=Q3");
+    const { status, body } = await json<SearchResponse>(
+      "GET",
+      "/api/search?q=Q3",
+    );
 
     expect(status).toBe(200);
     expect(body.query).toBe("Q3");
@@ -214,7 +482,11 @@ describe("GET /api/search", () => {
     ]);
     expect(body.items).toEqual([
       {
-        item: { id: "s-task", kind: "task", text: "Kapazitätsplan für Q3 aufstellen" },
+        item: {
+          id: "s-task",
+          kind: "task",
+          text: "Kapazitätsplan für Q3 aufstellen",
+        },
         block: { id: "s-b1", title: "Quartalsplanung Q3" },
         page: { id: "s-plan", title: "s-plan" },
         space: { id: "s-road", name: "s-road" },
@@ -226,20 +498,49 @@ describe("GET /api/search", () => {
     const db = await getTestDb();
     await seedSpace(db, "s-case-space");
     await seedPage(db, "s-case-page", "s-case-space");
-    await createBlock(db, { id: "s-case-b1", pageId: "s-case-page", templateId: null, title: "Interview Nordbau GmbH", date: "2026-08-03" }, NOW);
+    await createBlock(
+      db,
+      {
+        id: "s-case-b1",
+        pageId: "s-case-page",
+        templateId: null,
+        title: "Interview Nordbau GmbH",
+        date: "2026-08-03",
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<SearchResponse>("GET", "/api/search?q=nordbau");
+    const { status, body } = await json<SearchResponse>(
+      "GET",
+      "/api/search?q=nordbau",
+    );
     expect(status).toBe(200);
-    expect(body.blocks[0]).toMatchObject({ block: { id: "s-case-b1" }, templateLabel: null });
+    expect(body.blocks[0]).toMatchObject({
+      block: { id: "s-case-b1" },
+      templateLabel: null,
+    });
   });
 
   it("returns an empty result for a query without hits", async () => {
     const db = await getTestDb();
     await seedSpace(db, "s-empty-space");
     await seedPage(db, "s-empty-page", "s-empty-space");
-    await createBlock(db, { id: "s-empty-b1", pageId: "s-empty-page", templateId: null, title: "X", date: "2026-08-03" }, NOW);
+    await createBlock(
+      db,
+      {
+        id: "s-empty-b1",
+        pageId: "s-empty-page",
+        templateId: null,
+        title: "X",
+        date: "2026-08-03",
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<SearchResponse>("GET", "/api/search?q=nirgendwo");
+    const { status, body } = await json<SearchResponse>(
+      "GET",
+      "/api/search?q=nirgendwo",
+    );
     expect(status).toBe(200);
     expect(body.blocks).toEqual([]);
     expect(body.items).toEqual([]);
@@ -249,11 +550,15 @@ describe("GET /api/search", () => {
     const missing = await json<ErrorBody>("GET", "/api/search");
     expect(missing.status).toBe(400);
     expect(missing.body.error.code).toBe("validation");
-    expect(missing.body.error.issues).toEqual([{ path: "q", code: "invalid_type" }]);
+    expect(missing.body.error.issues).toEqual([
+      { path: "q", code: "invalid_type" },
+    ]);
 
     const blank = await json<ErrorBody>("GET", "/api/search?q=%20%20");
     expect(blank.status).toBe(400);
-    expect(blank.body.error.issues).toEqual(expect.arrayContaining([{ path: "q", code: "too_small" }]));
+    expect(blank.body.error.issues).toEqual(
+      expect.arrayContaining([{ path: "q", code: "too_small" }]),
+    );
   });
 });
 
@@ -264,7 +569,10 @@ describe("PUT /api/:entity/:id", () => {
 
     const first = await json<unknown>("PUT", "/api/spaces/put-space", body);
     expect(first.status).toBe(200);
-    const second = await json<unknown>("PUT", "/api/spaces/put-space", { ...body, name: "Put Space Renamed" });
+    const second = await json<unknown>("PUT", "/api/spaces/put-space", {
+      ...body,
+      name: "Put Space Renamed",
+    });
     expect(second.status).toBe(200);
 
     const count = await db
@@ -275,21 +583,31 @@ describe("PUT /api/:entity/:id", () => {
   });
 
   it("rejects invalid input with a 400 and a machine-readable field issue", async () => {
-    const { status, body } = await json<ErrorBody>("PUT", "/api/spaces/bad-kind", {
-      name: "X",
-      kind: "group",
-      short: "X",
-    });
+    const { status, body } = await json<ErrorBody>(
+      "PUT",
+      "/api/spaces/bad-kind",
+      {
+        name: "X",
+        kind: "group",
+        short: "X",
+      },
+    );
     expect(status).toBe(400);
     expect(body.error.code).toBe("validation");
-    expect(body.error.issues).toEqual([{ path: "kind", code: "invalid_value" }]);
+    expect(body.error.issues).toEqual([
+      { path: "kind", code: "invalid_value" },
+    ]);
   });
 
   it("rejects a reference to a missing parent instead of failing in the db", async () => {
-    const { status, body } = await json<ErrorBody>("PUT", "/api/pages/ghost-page", {
-      spaceId: "no-such-space",
-      title: "Ghost",
-    });
+    const { status, body } = await json<ErrorBody>(
+      "PUT",
+      "/api/pages/ghost-page",
+      {
+        spaceId: "no-such-space",
+        title: "Ghost",
+      },
+    );
     expect(status).toBe(400);
     expect(body.error.issues).toEqual([{ path: "spaceId", code: "not_found" }]);
   });
@@ -299,14 +617,20 @@ describe("PUT /api/:entity/:id", () => {
     await seedSpace(db, "ref-space");
     await seedPage(db, "ref-page", "ref-space");
 
-    const { status, body } = await json<ErrorBody>("PUT", "/api/blocks/ref-block", {
-      pageId: "ref-page",
-      templateId: "no-such-template",
-      title: "B",
-      date: "2026-08-01",
-    });
+    const { status, body } = await json<ErrorBody>(
+      "PUT",
+      "/api/blocks/ref-block",
+      {
+        pageId: "ref-page",
+        templateId: "no-such-template",
+        title: "B",
+        date: "2026-08-01",
+      },
+    );
     expect(status).toBe(400);
-    expect(body.error.issues).toEqual([{ path: "templateId", code: "not_found" }]);
+    expect(body.error.issues).toEqual([
+      { path: "templateId", code: "not_found" },
+    ]);
   });
 
   it("creates a full chain and refuses to move an item to another block or kind", async () => {
@@ -332,7 +656,9 @@ describe("PUT /api/:entity/:id", () => {
       heading: null,
     });
     expect(moved.status).toBe(400);
-    expect(moved.body.error.issues).toEqual([{ path: "blockId", code: "immutable" }]);
+    expect(moved.body.error.issues).toEqual([
+      { path: "blockId", code: "immutable" },
+    ]);
 
     const retyped = await json<ErrorBody>("PUT", "/api/items/chain-item", {
       blockId: "chain-block",
@@ -342,7 +668,9 @@ describe("PUT /api/:entity/:id", () => {
       heading: null,
     });
     expect(retyped.status).toBe(400);
-    expect(retyped.body.error.issues).toEqual([{ path: "kind", code: "immutable" }]);
+    expect(retyped.body.error.issues).toEqual([
+      { path: "kind", code: "immutable" },
+    ]);
 
     const read = await json<unknown>("GET", "/api/pages/chain-page");
     expect(read.status).toBe(200);
@@ -355,14 +683,32 @@ describe("PATCH /api/:entity/:id", () => {
     await seedSpace(db, "patch-space");
     await seedPage(db, "patch-page", "patch-space");
     await seedBlock(db, "patch-block", "patch-page");
-    await createItem(db, { id: "patch-item", blockId: "patch-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "patch-item",
+        blockId: "patch-block",
+        position: 1000,
+        kind: "task",
+        text: "t",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
 
-    const patched = await json<ItemWriteResponse>("PATCH", "/api/items/patch-item", { done: true });
+    const patched = await json<ItemWriteResponse>(
+      "PATCH",
+      "/api/items/patch-item",
+      { done: true },
+    );
     expect(patched.status).toBe(200);
     expect(patched.body.row.done).toBe(true);
     expect(patched.body.respaced).toBeNull();
 
-    const missing = await json<ErrorBody>("PATCH", "/api/items/no-such-item", { done: true });
+    const missing = await json<ErrorBody>("PATCH", "/api/items/no-such-item", {
+      done: true,
+    });
     expect(missing.status).toBe(404);
   });
 
@@ -371,11 +717,29 @@ describe("PATCH /api/:entity/:id", () => {
     await seedSpace(db, "ck-space");
     await seedPage(db, "ck-page", "ck-space");
     await seedBlock(db, "ck-block", "ck-page");
-    await createItem(db, { id: "ck-task", blockId: "ck-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "ck-task",
+        blockId: "ck-block",
+        position: 1000,
+        kind: "task",
+        text: "t",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<ErrorBody>("PATCH", "/api/items/ck-task", { heading: 1 });
+    const { status, body } = await json<ErrorBody>(
+      "PATCH",
+      "/api/items/ck-task",
+      { heading: 1 },
+    );
     expect(status).toBe(400);
-    expect(body.error.issues).toEqual([{ path: "heading", code: "heading_only_on_note" }]);
+    expect(body.error.issues).toEqual([
+      { path: "heading", code: "heading_only_on_note" },
+    ]);
   });
 
   it("rejects assigning a task to a missing space", async () => {
@@ -383,13 +747,31 @@ describe("PATCH /api/:entity/:id", () => {
     await seedSpace(db, "as-space");
     await seedPage(db, "as-page", "as-space");
     await seedBlock(db, "as-block", "as-page");
-    await createItem(db, { id: "as-task", blockId: "as-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "as-task",
+        blockId: "as-block",
+        position: 1000,
+        kind: "task",
+        text: "t",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<ErrorBody>("PATCH", "/api/items/as-task", {
-      assigneeSpaceId: "no-such-person",
-    });
+    const { status, body } = await json<ErrorBody>(
+      "PATCH",
+      "/api/items/as-task",
+      {
+        assigneeSpaceId: "no-such-person",
+      },
+    );
     expect(status).toBe(400);
-    expect(body.error.issues).toEqual([{ path: "assigneeSpaceId", code: "not_found" }]);
+    expect(body.error.issues).toEqual([
+      { path: "assigneeSpaceId", code: "not_found" },
+    ]);
   });
 });
 
@@ -399,7 +781,19 @@ describe("task notes (docs/adr/0014)", () => {
     await seedSpace(db, "tn-space");
     await seedPage(db, "tn-page", "tn-space");
     await seedBlock(db, "tn-block", "tn-page");
-    await createItem(db, { id: "tn-task", blockId: "tn-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "tn-task",
+        blockId: "tn-block",
+        position: 1000,
+        kind: "task",
+        text: "t",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
 
     const task = await json<ErrorBody>("PUT", "/api/items/tn-task-child", {
       blockId: "tn-block",
@@ -411,7 +805,9 @@ describe("task notes (docs/adr/0014)", () => {
       parentItemId: "tn-task",
     });
     expect(task.status).toBe(400);
-    expect(task.body.error.issues).toEqual([{ path: "parentItemId", code: "parent_only_on_note" }]);
+    expect(task.body.error.issues).toEqual([
+      { path: "parentItemId", code: "parent_only_on_note" },
+    ]);
 
     const event = await json<ErrorBody>("PUT", "/api/items/tn-event-child", {
       blockId: "tn-block",
@@ -423,7 +819,9 @@ describe("task notes (docs/adr/0014)", () => {
       parentItemId: "tn-task",
     });
     expect(event.status).toBe(400);
-    expect(event.body.error.issues).toEqual([{ path: "parentItemId", code: "parent_only_on_note" }]);
+    expect(event.body.error.issues).toEqual([
+      { path: "parentItemId", code: "parent_only_on_note" },
+    ]);
   });
 
   it("rejects a heading on a child note (400)", async () => {
@@ -431,18 +829,36 @@ describe("task notes (docs/adr/0014)", () => {
     await seedSpace(db, "tnh-space");
     await seedPage(db, "tnh-page", "tnh-space");
     await seedBlock(db, "tnh-block", "tnh-page");
-    await createItem(db, { id: "tnh-task", blockId: "tnh-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "tnh-task",
+        blockId: "tnh-block",
+        position: 1000,
+        kind: "task",
+        text: "t",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<ErrorBody>("PUT", "/api/items/tnh-child", {
-      blockId: "tnh-block",
-      kind: "note",
-      position: 2000,
-      text: "x",
-      heading: 1,
-      parentItemId: "tnh-task",
-    });
+    const { status, body } = await json<ErrorBody>(
+      "PUT",
+      "/api/items/tnh-child",
+      {
+        blockId: "tnh-block",
+        kind: "note",
+        position: 2000,
+        text: "x",
+        heading: 1,
+        parentItemId: "tnh-task",
+      },
+    );
     expect(status).toBe(400);
-    expect(body.error.issues).toEqual([{ path: "heading", code: "heading_forbidden_on_child" }]);
+    expect(body.error.issues).toEqual([
+      { path: "heading", code: "heading_forbidden_on_child" },
+    ]);
   });
 
   it("rejects a note whose parent is a note (400)", async () => {
@@ -450,18 +866,35 @@ describe("task notes (docs/adr/0014)", () => {
     await seedSpace(db, "tno-space");
     await seedPage(db, "tno-page", "tno-space");
     await seedBlock(db, "tno-block", "tno-page");
-    await createItem(db, { id: "tno-note", blockId: "tno-block", position: 1000, kind: "note", text: "n", heading: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "tno-note",
+        blockId: "tno-block",
+        position: 1000,
+        kind: "note",
+        text: "n",
+        heading: null,
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<ErrorBody>("PUT", "/api/items/tno-child", {
-      blockId: "tno-block",
-      kind: "note",
-      position: 2000,
-      text: "x",
-      heading: null,
-      parentItemId: "tno-note",
-    });
+    const { status, body } = await json<ErrorBody>(
+      "PUT",
+      "/api/items/tno-child",
+      {
+        blockId: "tno-block",
+        kind: "note",
+        position: 2000,
+        text: "x",
+        heading: null,
+        parentItemId: "tno-note",
+      },
+    );
     expect(status).toBe(400);
-    expect(body.error.issues).toEqual([{ path: "parentItemId", code: "parent_must_be_task" }]);
+    expect(body.error.issues).toEqual([
+      { path: "parentItemId", code: "parent_must_be_task" },
+    ]);
   });
 
   it("rejects a note under a child note — one level only (400)", async () => {
@@ -469,19 +902,49 @@ describe("task notes (docs/adr/0014)", () => {
     await seedSpace(db, "tn2-space");
     await seedPage(db, "tn2-page", "tn2-space");
     await seedBlock(db, "tn2-block", "tn2-page");
-    await createItem(db, { id: "tn2-task", blockId: "tn2-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
-    await createItem(db, { id: "tn2-child", blockId: "tn2-block", position: 2000, kind: "note", text: "c", heading: null, parentItemId: "tn2-task" }, NOW);
+    await createItem(
+      db,
+      {
+        id: "tn2-task",
+        blockId: "tn2-block",
+        position: 1000,
+        kind: "task",
+        text: "t",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "tn2-child",
+        blockId: "tn2-block",
+        position: 2000,
+        kind: "note",
+        text: "c",
+        heading: null,
+        parentItemId: "tn2-task",
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<ErrorBody>("PUT", "/api/items/tn2-grandchild", {
-      blockId: "tn2-block",
-      kind: "note",
-      position: 3000,
-      text: "x",
-      heading: null,
-      parentItemId: "tn2-child",
-    });
+    const { status, body } = await json<ErrorBody>(
+      "PUT",
+      "/api/items/tn2-grandchild",
+      {
+        blockId: "tn2-block",
+        kind: "note",
+        position: 3000,
+        text: "x",
+        heading: null,
+        parentItemId: "tn2-child",
+      },
+    );
     expect(status).toBe(400);
-    expect(body.error.issues).toEqual([{ path: "parentItemId", code: "parent_must_not_be_child" }]);
+    expect(body.error.issues).toEqual([
+      { path: "parentItemId", code: "parent_must_not_be_child" },
+    ]);
   });
 
   it("rejects a child note whose parent does not exist (400)", async () => {
@@ -490,16 +953,22 @@ describe("task notes (docs/adr/0014)", () => {
     await seedPage(db, "tnm-page", "tnm-space");
     await seedBlock(db, "tnm-block", "tnm-page");
 
-    const { status, body } = await json<ErrorBody>("PUT", "/api/items/tnm-child", {
-      blockId: "tnm-block",
-      kind: "note",
-      position: 1000,
-      text: "x",
-      heading: null,
-      parentItemId: "no-such-task",
-    });
+    const { status, body } = await json<ErrorBody>(
+      "PUT",
+      "/api/items/tnm-child",
+      {
+        blockId: "tnm-block",
+        kind: "note",
+        position: 1000,
+        text: "x",
+        heading: null,
+        parentItemId: "no-such-task",
+      },
+    );
     expect(status).toBe(400);
-    expect(body.error.issues).toEqual([{ path: "parentItemId", code: "not_found" }]);
+    expect(body.error.issues).toEqual([
+      { path: "parentItemId", code: "not_found" },
+    ]);
   });
 
   it("a child note sits directly under its task, not in the notes group", async () => {
@@ -507,8 +976,31 @@ describe("task notes (docs/adr/0014)", () => {
     await seedSpace(db, "tno2-space");
     await seedPage(db, "tno2-page", "tno2-space");
     await seedBlock(db, "tno2-block", "tno2-page");
-    await createItem(db, { id: "tno2-note", blockId: "tno2-block", position: 500, kind: "note", text: "top", heading: null }, NOW);
-    await createItem(db, { id: "tno2-task", blockId: "tno2-block", position: 4000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "tno2-note",
+        blockId: "tno2-block",
+        position: 500,
+        kind: "note",
+        text: "top",
+        heading: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "tno2-task",
+        blockId: "tno2-block",
+        position: 4000,
+        kind: "task",
+        text: "t",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
 
     const put = await json<ItemWriteResponse>("PUT", "/api/items/tno2-child", {
       blockId: "tno2-block",
@@ -523,8 +1015,15 @@ describe("task notes (docs/adr/0014)", () => {
     const page = await json<PageResponse>("GET", "/api/pages/tno2-page");
     const items = page.body.blocks[0]!.items;
     // A top-level note would sort before the task; the child follows its task.
-    expect(items.map((entry) => entry.id)).toEqual(["tno2-note", "tno2-task", "tno2-child"]);
-    expect(items.find((entry) => entry.id === "tno2-child")).toMatchObject({ kind: "note", parentItemId: "tno2-task" });
+    expect(items.map((entry) => entry.id)).toEqual([
+      "tno2-note",
+      "tno2-task",
+      "tno2-child",
+    ]);
+    expect(items.find((entry) => entry.id === "tno2-child")).toMatchObject({
+      kind: "note",
+      parentItemId: "tno2-task",
+    });
   });
 
   it("deleting a task takes its notes with it, and only them", async () => {
@@ -532,9 +1031,44 @@ describe("task notes (docs/adr/0014)", () => {
     await seedSpace(db, "tnd-space");
     await seedPage(db, "tnd-page", "tnd-space");
     await seedBlock(db, "tnd-block", "tnd-page");
-    await createItem(db, { id: "tnd-task", blockId: "tnd-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
-    await createItem(db, { id: "tnd-child", blockId: "tnd-block", position: 2000, kind: "note", text: "Kontext", heading: null, parentItemId: "tnd-task" }, NOW);
-    await createItem(db, { id: "tnd-note", blockId: "tnd-block", position: 500, kind: "note", text: "top", heading: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "tnd-task",
+        blockId: "tnd-block",
+        position: 1000,
+        kind: "task",
+        text: "t",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "tnd-child",
+        blockId: "tnd-block",
+        position: 2000,
+        kind: "note",
+        text: "Kontext",
+        heading: null,
+        parentItemId: "tnd-task",
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "tnd-note",
+        blockId: "tnd-block",
+        position: 500,
+        kind: "note",
+        text: "top",
+        heading: null,
+      },
+      NOW,
+    );
 
     const deleted = await call("DELETE", "/api/items/tnd-task");
     expect(deleted.status).toBe(204);
@@ -549,12 +1083,42 @@ describe("task notes (docs/adr/0014)", () => {
     await seedSpace(db, "tnp-space");
     await seedPage(db, "tnp-page", "tnp-space");
     await seedBlock(db, "tnp-block", "tnp-page");
-    await createItem(db, { id: "tnp-task", blockId: "tnp-block", position: 1000, kind: "task", text: "t", dueDate: null, assigneeSpaceId: null }, NOW);
-    await createItem(db, { id: "tnp-child", blockId: "tnp-block", position: 2000, kind: "note", text: "c", heading: null, parentItemId: "tnp-task" }, NOW);
+    await createItem(
+      db,
+      {
+        id: "tnp-task",
+        blockId: "tnp-block",
+        position: 1000,
+        kind: "task",
+        text: "t",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "tnp-child",
+        blockId: "tnp-block",
+        position: 2000,
+        kind: "note",
+        text: "c",
+        heading: null,
+        parentItemId: "tnp-task",
+      },
+      NOW,
+    );
 
-    const { status, body } = await json<ErrorBody>("PATCH", "/api/items/tnp-child", { heading: 1 });
+    const { status, body } = await json<ErrorBody>(
+      "PATCH",
+      "/api/items/tnp-child",
+      { heading: 1 },
+    );
     expect(status).toBe(400);
-    expect(body.error.issues).toEqual([{ path: "heading", code: "heading_forbidden_on_child" }]);
+    expect(body.error.issues).toEqual([
+      { path: "heading", code: "heading_forbidden_on_child" },
+    ]);
   });
 });
 
@@ -565,12 +1129,35 @@ describe("DELETE /api/:entity/:id", () => {
     await seedSpace(db, "gone-space");
     await seedPage(db, "gone-page", "gone-space");
     await seedBlock(db, "gone-block", "gone-page");
-    await createItem(db, { id: "gone-note", blockId: "gone-block", position: 1000, kind: "note", text: "n", heading: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "gone-note",
+        blockId: "gone-block",
+        position: 1000,
+        kind: "note",
+        text: "n",
+        heading: null,
+      },
+      NOW,
+    );
 
     await seedSpace(db, "kept-space");
     await seedPage(db, "kept-page", "kept-space");
     await seedBlock(db, "kept-block", "kept-page");
-    await createItem(db, { id: "kept-task", blockId: "kept-block", position: 1000, kind: "task", text: "was gone's", dueDate: null, assigneeSpaceId: "gone-space" }, NOW);
+    await createItem(
+      db,
+      {
+        id: "kept-task",
+        blockId: "kept-block",
+        position: 1000,
+        kind: "task",
+        text: "was gone's",
+        dueDate: null,
+        assigneeSpaceId: "gone-space",
+      },
+      NOW,
+    );
 
     const deleted = await call("DELETE", "/api/spaces/gone-space");
     expect(deleted.status).toBe(204);
@@ -581,22 +1168,35 @@ describe("DELETE /api/:entity/:id", () => {
     const kept = await json<PageResponse>("GET", "/api/pages/kept-page");
     expect(kept.status).toBe(200);
     const keptTask = kept.body.blocks[0]?.items[0];
-    expect(keptTask).toMatchObject({ id: "kept-task", kind: "task", assigneeSpaceId: null });
+    expect(keptTask).toMatchObject({
+      id: "kept-task",
+      kind: "task",
+      assigneeSpaceId: null,
+    });
   });
 
   it("returns 404 when deleting a missing row", async () => {
-    const { status, body } = await json<ErrorBody>("DELETE", "/api/spaces/never-existed");
+    const { status, body } = await json<ErrorBody>(
+      "DELETE",
+      "/api/spaces/never-existed",
+    );
     expect(status).toBe(404);
     expect(body.error.code).toBe("not_found");
   });
 
   it("deleting a template leaves blocks intact, only un-templating them", async () => {
     const db = await getTestDb();
-    await createTemplate(db, { id: "doom-tpl", label: "Doomed", hue: "steel", seed: [] }, NOW);
+    await createTemplate(
+      db,
+      { id: "doom-tpl", label: "Doomed", hue: "steel", seed: [] },
+      NOW,
+    );
     await seedSpace(db, "ut-space");
     await seedPage(db, "ut-page", "ut-space");
     await db
-      .prepare("INSERT INTO blocks (id, page_id, template_id, title, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .prepare(
+        "INSERT INTO blocks (id, page_id, template_id, title, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
       .bind("ut-block", "ut-page", "doom-tpl", "B", "2026-08-01", NOW, NOW)
       .run();
 
@@ -604,7 +1204,11 @@ describe("DELETE /api/:entity/:id", () => {
     expect(deleted.status).toBe(204);
 
     const page = await json<PageResponse>("GET", "/api/pages/ut-page");
-    expect(page.body.blocks[0]).toMatchObject({ id: "ut-block", templateId: null, title: "B" });
+    expect(page.body.blocks[0]).toMatchObject({
+      id: "ut-block",
+      templateId: null,
+      title: "B",
+    });
   });
 
   it("deleting a block keeps ref items, only nulling their target", async () => {
@@ -613,14 +1217,28 @@ describe("DELETE /api/:entity/:id", () => {
     await seedPage(db, "refd-page", "refd-space");
     await seedBlock(db, "refd-target", "refd-page");
     await seedBlock(db, "refd-source", "refd-page");
-    await createItem(db, { id: "refd-ref", blockId: "refd-source", position: 1000, kind: "ref", refBlockId: "refd-target" }, NOW);
+    await createItem(
+      db,
+      {
+        id: "refd-ref",
+        blockId: "refd-source",
+        position: 1000,
+        kind: "ref",
+        refBlockId: "refd-target",
+      },
+      NOW,
+    );
 
     const deleted = await call("DELETE", "/api/blocks/refd-target");
     expect(deleted.status).toBe(204);
 
     const page = await json<PageResponse>("GET", "/api/pages/refd-page");
     const source = page.body.blocks.find((block) => block.id === "refd-source");
-    expect(source?.items[0]).toMatchObject({ id: "refd-ref", kind: "ref", refBlockId: null });
+    expect(source?.items[0]).toMatchObject({
+      id: "refd-ref",
+      kind: "ref",
+      refBlockId: null,
+    });
   });
 });
 
@@ -642,7 +1260,11 @@ describe("query budget per read route", () => {
     await seedSpace(raw, "budget-space-a");
     await seedSpace(raw, "budget-person", "person");
     await seedSpace(raw, "budget-space-b");
-    await createTemplate(raw, { id: "budget-tpl", label: "T", hue: "steel", seed: ["# a"] }, NOW);
+    await createTemplate(
+      raw,
+      { id: "budget-tpl", label: "T", hue: "steel", seed: ["# a"] },
+      NOW,
+    );
     for (const [pageId, spaceId] of [
       ["budget-page-a", "budget-space-a"],
       ["budget-page-b", "budget-space-a"],
@@ -650,35 +1272,95 @@ describe("query budget per read route", () => {
     ] as const) {
       await seedPage(raw, pageId, spaceId);
       await seedBlock(raw, `${pageId}-block`, pageId);
-      await createItem(raw, { id: `${pageId}-task`, blockId: `${pageId}-block`, position: 1000, kind: "task", text: "t", dueDate: "2026-08-10", assigneeSpaceId: "budget-person" }, NOW);
-      await createItem(raw, { id: `${pageId}-event`, blockId: `${pageId}-block`, position: 2000, kind: "event", text: "e", eventDate: "2026-08-10", eventTime: "14:00" }, NOW);
-      await createItem(raw, { id: `${pageId}-note`, blockId: `${pageId}-block`, position: 3000, kind: "note", text: "n", heading: null }, NOW);
+      await createItem(
+        raw,
+        {
+          id: `${pageId}-task`,
+          blockId: `${pageId}-block`,
+          position: 1000,
+          kind: "task",
+          text: "t",
+          dueDate: "2026-08-10",
+          assigneeSpaceId: "budget-person",
+        },
+        NOW,
+      );
+      await createItem(
+        raw,
+        {
+          id: `${pageId}-event`,
+          blockId: `${pageId}-block`,
+          position: 2000,
+          kind: "event",
+          text: "e",
+          eventDate: "2026-08-10",
+          eventTime: "14:00",
+        },
+        NOW,
+      );
+      await createItem(
+        raw,
+        {
+          id: `${pageId}-note`,
+          blockId: `${pageId}-block`,
+          position: 3000,
+          kind: "note",
+          text: "n",
+          heading: null,
+        },
+        NOW,
+      );
     }
 
     const { db, count } = countingD1(raw);
 
     const beforeSpaces = count();
-    const spaces = await json<SpacesResponse>("GET", "/api/spaces", undefined, db);
+    const spaces = await json<SpacesResponse>(
+      "GET",
+      "/api/spaces",
+      undefined,
+      db,
+    );
     expect(spaces.status).toBe(200);
     expect(count() - beforeSpaces).toBe(3);
 
     const beforePage = count();
-    const page = await json<PageResponse>("GET", "/api/pages/budget-page-a", undefined, db);
+    const page = await json<PageResponse>(
+      "GET",
+      "/api/pages/budget-page-a",
+      undefined,
+      db,
+    );
     expect(page.status).toBe(200);
     expect(count() - beforePage).toBe(3);
 
     const beforeOverview = count();
-    const overview = await json<OverviewResponse>("GET", "/api/overview?today=2026-08-10", undefined, db);
+    const overview = await json<OverviewResponse>(
+      "GET",
+      "/api/overview?today=2026-08-10",
+      undefined,
+      db,
+    );
     expect(overview.status).toBe(200);
     expect(count() - beforeOverview).toBe(3);
 
     const beforeCalendar = count();
-    const calendar = await json<CalendarResponse>("GET", "/api/calendar?from=2026-08-01&to=2026-08-31", undefined, db);
+    const calendar = await json<CalendarResponse>(
+      "GET",
+      "/api/calendar?from=2026-08-01&to=2026-08-31",
+      undefined,
+      db,
+    );
     expect(calendar.status).toBe(200);
     expect(count() - beforeCalendar).toBe(1);
 
     const beforeSearch = count();
-    const search = await json<SearchResponse>("GET", "/api/search?q=t", undefined, db);
+    const search = await json<SearchResponse>(
+      "GET",
+      "/api/search?q=t",
+      undefined,
+      db,
+    );
     expect(search.status).toBe(200);
     expect(count() - beforeSearch).toBe(5);
   });
@@ -689,18 +1371,34 @@ describe("query budget per read route", () => {
     await seedPage(raw, "rs-page", "rs-space");
     await seedBlock(raw, "rs-block", "rs-page");
     for (let i = 0; i < 40; i++) {
-      await createItem(raw, { id: `rs-${i}`, blockId: "rs-block", position: (i + 1) * 1000, kind: "note", text: "x", heading: null }, NOW);
+      await createItem(
+        raw,
+        {
+          id: `rs-${i}`,
+          blockId: "rs-block",
+          position: (i + 1) * 1000,
+          kind: "note",
+          text: "x",
+          heading: null,
+        },
+        NOW,
+      );
     }
 
     const { db, count } = countingD1(raw);
     const before = count();
-    const result = await json<ItemWriteResponse>("PUT", "/api/items/rs-collide", {
-      blockId: "rs-block",
-      kind: "note",
-      position: 1000,
-      text: "neu",
-      heading: null,
-    }, db);
+    const result = await json<ItemWriteResponse>(
+      "PUT",
+      "/api/items/rs-collide",
+      {
+        blockId: "rs-block",
+        kind: "note",
+        position: 1000,
+        text: "neu",
+        heading: null,
+      },
+      db,
+    );
 
     expect(result.status).toBe(200);
     expect(result.body.respaced).not.toBeNull();
@@ -719,25 +1417,58 @@ describe("query budget per read route", () => {
     // items scan, never one query per task.
     for (let t = 0; t < 30; t++) {
       const taskId = `bn-task-${t}`;
-      await createItem(raw, { id: taskId, blockId: "bn-block", position: (t + 1) * 1000, kind: "task", text: taskId, dueDate: "2026-08-10", assigneeSpaceId: "bn-space" }, NOW);
+      await createItem(
+        raw,
+        {
+          id: taskId,
+          blockId: "bn-block",
+          position: (t + 1) * 1000,
+          kind: "task",
+          text: taskId,
+          dueDate: "2026-08-10",
+          assigneeSpaceId: "bn-space",
+        },
+        NOW,
+      );
       for (let n = 0; n < 4; n++) {
-        await createItem(raw, { id: `bn-${taskId}-note-${n}`, blockId: "bn-block", position: (t + 1) * 1000 + (n + 1) * 100, kind: "note", text: `Kontext ${n}`, heading: null, parentItemId: taskId }, NOW);
+        await createItem(
+          raw,
+          {
+            id: `bn-${taskId}-note-${n}`,
+            blockId: "bn-block",
+            position: (t + 1) * 1000 + (n + 1) * 100,
+            kind: "note",
+            text: `Kontext ${n}`,
+            heading: null,
+            parentItemId: taskId,
+          },
+          NOW,
+        );
       }
     }
 
     const { db, count } = countingD1(raw);
     const before = count();
-    const overview = await json<OverviewResponse>("GET", "/api/overview?today=2026-08-10", undefined, db);
+    const overview = await json<OverviewResponse>(
+      "GET",
+      "/api/overview?today=2026-08-10",
+      undefined,
+      db,
+    );
     expect(overview.status).toBe(200);
     // All seeded tasks are returned, each with all four of its notes, and the
     // route still cost exactly three queries — the notes ride in the same
     // items scan, never one query per task.
     expect(overview.body.tasks.map((row) => row.id)).toEqual(
-      expect.arrayContaining(Array.from({ length: 30 }, (_, t) => `bn-task-${t}`)),
+      expect.arrayContaining(
+        Array.from({ length: 30 }, (_, t) => `bn-task-${t}`),
+      ),
     );
     expect(overview.body.notes.map((row) => row.id)).toEqual(
       expect.arrayContaining(
-        Array.from({ length: 30 }, (_, t) => Array.from({ length: 4 }, (_, n) => `bn-bn-task-${t}-note-${n}`)).flat(),
+        Array.from({ length: 30 }, (_, t) =>
+          Array.from({ length: 4 }, (_, n) => `bn-bn-task-${t}-note-${n}`),
+        ).flat(),
       ),
     );
     expect(count() - before).toBe(3);
@@ -750,8 +1481,30 @@ describe("item re-spacing (respace)", () => {
     await seedSpace(db, "x20-space");
     await seedPage(db, "x20-page", "x20-space");
     await seedBlock(db, "x20-block", "x20-page");
-    await createItem(db, { id: "x20-anchor", blockId: "x20-block", position: 1000, kind: "note", text: "Anker", heading: 1 }, NOW);
-    await createItem(db, { id: "x20-last", blockId: "x20-block", position: 2000, kind: "note", text: "Schluss", heading: null }, NOW);
+    await createItem(
+      db,
+      {
+        id: "x20-anchor",
+        blockId: "x20-block",
+        position: 1000,
+        kind: "note",
+        text: "Anker",
+        heading: 1,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "x20-last",
+        blockId: "x20-block",
+        position: 2000,
+        kind: "note",
+        text: "Schluss",
+        heading: null,
+      },
+      NOW,
+    );
 
     // The client's flow: place each new row between the anchor and the next
     // stream row, then PUT. Positions are integers, so roughly every ninth
@@ -761,15 +1514,22 @@ describe("item re-spacing (respace)", () => {
       const anchorIndex = items.findIndex((item) => item.id === "x20-anchor");
       const after = items[anchorIndex]!;
       const before = items[anchorIndex + 1] ?? null;
-      const position = insertPositionBetween(after.position, before ? before.position : null);
+      const position = insertPositionBetween(
+        after.position,
+        before ? before.position : null,
+      );
 
-      const result = await json<ItemWriteResponse>("PUT", `/api/items/x20-row-${i}`, {
-        blockId: "x20-block",
-        kind: "note",
-        position,
-        text: `zeile-${i}`,
-        heading: null,
-      });
+      const result = await json<ItemWriteResponse>(
+        "PUT",
+        `/api/items/x20-row-${i}`,
+        {
+          blockId: "x20-block",
+          kind: "note",
+          position,
+          text: `zeile-${i}`,
+          heading: null,
+        },
+      );
       expect(result.status).toBe(200);
       if (result.body.respaced) {
         const positions = Object.values(result.body.respaced);
@@ -795,3 +1555,97 @@ async function streamItems(db: D1Database, blockId: string) {
   const block = page.find((entry) => entry.id === blockId);
   return block?.items ?? [];
 }
+
+describe("list points (list_mark on a note, like heading)", () => {
+  it("stores a list point and returns it in the page", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "lp-space");
+    await seedPage(db, "lp-page", "lp-space");
+    await seedBlock(db, "lp-block", "lp-page");
+
+    const put = await json<ItemWriteResponse>("PUT", "/api/items/lp-note", {
+      blockId: "lp-block",
+      kind: "note",
+      position: 1000,
+      text: "Punkt",
+      heading: null,
+      listMark: "-",
+    });
+    expect(put.status).toBe(200);
+    expect(put.body.row).toMatchObject({
+      kind: "note",
+      text: "Punkt",
+      listMark: "-",
+    });
+
+    const page = await json<PageResponse>("GET", "/api/pages/lp-page");
+    expect(page.body.blocks[0]!.items[0]).toMatchObject({
+      id: "lp-note",
+      listMark: "-",
+    });
+  });
+
+  it("rejects a list mark on a task and a list mark next to a heading (400)", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "lpr-space");
+    await seedPage(db, "lpr-page", "lpr-space");
+    await seedBlock(db, "lpr-block", "lpr-page");
+
+    const onTask = await json<ErrorBody>("PUT", "/api/items/lpr-task", {
+      blockId: "lpr-block",
+      kind: "task",
+      position: 1000,
+      text: "t",
+      dueDate: null,
+      assigneeSpaceId: null,
+      listMark: "*",
+    });
+    expect(onTask.status).toBe(400);
+    expect(onTask.body.error.issues).toEqual([
+      { path: "listMark", code: "list_only_on_note" },
+    ]);
+
+    const withHeading = await json<ErrorBody>("PUT", "/api/items/lpr-note", {
+      blockId: "lpr-block",
+      kind: "note",
+      position: 1000,
+      text: "x",
+      heading: 1,
+      listMark: "*",
+    });
+    expect(withHeading.status).toBe(400);
+    expect(withHeading.body.error.issues).toEqual([
+      { path: "heading", code: "list_and_heading" },
+    ]);
+  });
+
+  it("rejects making a stored list point a heading via PATCH (400)", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "lpp-space");
+    await seedPage(db, "lpp-page", "lpp-space");
+    await seedBlock(db, "lpp-block", "lpp-page");
+    await createItem(
+      db,
+      {
+        id: "lpp-note",
+        blockId: "lpp-block",
+        position: 1000,
+        kind: "note",
+        text: "Punkt",
+        heading: null,
+        listMark: "-",
+      },
+      NOW,
+    );
+
+    const { status, body } = await json<ErrorBody>(
+      "PATCH",
+      "/api/items/lpp-note",
+      { heading: 1 },
+    );
+    expect(status).toBe(400);
+    expect(body.error.issues).toEqual([
+      { path: "heading", code: "list_and_heading" },
+    ]);
+  });
+});

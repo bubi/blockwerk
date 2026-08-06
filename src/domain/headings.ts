@@ -16,3 +16,18 @@ export function detectHeading(raw: string): DetectedHeading | null {
   if (!match) return null;
   return { heading: Math.min(match[1]!.length, 2) as 1 | 2, text: match[2]! };
 }
+
+export type ListMark = "*" | "-";
+
+/**
+ * `*` or `-` at the very start of a line, followed by whitespace, makes a
+ * list point. The marker is kept on the item (like a heading); the text is
+ * the rest of the line. A marker anywhere else stays plain text.
+ */
+const LIST_RE = /^([*-])\s+(.*)$/;
+
+export function detectListMark(raw: string): { mark: ListMark; text: string } | null {
+  const match = LIST_RE.exec(raw);
+  if (!match) return null;
+  return { mark: match[1] as ListMark, text: match[2]! };
+}

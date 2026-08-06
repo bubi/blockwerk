@@ -424,3 +424,60 @@ test("a note wraps and grows; arrow keys walk the text and only jump at the edge
   await expect(note).toHaveValue(long);
   await expect(noteInputs).toHaveCount(notesBefore + 1);
 });
+
+test("a list point converts from - or *, continues on Enter, and leaves the list on an empty Enter", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
+  await page.getByRole("button", { name: "Planung", exact: true }).click();
+
+  const b1 = page.locator("[data-block-id='b1']");
+  const noteInputs = b1.locator("textarea[aria-label='Notiz']");
+  const notesBefore = await noteInputs.count();
+  const bulletIn = (rowId: string) =>
+    b1
+      .locator(`[data-item-id='${rowId}']`)
+      .getByRole("button", { name: "In normalen Text umwandeln" });
+
+  // "- " at the line start converts the note into a list point.
+  const converted = b1.locator("[data-item-id='b1-n1'] textarea");
+  await converted.fill("");
+  await converted.focus();
+  await page.keyboard.type("- erster Punkt");
+  await expect(converted).toHaveValue("erster Punkt");
+  await expect(bulletIn("b1-n1")).toBeVisible();
+
+  // Enter continues the list with another point of the same marker.
+  await page.keyboard.press("Enter");
+  await expect(noteInputs).toHaveCount(notesBefore + 1);
+  await expect(page.locator(":focus").locator("..")).not.toHaveAttribute(
+    "data-item-id",
+    "b1-n1",
+  );
+  const secondId = (await page
+    .locator(":focus")
+    .locator("..")
+    .getAttribute("data-item-id"))!;
+  await expect(bulletIn(secondId)).toBeVisible();
+  await page.keyboard.type("zweiter Punkt");
+
+  // A third, empty point, still a list point…
+  await page.keyboard.press("Enter");
+  await expect(noteInputs).toHaveCount(notesBefore + 2);
+  await expect(page.locator(":focus").locator("..")).not.toHaveAttribute(
+    "data-item-id",
+    secondId,
+  );
+  const thirdId = (await page
+    .locator(":focus")
+    .locator("..")
+    .getAttribute("data-item-id"))!;
+  await expect(bulletIn(thirdId)).toBeVisible();
+
+  // …and Enter on the empty point leaves the list: the marker goes, the
+  // line stays a normal note, no new row appears.
+  await page.keyboard.press("Enter");
+  await expect(bulletIn(thirdId)).toHaveCount(0);
+  await expect(noteInputs).toHaveCount(notesBefore + 2);
+});

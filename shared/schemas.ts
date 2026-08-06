@@ -38,7 +38,12 @@ function addCustomIssue<T>(
 
 export const dateString = z.string().superRefine((value, ctx) => {
   if (!DATE_RE.test(value)) {
-    addCustomIssue(ctx, "invalid_date", [], "Expected a date in YYYY-MM-DD format");
+    addCustomIssue(
+      ctx,
+      "invalid_date",
+      [],
+      "Expected a date in YYYY-MM-DD format",
+    );
     return;
   }
   if (!isRealDate(value)) {
@@ -159,6 +164,7 @@ export interface ItemKindFields {
   assigneeSpaceId?: unknown;
   refBlockId?: unknown;
   parentItemId?: unknown;
+  listMark?: unknown;
 }
 
 export interface ItemRuleViolation {
@@ -167,7 +173,9 @@ export interface ItemRuleViolation {
   message: string;
 }
 
-export function itemKindRuleViolations(item: ItemKindFields): ItemRuleViolation[] {
+export function itemKindRuleViolations(
+  item: ItemKindFields,
+): ItemRuleViolation[] {
   const violations: ItemRuleViolation[] = [];
   if (item.heading != null && item.kind !== "note") {
     violations.push({
@@ -235,6 +243,22 @@ export function itemKindRuleViolations(item: ItemKindFields): ItemRuleViolation[
       message: "a child note cannot be a heading",
     });
   }
+  // A list marker is a note marker like heading — never on other kinds.
+  if (item.listMark != null && item.kind !== "note") {
+    violations.push({
+      path: "listMark",
+      code: "list_only_on_note",
+      message: "listMark is only allowed when kind is 'note'",
+    });
+  }
+  // A note is either a heading or a list point, never both (migration CHECK).
+  if (item.listMark != null && item.heading != null) {
+    violations.push({
+      path: "heading",
+      code: "list_and_heading",
+      message: "a note cannot be both a heading and a list point",
+    });
+  }
   return violations;
 }
 
@@ -252,6 +276,7 @@ export const itemWriteSchema = z
     assigneeSpaceId: idString.nullable().default(null),
     refBlockId: idString.nullable().default(null),
     parentItemId: idString.nullable().default(null),
+    listMark: z.enum(["*", "-"]).nullable().default(null),
   })
   .strict()
   .superRefine((item, ctx) => {
@@ -271,6 +296,7 @@ export const itemPatchSchema = z
     position: z.number().int().min(0),
     text: z.string().max(10_000),
     heading: z.union([z.literal(1), z.literal(2), z.null()]),
+    listMark: z.enum(["*", "-"]).nullable(),
     done: z.boolean(),
     dueDate: dateString.nullable(),
     eventDate: dateString.nullable(),
@@ -293,7 +319,12 @@ export const calendarParamsSchema = z
   .strict()
   .superRefine((params, ctx) => {
     if (params.from > params.to) {
-      addCustomIssue(ctx, "from_after_to", ["from"], "from must not be after to");
+      addCustomIssue(
+        ctx,
+        "from_after_to",
+        ["from"],
+        "from must not be after to",
+      );
     }
   });
 

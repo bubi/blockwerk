@@ -101,3 +101,19 @@
   color: var(--text3);
   padding: var(--s1) 0;
 }
+
+/* Der leere Notizbereich: der ganze Bereich ist Klickziel (Bug 4). */
+.emptyNote {
+  display: block;
+  width: 100%;
+  padding: var(--s1) 0;
+  font-size: 13px;
+  color: var(--text3);
+  text-align: left;
+  border-radius: var(--r-xs);
+}
+
+.emptyNote:hover {
+  color: var(--text2);
+  background: var(--bg);
+}

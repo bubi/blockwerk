@@ -92,7 +92,8 @@ export function BlockCard({
     }
     // A task's note: Enter creates the next note of the same task. The
     // position only orders it among its siblings — display groups children
-    // under the task, it never reads the raw gap to the task.
+    // under the task, it never reads the raw gap to the task. A list point
+    // continues the list with the same marker.
     for (const [parentId, siblings] of block.sections.taskNotes) {
       const index = siblings.findIndex((note) => note.id === itemId);
       if (index === -1) continue;
@@ -109,6 +110,7 @@ export function BlockCard({
         ),
         text: "",
         heading: null,
+        listMark: after ? after.listMark : null,
         parentItemId: parentId,
       });
       focusInput(id);
@@ -130,6 +132,7 @@ export function BlockCard({
       ),
       text: "",
       heading: null,
+      listMark: after ? after.listMark : null,
     });
     focusInput(id);
   };
@@ -147,6 +150,25 @@ export function BlockCard({
       text: "",
       heading: null,
       parentItemId: taskId,
+    });
+    focusInput(id);
+  };
+
+  /**
+   * Click into the empty notes area (Bug 4): a first editable note is
+   * created and the cursor lands in it. The whole area is the click target,
+   * not just the placeholder line.
+   */
+  const addFirstNote = () => {
+    const id = newItemId();
+    const first = block.items[0] ?? null;
+    onCreateItem({
+      id,
+      blockId: block.id,
+      kind: "note",
+      position: insertPositionBetween(null, first ? first.position : null),
+      text: "",
+      heading: null,
     });
     focusInput(id);
   };
@@ -247,7 +269,15 @@ export function BlockCard({
           />
         ))}
         {block.sections.notes.length === 0 && (
-          <li className={styles.empty}>Noch keine Notizen</li>
+          <li>
+            <button
+              type="button"
+              className={styles.emptyNote}
+              onClick={addFirstNote}
+            >
+              Noch keine Notizen — Klick legt die erste Zeile an
+            </button>
+          </li>
         )}
       </ul>
 

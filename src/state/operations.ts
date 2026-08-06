@@ -82,6 +82,8 @@ export interface ItemCreateInput {
   refBlockId?: string | null;
   /** The task a note belongs to (docs/adr/0014); notes only, immutable. */
   parentItemId?: string | null;
+  /** A note's list marker (`*` or `-`), like heading a marker on the note. */
+  listMark?: "*" | "-" | null;
 }
 
 export interface TemplateCreateInput {
@@ -304,6 +306,7 @@ function toItemRow(input: ItemCreateInput): ItemRow {
     eventTime: input.eventTime ?? null,
     refBlockId: input.refBlockId ?? null,
     parentItemId: input.parentItemId ?? null,
+    listMark: input.listMark ?? null,
     createdAt: ts,
     updatedAt: ts,
   };
@@ -340,6 +343,7 @@ function toItemBody(input: ItemCreateInput) {
     eventTime: input.eventTime ?? null,
     refBlockId: input.refBlockId ?? null,
     parentItemId: input.parentItemId ?? null,
+    listMark: input.listMark ?? null,
   };
 }
 

@@ -2,7 +2,7 @@ import { useRef } from "react";
 import type { BlockRow, ItemRow, SpaceRow } from "../../shared/db.ts";
 import type { ItemPatch } from "../../shared/schemas.ts";
 import { formatShort, fromISODate, relativeLabel } from "../domain/dates.ts";
-import { detectHeading } from "../domain/headings.ts";
+import { detectHeading, detectListMark } from "../domain/headings.ts";
 import { GrowingTextarea } from "./GrowingTextarea.tsx";
 import styles from "./ItemRow.module.css";
 
@@ -120,11 +120,20 @@ export function ItemRow({
         return;
       }
       // Enter never creates a line break in a field — not even with Shift
-      // (Shift+Enter stays deliberately unassigned). Note and task rows
-      // route it to onInsertAfter (docs/adr/0014); the other kinds just
-      // swallow it.
+      // (Shift+Enter stays deliberately unassigned). On an empty list point
+      // it leaves the list: the marker goes, the line becomes a normal note.
+      // Otherwise note and task rows route it to onInsertAfter, and events
+      // just swallow it (docs/adr/0014).
       if (event.key === "Enter") {
         event.preventDefault();
+        if (
+          item.kind === "note" &&
+          item.listMark !== null &&
+          item.text === ""
+        ) {
+          onPatch(item.id, { listMark: null });
+          return;
+        }
         if (item.kind === "note" || item.kind === "task")
           onInsertAfter?.(item.id);
         return;
@@ -135,6 +144,12 @@ export function ItemRow({
             // First step: back to normal text, second Backspace deletes.
             event.preventDefault();
             onPatch(item.id, { heading: null });
+            return;
+          }
+          if (item.listMark !== null) {
+            // Same two-step as a heading: the marker goes first.
+            event.preventDefault();
+            onPatch(item.id, { listMark: null });
             return;
           }
           if (onDeleteRow) {
@@ -166,10 +181,19 @@ export function ItemRow({
   };
 
   const handleTextChange = (value: string) => {
-    if (item.kind === "note" && item.heading === null) {
+    if (
+      item.kind === "note" &&
+      item.heading === null &&
+      item.listMark === null
+    ) {
       const detected = detectHeading(value);
       if (detected) {
         onPatch(item.id, { heading: detected.heading, text: detected.text });
+        return;
+      }
+      const list = detectListMark(value);
+      if (list) {
+        onPatch(item.id, { listMark: list.mark, text: list.text });
         return;
       }
     }
@@ -185,6 +209,7 @@ export function ItemRow({
     isChild ? styles.child : "",
     item.done ? styles.done : "",
     isHeading ? styles.heading : "",
+    item.listMark !== null ? styles.kindList : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -235,6 +260,19 @@ export function ItemRow({
           title="In normalen Text umwandeln"
         >
           {item.heading === 1 ? "#" : "##"}
+        </button>
+      )}
+
+      {item.kind === "note" && item.listMark !== null && (
+        <button
+          type="button"
+          className={styles.lmark}
+          tabIndex={-1}
+          onClick={() => onPatch(item.id, { listMark: null })}
+          aria-label="In normalen Text umwandeln"
+          title="In normalen Text umwandeln"
+        >
+          •
         </button>
       )}
 

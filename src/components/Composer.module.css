@@ -11,15 +11,24 @@
   gap: var(--s2);
 }
 
-/* Die Eingabezeile ist unsichtbar wie eine Textzeile (design-system 3.6). */
-.input,
-.select {
+/* Die Eingabezeile ist ein sichtbares Feld mit eigenem Fokus (Bug 5). */
+.input {
   flex: 1;
   min-width: 0;
   font-size: 15px;
-  padding: 0;
-  background: none;
-  border: none;
+  padding: var(--s2) var(--s4);
+  background: var(--side);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  transition:
+    border-color 0.12s,
+    background 0.12s;
+}
+
+.input:focus {
+  background: var(--white);
+  border-color: var(--line);
+  box-shadow: 0 0 0 3px var(--green-soft);
 }
 
 .input::placeholder {
@@ -27,10 +36,13 @@
 }
 
 .select {
-  padding: var(--s1) var(--s2);
+  flex: 1;
+  min-width: 0;
+  font-size: 15px;
+  padding: var(--s2) var(--s4);
   background: var(--white);
   border: 1px solid var(--line);
-  border-radius: var(--r-xs);
+  border-radius: var(--r-sm);
 }
 
 .chip {

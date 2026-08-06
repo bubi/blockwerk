@@ -1,5 +1,12 @@
 import type { BlockRow, PageRow, SpaceRow, TemplateRow } from "../shared/db.ts";
-import type { CalendarResponse, ItemWriteResponse, OverviewResponse, PageResponse, SearchResponse, SpacesResponse } from "../shared/api.ts";
+import type {
+  CalendarResponse,
+  ItemWriteResponse,
+  OverviewResponse,
+  PageResponse,
+  SearchResponse,
+  SpacesResponse,
+} from "../shared/api.ts";
 import {
   blockPatchSchema,
   blockWriteSchema,
@@ -48,12 +55,20 @@ import {
 
 export type EntityName = "space" | "page" | "block" | "item" | "template";
 
-function logWrite(method: "PUT" | "PATCH" | "DELETE", entity: string, id: string, email: string) {
+function logWrite(
+  method: "PUT" | "PATCH" | "DELETE",
+  entity: string,
+  id: string,
+  email: string,
+) {
   console.log(`${method} ${entity}/${id} by ${email}`);
 }
 
 function immutable(field: string): ValidationError {
-  return new ValidationError([{ path: field, code: "immutable" }], `Field '${field}' cannot be changed`);
+  return new ValidationError(
+    [{ path: field, code: "immutable" }],
+    `Field '${field}' cannot be changed`,
+  );
 }
 
 function assertRow<T>(row: T | null): T {
@@ -65,7 +80,10 @@ function assertRow<T>(row: T | null): T {
 // Reads
 // ============================================================
 
-export async function getSpaces(db: D1Database, email: string): Promise<SpacesResponse> {
+export async function getSpaces(
+  db: D1Database,
+  email: string,
+): Promise<SpacesResponse> {
   const spaces = await listSpaces(db);
   const pages = await listPages(db);
   const templates = await listTemplates(db);
@@ -77,31 +95,49 @@ export async function getSpaces(db: D1Database, email: string): Promise<SpacesRe
     else pagesBySpace.set(page.spaceId, [page]);
   }
 
-  const meSpaceId = spaces.find((space) => space.kind === "person" && space.email === email)?.id ?? null;
+  const meSpaceId =
+    spaces.find((space) => space.kind === "person" && space.email === email)
+      ?.id ?? null;
 
   return {
-    spaces: spaces.map((space) => ({ ...space, pages: pagesBySpace.get(space.id) ?? [] })),
+    spaces: spaces.map((space) => ({
+      ...space,
+      pages: pagesBySpace.get(space.id) ?? [],
+    })),
     templates,
     meSpaceId,
   };
 }
 
-export async function getPageDetail(db: D1Database, id: string): Promise<PageResponse> {
+export async function getPageDetail(
+  db: D1Database,
+  id: string,
+): Promise<PageResponse> {
   const page = await getPage(db, id);
   if (!page) throw new NotFoundError(`Page '${id}' does not exist`);
   const blocks = await loadPageBlocks(db, id);
   return { page, blocks };
 }
 
-export async function getOverview(db: D1Database, today: string): Promise<OverviewResponse> {
+export async function getOverview(
+  db: D1Database,
+  today: string,
+): Promise<OverviewResponse> {
   return loadOverview(db, today);
 }
 
-export async function getCalendar(db: D1Database, from: string, to: string): Promise<CalendarResponse> {
+export async function getCalendar(
+  db: D1Database,
+  from: string,
+  to: string,
+): Promise<CalendarResponse> {
   return loadCalendarWindow(db, from, to);
 }
 
-export async function getSearch(db: D1Database, query: string): Promise<SearchResponse> {
+export async function getSearch(
+  db: D1Database,
+  query: string,
+): Promise<SearchResponse> {
   return loadSearch(db, query);
 }
 
@@ -113,21 +149,35 @@ export async function getSearch(db: D1Database, query: string): Promise<SearchRe
 
 type ReferenceKind = "space" | "page" | "block" | "template";
 
-const getters: Record<ReferenceKind, (db: D1Database, id: string) => Promise<unknown | null>> = {
+const getters: Record<
+  ReferenceKind,
+  (db: D1Database, id: string) => Promise<unknown | null>
+> = {
   space: getSpace,
   page: getPage,
   block: getBlock,
   template: getTemplate,
 };
 
-async function ensureExists(db: D1Database, kind: ReferenceKind, id: string, field: string): Promise<void> {
+async function ensureExists(
+  db: D1Database,
+  kind: ReferenceKind,
+  id: string,
+  field: string,
+): Promise<void> {
   const row = await getters[kind](db, id);
   if (!row) {
-    throw new ValidationError([{ path: field, code: "not_found" }], `${kind} '${id}' does not exist`);
+    throw new ValidationError(
+      [{ path: field, code: "not_found" }],
+      `${kind} '${id}' does not exist`,
+    );
   }
 }
 
-async function checkItemRefs(db: D1Database, input: { assigneeSpaceId: string | null; refBlockId: string | null }) {
+async function checkItemRefs(
+  db: D1Database,
+  input: { assigneeSpaceId: string | null; refBlockId: string | null },
+) {
   if (input.assigneeSpaceId !== null) {
     await ensureExists(db, "space", input.assigneeSpaceId, "assigneeSpaceId");
   }
@@ -146,7 +196,10 @@ async function checkParentItem(db: D1Database, parentItemId: string | null) {
   if (parentItemId === null) return;
   const parent = await getItem(db, parentItemId);
   if (!parent) {
-    throw new ValidationError([{ path: "parentItemId", code: "not_found" }], `Item '${parentItemId}' does not exist`);
+    throw new ValidationError(
+      [{ path: "parentItemId", code: "not_found" }],
+      `Item '${parentItemId}' does not exist`,
+    );
   }
   // The more specific diagnosis first: a child note is never a valid parent.
   if (parent.parentItemId !== null) {
@@ -167,7 +220,13 @@ async function checkParentItem(db: D1Database, parentItemId: string | null) {
 // Writes — space
 // ============================================================
 
-export async function putSpace(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<SpaceRow> {
+export async function putSpace(
+  db: D1Database,
+  id: string,
+  body: unknown,
+  now: number,
+  email: string,
+): Promise<SpaceRow> {
   const input = spaceWriteSchema.parse(body);
   logWrite("PUT", "space", id, email);
   const existing = await getSpace(db, id);
@@ -175,7 +234,13 @@ export async function putSpace(db: D1Database, id: string, body: unknown, now: n
   return createSpace(db, { ...input, id }, now);
 }
 
-export async function patchSpace(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<SpaceRow> {
+export async function patchSpace(
+  db: D1Database,
+  id: string,
+  body: unknown,
+  now: number,
+  email: string,
+): Promise<SpaceRow> {
   const patch = spacePatchSchema.parse(body);
   logWrite("PATCH", "space", id, email);
   const existing = await getSpace(db, id);
@@ -187,7 +252,13 @@ export async function patchSpace(db: D1Database, id: string, body: unknown, now:
 // Writes — page
 // ============================================================
 
-export async function putPage(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<PageRow> {
+export async function putPage(
+  db: D1Database,
+  id: string,
+  body: unknown,
+  now: number,
+  email: string,
+): Promise<PageRow> {
   const input = pageWriteSchema.parse(body);
   logWrite("PUT", "page", id, email);
   const existing = await getPage(db, id);
@@ -199,7 +270,13 @@ export async function putPage(db: D1Database, id: string, body: unknown, now: nu
   return createPage(db, { ...input, id }, now);
 }
 
-export async function patchPage(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<PageRow> {
+export async function patchPage(
+  db: D1Database,
+  id: string,
+  body: unknown,
+  now: number,
+  email: string,
+): Promise<PageRow> {
   const patch = pagePatchSchema.parse(body);
   logWrite("PATCH", "page", id, email);
   const existing = await getPage(db, id);
@@ -211,21 +288,42 @@ export async function patchPage(db: D1Database, id: string, body: unknown, now: 
 // Writes — block
 // ============================================================
 
-export async function putBlock(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<BlockRow> {
+export async function putBlock(
+  db: D1Database,
+  id: string,
+  body: unknown,
+  now: number,
+  email: string,
+): Promise<BlockRow> {
   const input = blockWriteSchema.parse(body);
   logWrite("PUT", "block", id, email);
   const existing = await getBlock(db, id);
   if (existing) {
     if (input.pageId !== existing.pageId) throw immutable("pageId");
-    if (input.templateId !== null) await ensureExists(db, "template", input.templateId, "templateId");
-    return assertRow(await updateBlock(db, id, { templateId: input.templateId, title: input.title, date: input.date }, now));
+    if (input.templateId !== null)
+      await ensureExists(db, "template", input.templateId, "templateId");
+    return assertRow(
+      await updateBlock(
+        db,
+        id,
+        { templateId: input.templateId, title: input.title, date: input.date },
+        now,
+      ),
+    );
   }
   await ensureExists(db, "page", input.pageId, "pageId");
-  if (input.templateId !== null) await ensureExists(db, "template", input.templateId, "templateId");
+  if (input.templateId !== null)
+    await ensureExists(db, "template", input.templateId, "templateId");
   return createBlock(db, { ...input, id }, now);
 }
 
-export async function patchBlock(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<BlockRow> {
+export async function patchBlock(
+  db: D1Database,
+  id: string,
+  body: unknown,
+  now: number,
+  email: string,
+): Promise<BlockRow> {
   const patch = blockPatchSchema.parse(body);
   logWrite("PATCH", "block", id, email);
   const existing = await getBlock(db, id);
@@ -278,6 +376,7 @@ function contentPatch(input: ItemWrite): ItemPatch {
     text: input.text,
     position: input.position,
     heading: input.heading,
+    listMark: input.listMark,
     done: input.done,
     dueDate: input.dueDate,
     assigneeSpaceId: input.assigneeSpaceId,
@@ -287,7 +386,13 @@ function contentPatch(input: ItemWrite): ItemPatch {
   };
 }
 
-export async function putItem(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<ItemWriteResponse> {
+export async function putItem(
+  db: D1Database,
+  id: string,
+  body: unknown,
+  now: number,
+  email: string,
+): Promise<ItemWriteResponse> {
   const input = itemWriteSchema.parse(body);
   logWrite("PUT", "item", id, email);
   const existing = await getItem(db, id);
@@ -295,7 +400,10 @@ export async function putItem(db: D1Database, id: string, body: unknown, now: nu
     if (input.kind !== existing.kind) throw immutable("kind");
     if (input.blockId !== existing.blockId) throw immutable("blockId");
     await checkItemRefs(db, input);
-    return { row: assertRow(await updateItem(db, id, contentPatch(input), now)), respaced: null };
+    return {
+      row: assertRow(await updateItem(db, id, contentPatch(input), now)),
+      respaced: null,
+    };
   }
   await ensureExists(db, "block", input.blockId, "blockId");
   await checkItemRefs(db, input);
@@ -314,6 +422,7 @@ function toNewItemInput(input: ItemWrite, id: string) {
         text: input.text,
         heading: input.heading,
         parentItemId: input.parentItemId,
+        listMark: input.listMark,
       };
     case "task":
       return {
@@ -347,17 +456,33 @@ function toNewItemInput(input: ItemWrite, id: string) {
   }
 }
 
-export async function patchItem(db: D1Database, id: string, body: unknown, now: number, email: string): Promise<ItemWriteResponse> {
+export async function patchItem(
+  db: D1Database,
+  id: string,
+  body: unknown,
+  now: number,
+  email: string,
+): Promise<ItemWriteResponse> {
   const patch = itemPatchSchema.parse(body);
   logWrite("PATCH", "item", id, email);
   const existing = await getItem(db, id);
   if (!existing) throw new NotFoundError(`Item '${id}' does not exist`);
 
-  // The stored row's parentItemId is part of the rules, so a child note can
-  // never gain a heading (docs/adr/0014). parentItemId itself is immutable.
-  const violations = itemKindRuleViolations({ kind: existing.kind, parentItemId: existing.parentItemId, ...patch });
+  // The stored row's parentItemId and listMark are part of the rules, so a
+  // child note can never gain a heading, and a list point can never become a
+  // heading. parentItemId itself is immutable (docs/adr/0014); listMark is a
+  // marker on the note like heading.
+  const violations = itemKindRuleViolations({
+    kind: existing.kind,
+    parentItemId: existing.parentItemId,
+    listMark: existing.listMark,
+    ...patch,
+  });
   if (violations.length > 0) {
-    throw new ValidationError(violations.map(({ path, code }) => ({ path, code })), "Fields conflict with the item's kind");
+    throw new ValidationError(
+      violations.map(({ path, code }) => ({ path, code })),
+      "Fields conflict with the item's kind",
+    );
   }
 
   if (patch.assigneeSpaceId !== undefined && patch.assigneeSpaceId !== null) {
@@ -366,7 +491,10 @@ export async function patchItem(db: D1Database, id: string, body: unknown, now: 
   if (patch.refBlockId !== undefined && patch.refBlockId !== null) {
     await ensureExists(db, "block", patch.refBlockId, "refBlockId");
   }
-  return { row: assertRow(await updateItem(db, id, patch, now)), respaced: null };
+  return {
+    row: assertRow(await updateItem(db, id, patch, now)),
+    respaced: null,
+  };
 }
 
 // ============================================================

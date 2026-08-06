@@ -14,6 +14,7 @@ export function item(overrides: Partial<ItemRow> & { id: string; kind: ItemRow["
     eventTime: null,
     refBlockId: null,
     parentItemId: null,
+    listMark: null,
     createdAt: 1_700_000_000_000,
     updatedAt: 1_700_000_000_000,
     ...overrides,

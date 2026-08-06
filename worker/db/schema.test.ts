@@ -4,21 +4,34 @@ import { getTestDb } from "./testing/get-test-db.ts";
 const NOW = 1_700_000_000_000;
 const DATE = "2026-08-01";
 
-async function insertSpace(db: D1Database, id: string, kind: "person" | "topic" = "topic") {
+async function insertSpace(
+  db: D1Database,
+  id: string,
+  kind: "person" | "topic" = "topic",
+) {
   await db
-    .prepare("INSERT INTO spaces (id, name, kind, short, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)")
+    .prepare(
+      "INSERT INTO spaces (id, name, kind, short, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+    )
     .bind(id, id, kind, id.slice(0, 2).toUpperCase(), NOW, NOW)
     .run();
 }
 
 async function insertPage(db: D1Database, id: string, spaceId: string) {
   await db
-    .prepare("INSERT INTO pages (id, space_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")
+    .prepare(
+      "INSERT INTO pages (id, space_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+    )
     .bind(id, spaceId, id, NOW, NOW)
     .run();
 }
 
-async function insertBlock(db: D1Database, id: string, pageId: string, templateId: string | null = null) {
+async function insertBlock(
+  db: D1Database,
+  id: string,
+  pageId: string,
+  templateId: string | null = null,
+) {
   await db
     .prepare(
       "INSERT INTO blocks (id, page_id, template_id, title, date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -27,7 +40,12 @@ async function insertBlock(db: D1Database, id: string, pageId: string, templateI
     .run();
 }
 
-async function insertNote(db: D1Database, id: string, blockId: string, position: number) {
+async function insertNote(
+  db: D1Database,
+  id: string,
+  blockId: string,
+  position: number,
+) {
   await db
     .prepare(
       "INSERT INTO items (id, block_id, kind, position, text, created_at, updated_at) VALUES (?, ?, 'note', ?, ?, ?, ?)",
@@ -36,7 +54,13 @@ async function insertNote(db: D1Database, id: string, blockId: string, position:
     .run();
 }
 
-async function insertTask(db: D1Database, id: string, blockId: string, position: number, assigneeSpaceId: string) {
+async function insertTask(
+  db: D1Database,
+  id: string,
+  blockId: string,
+  position: number,
+  assigneeSpaceId: string,
+) {
   await db
     .prepare(
       "INSERT INTO items (id, block_id, kind, position, text, assignee_space_id, created_at, updated_at) VALUES (?, ?, 'task', ?, ?, ?, ?, ?)",
@@ -45,7 +69,13 @@ async function insertTask(db: D1Database, id: string, blockId: string, position:
     .run();
 }
 
-async function insertRef(db: D1Database, id: string, blockId: string, position: number, refBlockId: string) {
+async function insertRef(
+  db: D1Database,
+  id: string,
+  blockId: string,
+  position: number,
+  refBlockId: string,
+) {
   await db
     .prepare(
       "INSERT INTO items (id, block_id, kind, position, ref_block_id, created_at, updated_at) VALUES (?, ?, 'ref', ?, ?, ?, ?)",
@@ -56,7 +86,9 @@ async function insertRef(db: D1Database, id: string, blockId: string, position: 
 
 async function insertTemplate(db: D1Database, id: string) {
   await db
-    .prepare("INSERT INTO templates (id, label, hue, created_at, updated_at) VALUES (?, ?, 'steel', ?, ?)")
+    .prepare(
+      "INSERT INTO templates (id, label, hue, created_at, updated_at) VALUES (?, ?, 'steel', ?, ?)",
+    )
     .bind(id, id, NOW, NOW)
     .run();
 }
@@ -84,9 +116,24 @@ describe("schema", () => {
 
     await db.prepare("DELETE FROM spaces WHERE id = ?").bind("space-a").run();
 
-    expect(await db.prepare("SELECT id FROM pages WHERE id = ?").bind("page-a").first()).toBeNull();
-    expect(await db.prepare("SELECT id FROM blocks WHERE id = ?").bind("block-a").first()).toBeNull();
-    expect(await db.prepare("SELECT id FROM items WHERE id = ?").bind("note-a").first()).toBeNull();
+    expect(
+      await db
+        .prepare("SELECT id FROM pages WHERE id = ?")
+        .bind("page-a")
+        .first(),
+    ).toBeNull();
+    expect(
+      await db
+        .prepare("SELECT id FROM blocks WHERE id = ?")
+        .bind("block-a")
+        .first(),
+    ).toBeNull();
+    expect(
+      await db
+        .prepare("SELECT id FROM items WHERE id = ?")
+        .bind("note-a")
+        .first(),
+    ).toBeNull();
 
     const task = await db
       .prepare("SELECT id, assignee_space_id FROM items WHERE id = ?")
@@ -109,10 +156,25 @@ describe("schema", () => {
     const block = await db
       .prepare("SELECT id, title, date, template_id FROM blocks WHERE id = ?")
       .bind("block-c")
-      .first<{ id: string; title: string; date: string; template_id: string | null }>();
-    expect(block).toEqual({ id: "block-c", title: "block-c", date: DATE, template_id: null });
+      .first<{
+        id: string;
+        title: string;
+        date: string;
+        template_id: string | null;
+      }>();
+    expect(block).toEqual({
+      id: "block-c",
+      title: "block-c",
+      date: DATE,
+      template_id: null,
+    });
 
-    expect(await db.prepare("SELECT id FROM items WHERE id = ?").bind("note-c").first()).toEqual({
+    expect(
+      await db
+        .prepare("SELECT id FROM items WHERE id = ?")
+        .bind("note-c")
+        .first(),
+    ).toEqual({
       id: "note-c",
     });
   });
@@ -126,7 +188,10 @@ describe("schema", () => {
     await insertBlock(db, "block-source", "page-d");
     await insertRef(db, "ref-1", "block-source", 1000, "block-target");
 
-    await db.prepare("DELETE FROM blocks WHERE id = ?").bind("block-target").run();
+    await db
+      .prepare("DELETE FROM blocks WHERE id = ?")
+      .bind("block-target")
+      .run();
 
     const ref = await db
       .prepare("SELECT id, ref_block_id FROM items WHERE id = ?")
@@ -156,8 +221,18 @@ describe("schema", () => {
 
     await db.prepare("DELETE FROM items WHERE id = ?").bind("task-e").run();
 
-    expect(await db.prepare("SELECT id FROM items WHERE id = ?").bind("task-e").first()).toBeNull();
-    expect(await db.prepare("SELECT id FROM items WHERE id = ?").bind("note-e").first()).toBeNull();
+    expect(
+      await db
+        .prepare("SELECT id FROM items WHERE id = ?")
+        .bind("task-e")
+        .first(),
+    ).toBeNull();
+    expect(
+      await db
+        .prepare("SELECT id FROM items WHERE id = ?")
+        .bind("note-e")
+        .first(),
+    ).toBeNull();
   });
 
   it("rejects a parent on a task or event, and a heading on a child note", async () => {
@@ -180,5 +255,34 @@ describe("schema", () => {
       )
       .bind("bad-heading", "block-f", 1000, "x", 1, "some-parent", NOW, NOW);
     await expect(childHeading.run()).rejects.toThrow();
+  });
+
+  it("only allows the list marker on notes, never next to a heading", async () => {
+    const db = await getTestDb();
+
+    await insertSpace(db, "space-g");
+    await insertPage(db, "page-g", "space-g");
+    await insertBlock(db, "block-g", "page-g");
+
+    const listOnTask = db
+      .prepare(
+        "INSERT INTO items (id, block_id, kind, position, text, list_mark, created_at, updated_at) VALUES (?, ?, 'task', ?, ?, ?, ?, ?)",
+      )
+      .bind("bad-list-task", "block-g", 1000, "t", "*", NOW, NOW);
+    await expect(listOnTask.run()).rejects.toThrow();
+
+    const listWithHeading = db
+      .prepare(
+        "INSERT INTO items (id, block_id, kind, position, text, heading, list_mark, created_at, updated_at) VALUES (?, ?, 'note', ?, ?, ?, ?, ?, ?)",
+      )
+      .bind("bad-list-heading", "block-g", 1000, "x", 1, "-", NOW, NOW);
+    await expect(listWithHeading.run()).rejects.toThrow();
+
+    const ok = db
+      .prepare(
+        "INSERT INTO items (id, block_id, kind, position, text, list_mark, created_at, updated_at) VALUES (?, ?, 'note', ?, ?, ?, ?, ?)",
+      )
+      .bind("good-list", "block-g", 1000, "Punkt", "-", NOW, NOW);
+    await expect(ok.run()).resolves.toBeTruthy();
   });
 });

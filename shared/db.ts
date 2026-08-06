@@ -67,6 +67,11 @@ export interface ItemRow {
    * parent. One level only — no task-under-task tree.
    */
   parentItemId: string | null;
+  /**
+   * The list marker of a note (`*` or `-`), like `heading` a marker on the
+   * note — not a kind. A note is either a heading or a list point, never both.
+   */
+  listMark: "*" | "-" | null;
   createdAt: number;
   updatedAt: number;
 }
