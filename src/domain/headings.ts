@@ -20,13 +20,24 @@ export function detectHeading(raw: string): DetectedHeading | null {
 export type ListMark = "*" | "-";
 
 /**
+ * How a list marker renders in the text: `*` is a footnote asterisk and
+ * reads badly as a bullet, so it appears as a dot; `-` stays a dash. The
+ * trigger for a list point is either, the display is uniform per list.
+ */
+export function listDisplayMark(mark: ListMark): string {
+  return mark === "*" ? "• " : "- ";
+}
+
+/**
  * `*` or `-` at the very start of a line, followed by whitespace, makes a
  * list point. The marker is kept on the item (like a heading); the text is
  * the rest of the line. A marker anywhere else stays plain text.
  */
 const LIST_RE = /^([*-])\s+(.*)$/;
 
-export function detectListMark(raw: string): { mark: ListMark; text: string } | null {
+export function detectListMark(
+  raw: string,
+): { mark: ListMark; text: string } | null {
   const match = LIST_RE.exec(raw);
   if (!match) return null;
   return { mark: match[1] as ListMark, text: match[2]! };

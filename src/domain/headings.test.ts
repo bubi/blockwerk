@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { detectHeading, detectListMark } from "./headings.ts";
+import { detectHeading, detectListMark, listDisplayMark } from "./headings.ts";
 
 describe("detectHeading", () => {
   it("detects # and ## at the line start", () => {
     expect(detectHeading("# Agenda")).toEqual({ heading: 1, text: "Agenda" });
-    expect(detectHeading("## Unterpunkt")).toEqual({ heading: 2, text: "Unterpunkt" });
+    expect(detectHeading("## Unterpunkt")).toEqual({
+      heading: 2,
+      text: "Unterpunkt",
+    });
   });
 
   it("caps a longer hash run at level 2, like the prototype", () => {
@@ -51,5 +54,12 @@ describe("detectListMark", () => {
     expect(detectListMark("ganz normal")).toBeNull();
     expect(detectListMark("# Überschrift")).toBeNull();
     expect(detectListMark("")).toBeNull();
+  });
+});
+
+describe("listDisplayMark", () => {
+  it("renders * as a dot and - as a dash", () => {
+    expect(listDisplayMark("*")).toBe("• ");
+    expect(listDisplayMark("-")).toBe("- ");
   });
 });

@@ -107,7 +107,8 @@ Regeln, die im Code gelten müssen:
   `-`), wie `heading` ein Merkmal auf dem Notiz-Item — **keine** eigene `item.kind`. `kind`
   steuert die Gruppenreihenfolge im Block; eine vierte Art würde sie mehrdeutig. `- ` und
   `* ` am Zeilenanfang wandeln um (Erkennung in `/src/domain/headings.ts` neben der
-  Überschriftenerkennung), der Marker steht im Text. **Enter ist ein weicher Umbruch
+  Überschriftenerkennung), der Marker steht im Text — `*` erscheint als Punkt `•`, `-`
+  bleibt ein Strich (`listDisplayMark`). **Enter ist ein weicher Umbruch
   innerhalb derselben Notiz**: Er fügt den nächsten Punkt derselben Liste hinzu
   (`\n` + Marker), es entsteht **kein** neuer Block-Eintrag — mehrere Aufzählungspunkte
   leben in einer Blockzeile. Enter auf einem leeren Punkt verlässt die Liste. Keine

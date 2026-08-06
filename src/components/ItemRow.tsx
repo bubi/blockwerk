@@ -1,8 +1,12 @@
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import type { BlockRow, ItemRow, SpaceRow } from "../../shared/db.ts";
 import type { ItemPatch } from "../../shared/schemas.ts";
 import { formatShort, fromISODate, relativeLabel } from "../domain/dates.ts";
-import { detectHeading, detectListMark } from "../domain/headings.ts";
+import {
+  detectHeading,
+  detectListMark,
+  listDisplayMark,
+} from "../domain/headings.ts";
 import { GrowingTextarea } from "./GrowingTextarea.tsx";
 import styles from "./ItemRow.module.css";
 
@@ -76,6 +80,20 @@ export function ItemRow({
 
   const isHeading = item.kind === "note" && item.heading !== null;
 
+  // Where the caret should land after the next render — used by the list
+  // soft break. A layout effect places it synchronously before paint, so a
+  // keystroke right after Enter lands where it belongs (the same pattern
+  // the composer uses for its mention pick).
+  const [pendingCaret, setPendingCaret] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    if (pendingCaret === null) return;
+    const el = inputRef.current;
+    if (el) {
+      el.setSelectionRange(pendingCaret, pendingCaret);
+      setPendingCaret(null);
+    }
+  }, [pendingCaret]);
+
   const focusRow = () => rowRef.current?.focus();
   const focusField = () => {
     const el = inputRef.current;
@@ -128,31 +146,26 @@ export function ItemRow({
       if (event.key === "Enter") {
         event.preventDefault();
         if (item.kind === "note" && item.listMark !== null) {
-          const mark = item.listMark;
           const caret = inputRef.current?.selectionStart ?? item.text.length;
           // Enter on an empty trailing bullet: the empty point goes.
-          if (caret === item.text.length && /(?:^|\n)[*-] ?$/.test(item.text)) {
-            const next = item.text.replace(/(?:^|\n)[*-] ?$/, "");
+          if (
+            caret === item.text.length &&
+            /(?:^|\n)(?:[*-]|•) ?$/.test(item.text)
+          ) {
+            const next = item.text.replace(/(?:^|\n)(?:[*-]|•) ?$/, "");
             onPatch(
               item.id,
               next === "" ? { text: "", listMark: null } : { text: next },
             );
             return;
           }
-          const insert = `\n${mark} `;
+          const insert = `\n${listDisplayMark(item.listMark)}`;
           const next =
             item.text.slice(0, caret) + insert + item.text.slice(caret);
           onPatch(item.id, { text: next });
           // Land the cursor after the fresh marker so the next bullet can be
           // typed right away.
-          window.requestAnimationFrame(() => {
-            if (inputRef.current) {
-              inputRef.current.setSelectionRange(
-                caret + insert.length,
-                caret + insert.length,
-              );
-            }
-          });
+          setPendingCaret(caret + insert.length);
           return;
         }
         if (item.kind === "note" || item.kind === "task")
@@ -214,9 +227,13 @@ export function ItemRow({
       }
       const list = detectListMark(value);
       if (list) {
-        // The marker stays in the text: a list point is multi-line text, and
-        // each line carries its marker (Enter inserts the next one inline).
-        onPatch(item.id, { listMark: list.mark, text: value });
+        // The marker stays in the text as its display form: a list point is
+        // multi-line text, and each line carries its marker (Enter inserts
+        // the next one inline). `*` appears as a dot (listDisplayMark).
+        onPatch(item.id, {
+          listMark: list.mark,
+          text: listDisplayMark(list.mark) + list.text,
+        });
         return;
       }
     }

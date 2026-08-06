@@ -436,29 +436,29 @@ test("a list point is a line break inside the row: Enter adds the next bullet, e
   const noteInputs = b1.locator("textarea[aria-label='Notiz']");
   const notesBefore = await noteInputs.count();
 
-  // "- " at the line start converts the note into a list point; the marker
-  // stays in the text.
+  // "* " at the line start converts the note into a list point; the
+  // asterisk renders as a dot in the text.
   const converted = b1.locator("[data-item-id='b1-n1'] textarea");
   await converted.fill("");
   await converted.focus();
-  await page.keyboard.type("- erster Punkt");
-  await expect(converted).toHaveValue("- erster Punkt");
+  await page.keyboard.type("* erster Punkt");
+  await expect(converted).toHaveValue("• erster Punkt");
 
   // Enter is a soft break within the same row: the next bullet of the same
-  // marker joins the text, no new block line appears.
+  // list joins the text, no new block line appears.
   await page.keyboard.press("Enter");
-  await expect(converted).toHaveValue("- erster Punkt\n- ");
+  await expect(converted).toHaveValue("• erster Punkt\n• ");
   await expect(noteInputs).toHaveCount(notesBefore);
 
   await page.keyboard.type("zweiter Punkt");
-  await expect(converted).toHaveValue("- erster Punkt\n- zweiter Punkt");
+  await expect(converted).toHaveValue("• erster Punkt\n• zweiter Punkt");
 
   // Enter again adds a fresh empty bullet…
   await page.keyboard.press("Enter");
-  await expect(converted).toHaveValue("- erster Punkt\n- zweiter Punkt\n- ");
+  await expect(converted).toHaveValue("• erster Punkt\n• zweiter Punkt\n• ");
 
   // …and Enter on that empty bullet leaves the list again.
   await page.keyboard.press("Enter");
-  await expect(converted).toHaveValue("- erster Punkt\n- zweiter Punkt");
+  await expect(converted).toHaveValue("• erster Punkt\n• zweiter Punkt");
   await expect(noteInputs).toHaveCount(notesBefore);
 });
