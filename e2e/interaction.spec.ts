@@ -457,8 +457,19 @@ test("a list point is a line break inside the row: Enter adds the next bullet, e
   await page.keyboard.press("Enter");
   await expect(converted).toHaveValue("• erster Punkt\n• zweiter Punkt\n• ");
 
-  // …and Enter on that empty bullet leaves the list again.
+  // …and Enter on that empty bullet ends the list: the empty point goes and
+  // a new normal note row opens below, so the text continues without a
+  // bullet.
   await page.keyboard.press("Enter");
   await expect(converted).toHaveValue("• erster Punkt\n• zweiter Punkt");
-  await expect(noteInputs).toHaveCount(notesBefore);
+  await expect(noteInputs).toHaveCount(notesBefore + 1);
+  await expect(page.locator(":focus").locator("..")).not.toHaveAttribute(
+    "data-item-id",
+    "b1-n1",
+  );
+  await page.keyboard.type("Normaler Text");
+  await expect(page.locator(":focus")).toHaveValue("Normaler Text");
+  await expect(
+    b1.locator("textarea", { hasText: "Normaler Text" }),
+  ).toHaveCount(1);
 });

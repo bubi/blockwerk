@@ -139,10 +139,12 @@ export function ItemRow({
       }
       // A list point's Enter is a line break within the row: another bullet
       // of the same marker joins the text, no new block line is created.
-      // On an empty trailing bullet it leaves the list instead. For the
-      // other rows Enter never creates a line break — not even with Shift
-      // (Shift+Enter stays deliberately unassigned); note and task rows
-      // route it to onInsertAfter, and events just swallow it.
+      // On an empty trailing bullet it ends the list instead: the empty
+      // point goes, and a new normal note row (without a marker) is created
+      // below so the text can continue without a bullet. For the other rows
+      // Enter never creates a line break — not even with Shift (Shift+Enter
+      // stays deliberately unassigned); note and task rows route it to
+      // onInsertAfter, and events just swallow it.
       if (event.key === "Enter") {
         event.preventDefault();
         if (item.kind === "note" && item.listMark !== null) {
@@ -157,6 +159,9 @@ export function ItemRow({
               item.id,
               next === "" ? { text: "", listMark: null } : { text: next },
             );
+            // A lone empty bullet just leaves the list; a list with content
+            // continues below with a normal line.
+            if (next !== "") onInsertAfter?.(item.id);
             return;
           }
           const insert = `\n${listDisplayMark(item.listMark)}`;
