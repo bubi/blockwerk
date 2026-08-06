@@ -250,11 +250,14 @@ test("Enter in a task adds a note under it; arrow keys walk task → notes → n
   await row("b1-t1").locator("textarea").focus();
   await page.keyboard.press("Enter");
   // Wait for the new note to actually hold the cursor before typing into it.
+  // Positive assertion first: the focused element must be a note field — a
+  // bare "not b1-t1" would pass vacuously while focus sits on an unrelated
+  // element.
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", "Notiz");
   await expect(page.locator(":focus").locator("..")).not.toHaveAttribute(
     "data-item-id",
     "b1-t1",
   );
-  await expect(page.locator(":focus")).toHaveAttribute("aria-label", "Notiz");
   await expect(noteInputs).toHaveCount(notesBefore + 1);
   const firstNoteId = (await page
     .locator(":focus")
@@ -273,11 +276,11 @@ test("Enter in a task adds a note under it; arrow keys walk task → notes → n
   // Enter in a child note adds the next note of the same task.
   await firstNote.locator("textarea").focus();
   await page.keyboard.press("Enter");
+  await expect(page.locator(":focus")).toHaveAttribute("aria-label", "Notiz");
   await expect(page.locator(":focus").locator("..")).not.toHaveAttribute(
     "data-item-id",
     firstNoteId,
   );
-  await expect(page.locator(":focus")).toHaveAttribute("aria-label", "Notiz");
   await expect(noteInputs).toHaveCount(notesBefore + 2);
   const secondNoteId = (await page
     .locator(":focus")

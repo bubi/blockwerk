@@ -4,6 +4,7 @@ import {
   monthName,
   weekdayShort,
 } from "../domain/dates.ts";
+import { Mark } from "./Mark.tsx";
 import styles from "./Header.module.css";
 
 interface HeaderProps {
@@ -18,7 +19,7 @@ export function Header({ query, today, onQueryChange }: HeaderProps) {
   return (
     <header className={styles.top}>
       <div className={styles.brand}>
-        <span className={styles.mark} aria-hidden="true" />
+        <Mark size={28} />
         <span className={styles.wordmark}>Blockwerk</span>
       </div>
       <div className={styles.searchwrap}>

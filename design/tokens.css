@@ -73,6 +73,9 @@
   --shell: 1720px; /* gesamte Komposition (Bereichsleiste + Arbeitsfläche + Datumsband) */
   --measure: 820px; /* Breite der Textspalte in der Arbeitsfläche */
 
+  /* ---------- Marke ---------- */
+  --ls-wordmark: -0.022em; /* Laufweite der Wortmarke; eng, damit sie nicht zerfällt */
+
   /* ---------- Schrift ---------- */
   --sans:
     "Frutiger LT Std", "Frutiger LT Pro", "Frutiger Neue LT", Frutiger,

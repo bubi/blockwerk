@@ -1,0 +1,23 @@
+.boot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s3);
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.wordmark {
+  font-family: var(--display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: var(--ls-wordmark);
+  color: var(--text);
+}
+
+.status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text3);
+}

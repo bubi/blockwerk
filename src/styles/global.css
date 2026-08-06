@@ -58,6 +58,9 @@
   --shell: 1720px;
   --measure: 820px;
 
+  /* Marke: die enge Laufweite der Wortmarke (ein Token, nicht gestreut). */
+  --ls-wordmark: -0.022em;
+
   --sans:
     "Frutiger LT Std", "Frutiger LT Pro", "Frutiger Neue LT", Frutiger,
     "Source Sans 3", "Source Sans Pro", "Segoe UI", "Myriad Pro", -apple-system,

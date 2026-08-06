@@ -19,33 +19,12 @@
   min-width: 0;
 }
 
-.mark {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--r-sm);
-  flex: none;
-  position: relative;
-  background: var(--green);
-}
-
-.mark::after {
-  content: "";
-  position: absolute;
-  left: 7px;
-  right: 7px;
-  top: 7px;
-  height: 3px;
-  background: #fff;
-  box-shadow:
-    0 5px 0 #fff,
-    0 10px 0 #fff;
-}
-
+/* Wortmarke: 17/600 mit dem Marken-Token für die Laufweite. */
 .wordmark {
   font-family: var(--display);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: var(--ls-wordmark);
   color: var(--text);
 }
 

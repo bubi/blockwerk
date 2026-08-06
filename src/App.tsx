@@ -10,6 +10,7 @@ import { Dates } from "./components/Dates.tsx";
 import { Header } from "./components/Header.tsx";
 import { MobileHeader } from "./components/MobileHeader.tsx";
 import { MobilePages } from "./components/MobilePages.tsx";
+import { Boot } from "./components/Boot.tsx";
 import { Notifications } from "./components/Notifications.tsx";
 import { SearchResults } from "./components/SearchResults.tsx";
 import { Sidebar } from "./components/Sidebar.tsx";
@@ -645,6 +646,10 @@ export function App() {
   // ============================================================
   // Mobile layout (< 860px): header, sheet, tab bar — no date column.
   // ============================================================
+  if (spacesView.status === "idle" || spacesView.status === "loading") {
+    return <Boot />;
+  }
+
   if (narrow) {
     return (
       <div className={styles.mapp}>
@@ -668,9 +673,7 @@ export function App() {
 
           {mTab === "notizen" &&
             nLevel === "spaces" &&
-            (spacesView.status === "idle" || spacesView.status === "loading" ? (
-              <Loading label="Bereiche werden geladen…" />
-            ) : spacesView.status === "failed" ? (
+            (spacesView.status === "failed" ? (
               <LoadError
                 message={formatError(spacesView.error)}
                 onRetry={() => void ops.loadSpaces()}
@@ -714,9 +717,6 @@ export function App() {
                 message={formatError(spacesView.error)}
                 onRetry={() => void ops.loadSpaces()}
               />
-            ) : spacesView.status === "idle" ||
-              spacesView.status === "loading" ? (
-              <Loading />
             ) : space === null ? (
               <p className="empty">
                 Noch keine Bereiche. Sobald der erste Bereich angelegt ist,
@@ -768,9 +768,7 @@ export function App() {
 
       <div className={styles.grid}>
         <aside className={`${styles.col} ${styles.rail}`}>
-          {spacesView.status === "idle" || spacesView.status === "loading" ? (
-            <Loading label="Bereiche werden geladen…" />
-          ) : spacesView.status === "failed" ? (
+          {spacesView.status === "failed" ? (
             <LoadError
               message={formatError(spacesView.error)}
               onRetry={() => void ops.loadSpaces()}
@@ -803,9 +801,6 @@ export function App() {
               message={formatError(spacesView.error)}
               onRetry={() => void ops.loadSpaces()}
             />
-          ) : spacesView.status === "idle" ||
-            spacesView.status === "loading" ? (
-            <Loading />
           ) : space === null ? (
             <p className="empty">
               Noch keine Bereiche. Sobald der erste Bereich angelegt ist,

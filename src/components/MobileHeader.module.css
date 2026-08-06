@@ -43,6 +43,27 @@
   white-space: nowrap;
 }
 
+/* Startseite: Marke klein über dem Seitentitel. */
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.wordmark {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: var(--ls-wordmark);
+  color: var(--text3);
+}
+
 .search {
   flex: 1;
   width: 100%;
