@@ -1,11 +1,59 @@
 .newbar {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
-  flex-wrap: wrap;
   margin-bottom: var(--s4);
   max-width: var(--measure);
+}
+
+/* Die Trennlinie mit mittigem Plus (Bug 6). */
+.rule {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+}
+
+.rule::before,
+.rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.plus {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex: none;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--text3);
+  opacity: 0;
+  transition:
+    opacity 0.14s,
+    color 0.14s,
+    background 0.14s;
+}
+
+.newbar:hover .plus {
+  opacity: 1;
+}
+
+.plus:hover {
+  color: var(--green-dk);
+  background: var(--hover);
+}
+
+.plus:focus-visible {
+  opacity: 1;
+}
+
+/* Auf Touch keine Trennung durch Hover: das Plus ist immer da. */
+@media (hover: none) {
+  .plus {
+    opacity: 1;
+  }
 }
 
 .tmenu {

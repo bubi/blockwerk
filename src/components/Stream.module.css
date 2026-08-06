@@ -35,20 +35,21 @@
   background: var(--blue);
 }
 
-/* Reiter: Etikett-Rolle, -1px Überlappung mit der Grundlinie. */
+/* Reiter als Segment (Bug 9): hinterlegter aktiver Zustand, keine Textzeile. */
 .tabs {
   display: flex;
-  gap: var(--s1);
   flex-wrap: wrap;
-  border-bottom: 1px solid var(--line);
+  gap: var(--s1);
+  padding: var(--s1);
+  background: var(--side);
+  border-radius: var(--r-sm);
 }
 
 .tab,
 .tabOn {
-  padding: var(--s2) var(--s3) var(--s3);
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-xs);
   color: var(--text2);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
 }
 
 .tab:hover {
@@ -57,21 +58,24 @@
 }
 
 .tabOn {
-  color: var(--green-dk);
-  border-bottom-color: var(--green);
+  background: var(--white);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(29, 33, 37, 0.12);
 }
 
 .tabAdd {
   color: var(--text3);
-  font-size: 16px;
-  padding-left: var(--s2);
-  padding-right: var(--s2);
+  font-size: 13px;
+  font-weight: 600;
+  padding-left: var(--s3);
+  padding-right: var(--s3);
 }
 
 .tabwrap {
   display: inline-flex;
   align-items: center;
-  margin-bottom: -1px;
+  border-radius: var(--r-xs);
 }
 
 .tabrename {
@@ -107,14 +111,12 @@
 .tabedit {
   display: inline-flex;
   align-items: center;
-  margin-bottom: -1px;
 }
 
 .tabedit input {
   font-size: 13px;
   padding: var(--s1) var(--s2);
   border: 1px solid var(--line);
-  border-bottom-color: var(--green);
   border-radius: var(--r-xs);
   background: var(--white);
   min-width: 120px;

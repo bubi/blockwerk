@@ -303,7 +303,7 @@ function PageTabs({
             aria-label="Seite hinzufügen"
             title="Seite hinzufügen"
           >
-            +
+            + Seite
           </button>
         )}
       </nav>

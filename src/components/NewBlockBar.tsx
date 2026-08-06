@@ -9,11 +9,13 @@ interface NewBlockBarProps {
 }
 
 /**
- * The "Block anlegen" bar (from the prototype). Opens a menu of templates —
- * picking one creates a block for today with the template's seed lines.
- * "Ohne Template" creates a bare block (also the only option when the
- * database has no templates yet). The "Templates bearbeiten…" entry opens
- * the template manager.
+ * The "Block anlegen" bar: a divider line with a centered plus (Bug 6).
+ * The plus opens a menu of templates — picking one creates a block for today
+ * with the template's seed lines. The plus is a hover control like the other
+ * row controls: on touch (hover: none) it is always visible, because creating
+ * a block is the main function and must never be hidden there. "Ohne
+ * Template" creates a bare block (also the only option when the database has
+ * no templates yet). The "Templates bearbeiten…" entry opens the manager.
  */
 export function NewBlockBar({
   templates,
@@ -24,15 +26,18 @@ export function NewBlockBar({
 
   return (
     <div className={styles.newbar}>
-      <button
-        type="button"
-        className="btn"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        aria-haspopup="menu"
-      >
-        Block anlegen
-      </button>
+      <div className={styles.rule}>
+        <button
+          type="button"
+          className={styles.plus}
+          onClick={() => setOpen((current) => !current)}
+          aria-label="Block anlegen"
+          aria-haspopup="menu"
+          aria-expanded={open}
+        >
+          +
+        </button>
+      </div>
       {open && (
         <div
           className={styles.tmenu}
