@@ -238,11 +238,13 @@ export async function createItemWithRespace(
   }
 
   const ordered = orderBlockItems(blockItems);
-  const insertIndex = ordered.findIndex(
-    (item) => item.position >= input.position,
-  );
-  const index = insertIndex === -1 ? ordered.length : insertIndex;
-
+  // Where the new row lands in display order. A top-level row's position is
+  // block-wide, so it belongs right before the first existing row it collides
+  // with (the ADR's "upper neighbor"). A child note's position only counts
+  // among its task's notes (docs/adr/0014) and can collide with an unrelated
+  // row — e.g. the next top-level note after its parent — so its slot is the
+  // parent's last note with a lower position in display order instead.
+  const index = insertIndexFor(input, ordered);
   const respaced: Record<string, number> = {};
   const params: unknown[] = [];
   let sql = "UPDATE items SET position = CASE id";
@@ -267,4 +269,23 @@ export async function createItemWithRespace(
   const row = buildItemRow(input, rowPosition, now);
   await insertItemRow(db, row);
   return { row, respaced };
+}
+
+function insertIndexFor(
+  input: NewItemInput,
+  ordered: readonly ItemRow[],
+): number {
+  const parentItemId = "parentItemId" in input ? input.parentItemId : null;
+  if (parentItemId === null) {
+    const hit = ordered.findIndex((item) => item.position >= input.position);
+    return hit === -1 ? ordered.length : hit;
+  }
+  const parentIndex = ordered.findIndex((item) => item.id === parentItemId);
+  let after = parentIndex;
+  for (let i = parentIndex + 1; i < ordered.length; i++) {
+    const item = ordered[i]!;
+    if (item.parentItemId !== parentItemId) break;
+    if (item.position < input.position) after = i;
+  }
+  return after + 1;
 }

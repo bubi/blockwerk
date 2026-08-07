@@ -1,9 +1,10 @@
-/* Kopfleiste: bleibt verankert, ihr Inhalt richtet sich an der Shell-Kante aus. */
+/* Kopfleiste: verankert, ihr Inhalt richtet sich an den Rändern aus wie das
+   Raster darunter (Bereichsleiste links, Datumsband rechts). */
 .top {
   display: flex;
   align-items: center;
   gap: var(--s5);
-  padding: 0 max(var(--s5), calc((100% - var(--shell)) / 2));
+  padding: 0 var(--s5);
   height: 64px;
   flex: none;
   background: var(--white);

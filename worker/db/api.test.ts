@@ -1548,10 +1548,97 @@ describe("item re-spacing (respace)", () => {
     const positions = items.map((item) => item.position);
     expect(new Set(positions).size).toBe(positions.length);
   });
+
+  it("keeps a task's notes in order when their positions collide with unrelated rows", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "cn-space");
+    await seedPage(db, "cn-page", "cn-space");
+    await seedBlock(db, "cn-block", "cn-page");
+    await createItem(
+      db,
+      {
+        id: "cn-note",
+        blockId: "cn-block",
+        position: 1000,
+        kind: "note",
+        text: "oben",
+        heading: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "cn-task",
+        blockId: "cn-block",
+        position: 5000,
+        kind: "task",
+        text: "aufgabe",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
+    await createItem(
+      db,
+      {
+        id: "cn-next",
+        blockId: "cn-block",
+        position: 6000,
+        kind: "task",
+        text: "nächste",
+        dueDate: null,
+        assigneeSpaceId: null,
+      },
+      NOW,
+    );
+
+    // A child note's position only counts among its task's notes (docs/adr/0014)
+    // and collides with the top-level note here — the re-space must still place
+    // it under its task, in display order.
+    const first = await json<ItemWriteResponse>("PUT", "/api/items/cn-child1", {
+      blockId: "cn-block",
+      kind: "note",
+      position: 1000,
+      text: "erste",
+      heading: null,
+      parentItemId: "cn-task",
+    });
+    expect(first.status).toBe(200);
+
+    // The client computes the next child from the confirmed position of the
+    // first (it adopts the re-space map); its sibling-local slot then collides
+    // with the next top-level row instead.
+    const afterFirst = await streamItems(db, "cn-block", "cn-page");
+    const child1 = afterFirst.find((item) => item.id === "cn-child1")!;
+    const second = await json<ItemWriteResponse>("PUT", "/api/items/cn-child2", {
+      blockId: "cn-block",
+      kind: "note",
+      position: insertPositionBetween(child1.position, null),
+      text: "zweite",
+      heading: null,
+      parentItemId: "cn-task",
+    });
+    expect(second.status).toBe(200);
+
+    const items = await streamItems(db, "cn-block", "cn-page");
+    const children = items.filter((item) => item.parentItemId === "cn-task");
+    expect(children.map((item) => item.text)).toEqual(["erste", "zweite"]);
+    const taskIndex = items.findIndex((item) => item.id === "cn-task");
+    expect(items.slice(taskIndex, taskIndex + 3).map((item) => item.id)).toEqual([
+      "cn-task",
+      "cn-child1",
+      "cn-child2",
+    ]);
+  });
 });
 
-async function streamItems(db: D1Database, blockId: string) {
-  const page = await loadPageBlocks(db, "x20-page");
+async function streamItems(
+  db: D1Database,
+  blockId: string,
+  pageId = "x20-page",
+) {
+  const page = await loadPageBlocks(db, pageId);
   const block = page.find((entry) => entry.id === blockId);
   return block?.items ?? [];
 }
