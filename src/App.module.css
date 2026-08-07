@@ -41,6 +41,10 @@
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   box-shadow: 0 1px 2px rgba(29, 33, 37, 0.04);
+  /* Auf Bildschirmen breiter als die Shell wächst nur das Datumsband über
+     seine Spur hinaus bis zum rechten Rand — Bereichsleiste und
+     Arbeitsfläche bleiben exakt an der Shell stehen. */
+  width: calc(384px + max(0px, (100vw - var(--shell)) / 2));
 }
 
 /* Mobile layout (≤ 860px, design-system 4.3): header, sheet, tab bar. */
@@ -68,6 +72,10 @@
 
   .stream {
     padding: var(--s2) var(--s4) var(--s6);
+  }
+
+  .dates {
+    width: calc(344px + max(0px, (100vw - var(--shell)) / 2));
   }
 }
 
