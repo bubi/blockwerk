@@ -36,6 +36,7 @@ import {
   writeScope,
   type TodayScope,
 } from "./domain/preferences.ts";
+import type { PageSelection } from "./state/navigation.ts";
 import type { ItemCreateInput } from "./state/operations.ts";
 import {
   selectCalendar,
@@ -63,14 +64,14 @@ interface MobileNavState {
   mTab: MobileTab;
   nLevel: NotizenLevel;
   spaceId: string | null;
-  pageId: string | "mirror" | null;
+  pageId: PageSelection | null;
 }
 
 export function App() {
   const { state, ops } = useApp();
 
   const [spaceId, setSpaceId] = useState<string | null>(null);
-  const [pageId, setPageId] = useState<string | "mirror" | null>(null);
+  const [pageId, setPageId] = useState<PageSelection | null>(null);
   // The desktop stream column shows either the "Heute" start view or a
   // space's stream — the rail's "Heute" button toggles it (design-system 5).
   const [home, setHome] = useState(true);
@@ -155,22 +156,21 @@ export function App() {
   const activeSpaceId = resolvedSpaceId;
   const pages = space?.pages ?? [];
 
-  const resolvedPageId: string | "mirror" | null =
+  const resolvedPageId: PageSelection | null =
     space === null
       ? null
-      : pageId === "mirror" && isPerson
-        ? "mirror"
-        : pageId !== null &&
-            pageId !== "mirror" &&
-            pages.some((page) => page.id === pageId)
-          ? pageId
-          : isPerson
-            ? "mirror"
-            : (pages[0]?.id ?? null);
+      : pageId !== null && validSelection(pageId, space)
+        ? pageId
+        : isPerson
+          ? "tasks"
+          : (pages[0]?.id ?? "jourfix");
 
-  const mirrorMode = resolvedPageId === "mirror";
+  const tasksMode = resolvedPageId === "tasks";
+  const jourfixMode = resolvedPageId === "jourfix";
   const activePageId =
-    resolvedPageId !== null && !mirrorMode ? resolvedPageId : null;
+    resolvedPageId !== null && !tasksMode && !jourfixMode
+      ? resolvedPageId
+      : null;
 
   const monthFrom = toISODate(new Date(month.year, month.month, 1));
   const monthTo = toISODate(new Date(month.year, month.month + 1, 0));
@@ -186,7 +186,7 @@ export function App() {
     void ops.loadOverview(today);
   }, [today, ops]);
 
-  // Load the active page. The person view ("Zugewiesen") needs no per-space
+  // Load the active page. The person view ("Aufgaben") needs no per-space
   // load — it renders from the overview. The gate differs by layout: desktop
   // loads whenever a pane other than "today" is open; mobile only at the
   // Notizen stream level.
@@ -304,7 +304,7 @@ export function App() {
       if (next) {
         setSpaceId(next.id);
         setPageId(
-          next.kind === "person" ? "mirror" : (next.pages[0]?.id ?? null),
+          next.kind === "person" ? "tasks" : (next.pages[0]?.id ?? "jourfix"),
         );
       } else {
         setSpaceId(null);
@@ -354,8 +354,8 @@ export function App() {
   const selectSpace = (id: string) => {
     const next = spaces.find((entry) => entry.id === id);
     if (!next) return;
-    const nextPageId: string | "mirror" | null =
-      next.kind === "person" ? "mirror" : (next.pages[0]?.id ?? null);
+    const nextPageId: PageSelection =
+      next.kind === "person" ? "tasks" : (next.pages[0]?.id ?? "jourfix");
     setJump(null);
     if (narrow) {
       commitNav({ nLevel: "pages", spaceId: id, pageId: nextPageId });
@@ -366,7 +366,7 @@ export function App() {
     }
   };
 
-  const selectPage = (id: string | "mirror") => {
+  const selectPage = (id: PageSelection) => {
     setJump(null);
     if (narrow) {
       commitNav({ nLevel: "stream", pageId: id });
@@ -399,7 +399,7 @@ export function App() {
     const email = rawEmail.trim() || null;
     const id = newSpaceId();
     const pageId = newPageId();
-    const nextPageId: string | "mirror" = kind === "person" ? "mirror" : pageId;
+    const nextPageId: PageSelection = kind === "person" ? "tasks" : pageId;
     // Select the new space synchronously, before any await — otherwise the
     // async continuation could revert a selection the user already changed.
     setJump(null);
@@ -449,12 +449,13 @@ export function App() {
 
   const deletePage = (id: string) => {
     ops.deletePage(id);
-    // If the active page goes away, switch to another one — the mirror for a
-    // person space, otherwise the next remaining page (or none).
+    // If the active page goes away, switch to another one — the "Aufgaben"
+    // entry for a person space, otherwise the next remaining page (or the
+    // "Jour Fix" entry, which always exists for a topic).
     if (resolvedPageId === id && space) {
       const next = space.pages.find((entry) => entry.id !== id);
       if (next) setPageId(next.id);
-      else setPageId(isPerson ? "mirror" : null);
+      else setPageId(isPerson ? "tasks" : "jourfix");
     }
   };
 
@@ -604,10 +605,7 @@ export function App() {
 
   // The block stream is the same on mobile and desktop (docs/adr/0012) — it
   // is deliberately not reworked here.
-  const renderStream = (
-    s: SpaceWithPages,
-    selectedPageId: string | "mirror",
-  ) => (
+  const renderStream = (s: SpaceWithPages, selectedPageId: PageSelection) => (
     <Stream
       space={s}
       selectedPageId={selectedPageId}
@@ -625,7 +623,6 @@ export function App() {
       todayDate={todayDate}
       pageView={selectPageView(state, selectedPageId)}
       pulseBlockId={jump?.blockId ?? null}
-      onSelectPage={selectPage}
       onPatchBlock={patchBlock}
       onPatchItem={patchItem}
       onCreateItem={createItem}
@@ -634,9 +631,6 @@ export function App() {
       onJumpToOverviewRow={jumpToTarget}
       onRetryPage={() => void ops.loadPage(selectedPageId)}
       onRetryOverview={() => void ops.loadOverview(today)}
-      onCreatePage={createPage}
-      onRenamePage={renamePage}
-      onDeletePage={deletePage}
       onCreateBlock={createBlock}
       onDeleteBlock={deleteBlock}
       onManageTemplates={() => setTplOpen(true)}
@@ -662,7 +656,7 @@ export function App() {
               ? (state.pages.get(activePageId)?.title ?? "")
               : ""
           }
-          mirrorMode={mirrorMode}
+          selection={resolvedPageId}
           query={query}
           onQueryChange={handleQueryChange}
           onBack={mobileBack}
@@ -684,12 +678,18 @@ export function App() {
                 topics={topics}
                 openCounts={openCounts}
                 selectedSpaceId={activeSpaceId}
+                selectedPage={resolvedPageId}
                 overdueCount={overdueCount}
                 meSpaceId={meSpaceId}
                 homeActive={false}
                 showHome={false}
+                expandable={false}
                 onHome={goHome}
                 onSelectSpace={selectSpace}
+                onSelectPage={selectPage}
+                onCreatePage={createPage}
+                onRenamePage={renamePage}
+                onDeletePage={deletePage}
                 onCreateSpace={createSpace}
                 onDeleteSpace={deleteSpace}
                 onManageTemplates={() => setTplOpen(true)}
@@ -779,11 +779,16 @@ export function App() {
               topics={topics}
               openCounts={openCounts}
               selectedSpaceId={home ? null : activeSpaceId}
+              selectedPage={home ? null : resolvedPageId}
               overdueCount={overdueCount}
               meSpaceId={meSpaceId}
               homeActive={home}
               onHome={goHome}
               onSelectSpace={selectSpace}
+              onSelectPage={selectPage}
+              onCreatePage={createPage}
+              onRenamePage={renamePage}
+              onDeletePage={deletePage}
               onCreateSpace={createSpace}
               onDeleteSpace={deleteSpace}
               onManageTemplates={() => setTplOpen(true)}
@@ -855,6 +860,17 @@ function defaultSpace(spaces: SpaceWithPages[]): SpaceWithPages | null {
     spaces[0] ??
     null
   );
+}
+
+/** Whether a page selection is valid for the space: "tasks" only on a person,
+ * "jourfix" everywhere, a page id only if it belongs to the space. */
+function validSelection(
+  selection: PageSelection,
+  space: SpaceWithPages,
+): boolean {
+  if (selection === "tasks") return space.kind === "person";
+  if (selection === "jourfix") return true;
+  return space.pages.some((page) => page.id === selection);
 }
 
 /**

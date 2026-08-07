@@ -8,10 +8,15 @@ import { expect, test } from "@playwright/test";
  */
 test.use({ viewport: { width: 390, height: 844 } });
 
-test("mobile shows the tab bar with the team overview and no date column", async ({ page }) => {
+test("mobile shows the tab bar with the team overview and no date column", async ({
+  page,
+}) => {
   await page.goto("/");
 
-  await expect(page.getByRole("tab", { name: "Heute" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Heute" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await expect(page.getByRole("tab", { name: "Notizen" })).toBeVisible();
   await expect(page.getByRole("tab", { name: "Suche" })).toBeVisible();
 
@@ -19,10 +24,14 @@ test("mobile shows the tab bar with the team overview and no date column", async
   await expect(page.getByRole("heading", { name: "Auslastung" })).toBeVisible();
 
   // The date column is gone on mobile.
-  await expect(page.getByRole("button", { name: "Vorheriger Monat" })).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Vorheriger Monat" }),
+  ).toHaveCount(0);
 });
 
-test("Notizen drills down Bereich → Seite → Stream and back", async ({ page }) => {
+test("Notizen drills down Bereich → Seite → Stream and back", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Notizen" }).click();
   await expect(page.getByRole("heading", { name: "Personen" })).toBeVisible();
@@ -30,8 +39,12 @@ test("Notizen drills down Bereich → Seite → Stream and back", async ({ page 
 
   // Space → pages.
   await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
-  await expect(page.getByRole("button", { name: "Planung", exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Architektur", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Planung", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Architektur", exact: true }),
+  ).toBeVisible();
 
   // Page → stream.
   await page.getByRole("button", { name: "Planung", exact: true }).click();
@@ -40,35 +53,44 @@ test("Notizen drills down Bereich → Seite → Stream and back", async ({ page 
 
   // Browser back restores the pages step of the drill-down.
   await page.goBack();
-  await expect(page.getByRole("button", { name: "Planung", exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Planung", exact: true }),
+  ).toBeVisible();
 
   // The in-app back button climbs back to the spaces list.
   await page.getByRole("button", { name: "Zurück" }).click();
   await expect(page.getByRole("heading", { name: "Personen" })).toBeVisible();
 });
 
-test("a person space leads to the Zugewiesen overview", async ({ page }) => {
+test("a person space leads to the Aufgaben overview", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Notizen" }).click();
   await page.getByRole("button", { name: /^Lena Brandt(?:\s+\d+)?$/ }).click();
-  await page.getByRole("button", { name: /^Zugewiesen/ }).click();
+  await page.getByRole("button", { name: /^Aufgaben/ }).click();
 
   await expect(page.locator("[data-item-id='b1-t3']")).toBeVisible();
   await expect(page.locator("[data-item-id='b4-t1']")).toBeVisible();
 });
 
-test("Suche opens focused, finds a block, and jumps into the stream", async ({ page }) => {
+test("Suche opens focused, finds a block, and jumps into the stream", async ({
+  page,
+}) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Suche" }).click();
   await expect(page.getByLabel("Durchsuchen")).toBeFocused();
 
   await page.keyboard.type("Q3");
-  const itemHit = page.getByRole("button", { name: /^Task Kapazitätsplan für Q3 aufstellen/ });
+  const itemHit = page.getByRole("button", {
+    name: /^Task Kapazitätsplan für Q3 aufstellen/,
+  });
   await expect(itemHit).toBeVisible();
 
   // A hit jumps into the Notizen stream and leaves the search.
   await itemHit.click();
-  await expect(page.getByRole("tab", { name: "Notizen" })).toHaveAttribute("aria-selected", "true");
+  await expect(page.getByRole("tab", { name: "Notizen" })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
   await expect(page.locator("[data-block-id='b1']")).toBeVisible();
 
   // Reopening Suche shows the cleared field.

@@ -16,7 +16,6 @@
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.03em;
-  margin-bottom: var(--s4);
 }
 
 .dotPerson,
@@ -35,91 +34,21 @@
   background: var(--blue);
 }
 
-/* Reiter als Segment (Bug 9): hinterlegter aktiver Zustand, keine Textzeile. */
-.tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--s1);
-  padding: var(--s1);
-  background: var(--side);
-  border-radius: var(--r-sm);
-}
-
-.tab,
-.tabOn {
-  padding: var(--s2) var(--s3);
-  border-radius: var(--r-xs);
+/* Der gewählte Eintrag (Seite, Aufgaben oder Jour Fix) — ersetzt die Tabs. */
+.crumbEntry {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 600;
   color: var(--text2);
+  margin: var(--s2) 0 0;
 }
 
-.tab:hover {
-  color: var(--text);
-  background: var(--hover);
-}
-
-.tabOn {
-  background: var(--white);
-  color: var(--text);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(29, 33, 37, 0.12);
-}
-
-.tabAdd {
+/* Jour Fix: ein virtueller Eintrag ohne Inhalt — ruhiger Platzhalter. */
+.jourfix {
+  padding: var(--s6) 0;
   color: var(--text3);
-  font-size: 13px;
-  font-weight: 600;
-  padding-left: var(--s3);
-  padding-right: var(--s3);
-}
-
-.tabwrap {
-  display: inline-flex;
-  align-items: center;
-  border-radius: var(--r-xs);
-}
-
-.tabrename {
-  font-size: 16px;
-  line-height: 1;
-  padding: 0 var(--s1);
-  color: transparent;
-}
-
-.tabwrap:hover .tabrename {
-  color: var(--text3);
-}
-
-.tabrename:hover {
-  color: var(--green-dk);
-}
-
-.tabdelete {
-  font-size: 16px;
-  line-height: 1;
-  padding: 0 var(--s1);
-  color: transparent;
-}
-
-.tabwrap:hover .tabdelete {
-  color: var(--text3);
-}
-
-.tabdelete:hover {
-  color: var(--red);
-}
-
-.tabedit {
-  display: inline-flex;
-  align-items: center;
-}
-
-.tabedit input {
-  font-size: 13px;
-  padding: var(--s1) var(--s2);
-  border: 1px solid var(--line);
-  border-radius: var(--r-xs);
-  background: var(--white);
-  min-width: 120px;
+  font-size: 15px;
+  line-height: 1.7;
 }
 
 .page {
@@ -132,21 +61,4 @@
   flex-direction: column;
   gap: var(--s4);
   max-width: var(--measure);
-}
-
-@media (max-width: 640px) {
-  .tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .tab,
-  .tabOn {
-    white-space: nowrap;
-  }
 }

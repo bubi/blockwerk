@@ -1,4 +1,5 @@
 import type { MobileTab } from "./TabBar.tsx";
+import type { PageSelection } from "../state/navigation.ts";
 import { Mark } from "./Mark.tsx";
 import styles from "./MobileHeader.module.css";
 
@@ -13,7 +14,7 @@ export function MobileHeader({
   nLevel,
   spaceName,
   pageTitle,
-  mirrorMode,
+  selection,
   query,
   onQueryChange,
   onBack,
@@ -22,7 +23,7 @@ export function MobileHeader({
   nLevel: "spaces" | "pages" | "stream";
   spaceName: string;
   pageTitle: string;
-  mirrorMode: boolean;
+  selection: PageSelection | null;
   query: string;
   onQueryChange: (value: string) => void;
   onBack: () => void;
@@ -61,7 +62,9 @@ export function MobileHeader({
   let title: string;
   if (nLevel === "spaces") title = "Notizen";
   else if (nLevel === "pages") title = spaceName;
-  else title = mirrorMode ? "Zugewiesen" : pageTitle || spaceName;
+  else if (selection === "tasks") title = "Aufgaben";
+  else if (selection === "jourfix") title = "Jour Fix";
+  else title = pageTitle || spaceName;
 
   return (
     <header className={styles.top}>

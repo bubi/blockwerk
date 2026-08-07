@@ -20,7 +20,7 @@ import styles from "./TaskOverview.module.css";
 /**
  * The unified task overview (docs/adr/0011) — one component, two modes. Team
  * mode is the desktop "Heute" view (and the mobile "Heute" tab); person mode
- * shows a single person's assigned tasks and replaced the mirror. Both render
+ * shows a single person's assigned tasks ("Aufgaben"). Both render
  * the same sections (Überfällig · the next 8 days · Später fällig · Ohne
  * Datum) with the same row markup; the team extras — scope bar, Auslastung,
  * overdue grouped by person — are conditionals around the shared structure,

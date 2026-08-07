@@ -116,7 +116,8 @@ Regeln, die im Code gelten müssen:
   (CHECK wie bei `heading`: nur `kind='note'`).
 - **Aufgabenüberblick statt Spiegel (ADR 0011):** Offene Tasks erscheinen an genau einer
   Stelle — dem Überblick, einer Komponente mit zwei Modi (Team „Heute" und die Person im
-  Tab „Zugewiesen"). Der Überblick ist `SELECT … WHERE kind = 'task' AND done = 0` mit
+  Eintrag „Aufgaben" der Bereichsleiste, ADR 0015). Der Überblick ist `SELECT … WHERE
+kind = 'task' AND done = 0` mit
   Kontext (Ursprungsblock), projiziert in `/src/domain/overview.ts`. Die Auslastung entsteht
   im Speicher aus den geladenen Tasks, nie per Abfrage pro Person. Ein Task, der einer
   Person zugewiesen wird, ist weiterhin **kein** Duplikat — er bleibt in seinem
@@ -309,6 +310,7 @@ Bewusst _nicht_ gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 8     | Notizen an Tasks (ADR 0014): eine Verschachtelungsebene, Kindnotizen unter dem Task, auch in der Übersicht                                                                                                        | erledigt  |
 | 9     | Design-System (design/DESIGN-SYSTEM.md, tokens.css): Oberfläche nach der Spezifikation, Sammelregeln, Tageskopf, Haltepunkte                                                                                      | erledigt  |
 | 10    | Bug- und Change-Sammlung 06.08.2026: Breiten (gemeinsames Maß, Metazeile), Editor (leerer Notizbereich, sichtbare Eingabezeile, Listenpunkte), Sortierung + Klappzustand, Feinschliff (Block anlegen, Umschalter) | erledigt  |
+| 11    | Seitennavigation in der Bereichsleiste (ADR 0015): Einträge als Unterliste je Bereich, „Aufgaben" und „Jour Fix" als virtuelle Einträge, Tab-Reihe aus dem Streamkopf entfernt                                    | erledigt  |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
 Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.

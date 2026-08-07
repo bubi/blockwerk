@@ -1,18 +1,12 @@
-import { useState } from "react";
 import type { SpaceWithPages } from "../../shared/api.ts";
-import type {
-  BlockRow,
-  PageRow,
-  SpaceRow,
-  TemplateRow,
-} from "../../shared/db.ts";
+import type { BlockRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
 import type { TaskOverviewView } from "../domain/overview.ts";
+import type { PageSelection } from "../state/navigation.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
 import type { ViewStatus } from "../state/state.ts";
 import type { BlockView } from "../state/selectors.ts";
 import { BlockCard } from "./BlockCard.tsx";
-import { ConfirmDialog } from "./ConfirmDialog.tsx";
 import { formatError } from "./errorText.ts";
 import { FALLBACK_TEMPLATE } from "./fallbackTemplate.ts";
 import { NewBlockBar } from "./NewBlockBar.tsx";
@@ -22,10 +16,10 @@ import styles from "./Stream.module.css";
 
 interface StreamProps {
   space: SpaceWithPages;
-  selectedPageId: string | "mirror";
+  selectedPageId: PageSelection;
   isPerson: boolean;
   pageBlocks: BlockView[];
-  /** The person's assigned-tasks view (replaces the mirror), null when unknown. */
+  /** The person's assigned-tasks view, null when unknown. */
   personView: TaskOverviewView | null;
   overviewView: ViewStatus;
   today: string;
@@ -38,7 +32,6 @@ interface StreamProps {
   todayDate: Date;
   pageView: ViewStatus;
   pulseBlockId: string | null;
-  onSelectPage: (pageId: string | "mirror") => void;
   onPatchBlock: (id: string, patch: BlockPatch) => void;
   onPatchItem: (id: string, patch: ItemPatch) => void;
   onCreateItem: (input: ItemCreateInput) => void;
@@ -51,9 +44,6 @@ interface StreamProps {
   ) => void;
   onRetryPage: () => void;
   onRetryOverview: () => void;
-  onCreatePage: (title: string) => void;
-  onRenamePage: (pageId: string, title: string) => void;
-  onDeletePage: (pageId: string) => void;
   onCreateBlock: (templateId: string | null) => void;
   onDeleteBlock: (id: string) => void;
   /** Opens the shared TemplateManager (owned by the App shell). */
@@ -78,7 +68,6 @@ export function Stream(props: StreamProps) {
     todayDate,
     pageView,
     pulseBlockId,
-    onSelectPage,
     onPatchBlock,
     onPatchItem,
     onCreateItem,
@@ -87,22 +76,25 @@ export function Stream(props: StreamProps) {
     onJumpToOverviewRow,
     onRetryPage,
     onRetryOverview,
-    onCreatePage,
-    onRenamePage,
-    onDeletePage,
     onCreateBlock,
     onDeleteBlock,
     onManageTemplates,
   } = props;
 
-  const mirrorMode = selectedPageId === "mirror";
-  const openCount =
-    personView === null
-      ? 0
-      : personView.overdue.length +
-        personView.later.length +
-        personView.undated.length +
-        personView.days.reduce((sum, day) => sum + day.tasks.length, 0);
+  // The stream decides once what the selected entry renders: the virtual
+  // "Aufgaben" (person) and "Jour Fix" entries, or a real page.
+  const pane: "tasks" | "jourfix" | "page" =
+    selectedPageId === "tasks"
+      ? "tasks"
+      : selectedPageId === "jourfix"
+        ? "jourfix"
+        : "page";
+  const entryTitle =
+    pane === "tasks"
+      ? "Aufgaben"
+      : pane === "jourfix"
+        ? "Jour Fix"
+        : (space.pages.find((page) => page.id === selectedPageId)?.title ?? "");
 
   return (
     <div className={styles.stream}>
@@ -114,20 +106,10 @@ export function Stream(props: StreamProps) {
           />
           <strong>{space.name}</strong>
         </div>
-        <PageTabs
-          isPerson={isPerson}
-          mirrorMode={mirrorMode}
-          pages={space.pages}
-          selectedPageId={selectedPageId}
-          openCount={openCount}
-          onSelectPage={onSelectPage}
-          onCreatePage={onCreatePage}
-          onRenamePage={onRenamePage}
-          onDeletePage={onDeletePage}
-        />
+        <p className={styles.crumbEntry}>{entryTitle}</p>
       </div>
 
-      {mirrorMode ? (
+      {pane === "tasks" ? (
         <PersonPane
           space={space}
           view={personView}
@@ -139,6 +121,8 @@ export function Stream(props: StreamProps) {
           onJumpToBlock={onJumpToOverviewRow}
           onRetry={onRetryOverview}
         />
+      ) : pane === "jourfix" ? (
+        <JourFixPane />
       ) : (
         <PagePane
           pageView={pageView}
@@ -166,164 +150,12 @@ export function Stream(props: StreamProps) {
   );
 }
 
-function PageTabs({
-  isPerson,
-  mirrorMode,
-  pages,
-  selectedPageId,
-  openCount,
-  onSelectPage,
-  onCreatePage,
-  onRenamePage,
-  onDeletePage,
-}: {
-  isPerson: boolean;
-  mirrorMode: boolean;
-  pages: PageRow[];
-  selectedPageId: string | "mirror";
-  openCount: number;
-  onSelectPage: (pageId: string | "mirror") => void;
-  onCreatePage: (title: string) => void;
-  onRenamePage: (pageId: string, title: string) => void;
-  onDeletePage: (pageId: string) => void;
-}) {
-  const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState("");
-  const [confirmId, setConfirmId] = useState<string | null>(null);
-
-  const submitAdd = () => {
-    const title = draft.trim();
-    if (!title) return;
-    onCreatePage(title);
-    setDraft("");
-    setAdding(false);
-  };
-
-  const submitRename = () => {
-    if (editingId === null) return;
-    const title = editDraft.trim();
-    if (title) onRenamePage(editingId, title);
-    setEditingId(null);
-  };
-
+/** The virtual "Jour Fix" entry: calm placeholder, no data yet (ADR 0015). */
+function JourFixPane() {
   return (
-    <>
-      <nav className={styles.tabs} aria-label="Seiten">
-        {isPerson && (
-          <button
-            type="button"
-            className={`label ${mirrorMode ? styles.tabOn : styles.tab}`}
-            aria-current={mirrorMode ? "page" : undefined}
-            onClick={() => onSelectPage("mirror")}
-          >
-            Zugewiesen{" "}
-            {openCount > 0 && (
-              <span className="badge badge--active">{openCount}</span>
-            )}
-          </button>
-        )}
-        {pages.map((page) => {
-          const active = !mirrorMode && page.id === selectedPageId;
-          if (editingId === page.id) {
-            return (
-              <span key={page.id} className={styles.tabedit}>
-                <input
-                  autoFocus
-                  value={editDraft}
-                  onChange={(event) => setEditDraft(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") submitRename();
-                    if (event.key === "Escape") setEditingId(null);
-                  }}
-                  onBlur={submitRename}
-                  aria-label="Seitentitel umbenennen"
-                />
-              </span>
-            );
-          }
-          return (
-            <span key={page.id} className={styles.tabwrap}>
-              <button
-                type="button"
-                className={`label ${active ? styles.tabOn : styles.tab}`}
-                aria-current={active ? "page" : undefined}
-                onClick={() => onSelectPage(page.id)}
-              >
-                {page.title}
-              </button>
-              <button
-                type="button"
-                className={styles.tabrename}
-                onClick={() => {
-                  setEditingId(page.id);
-                  setEditDraft(page.title);
-                }}
-                aria-label={`${page.title} umbenennen`}
-                title="Seite umbenennen"
-              >
-                ✎
-              </button>
-              <button
-                type="button"
-                className={styles.tabdelete}
-                onClick={() => setConfirmId(page.id)}
-                aria-label={`${page.title} entfernen`}
-                title="Seite entfernen"
-              >
-                ×
-              </button>
-            </span>
-          );
-        })}
-        {adding ? (
-          <span className={styles.tabedit}>
-            <input
-              autoFocus
-              value={draft}
-              onChange={(event) => setDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") submitAdd();
-                if (event.key === "Escape") {
-                  setDraft("");
-                  setAdding(false);
-                }
-              }}
-              onBlur={submitAdd}
-              placeholder="Seitenname"
-              aria-label="Neue Seite"
-            />
-          </span>
-        ) : (
-          <button
-            type="button"
-            className={`${styles.tab} ${styles.tabAdd}`}
-            onClick={() => setAdding(true)}
-            aria-label="Seite hinzufügen"
-            title="Seite hinzufügen"
-          >
-            + Seite
-          </button>
-        )}
-      </nav>
-
-      {confirmId !== null && (
-        <ConfirmDialog
-          message={
-            <>
-              „{pages.find((entry) => entry.id === confirmId)?.title ?? ""}“ mit
-              ihren Blöcken löschen?
-            </>
-          }
-          onConfirm={() => {
-            onDeletePage(confirmId);
-            setConfirmId(null);
-          }}
-          onCancel={() => setConfirmId(null)}
-        />
-      )}
-    </>
+    <div className={styles.jourfix}>
+      <p>Jour Fix — noch nichts hinterlegt.</p>
+    </div>
   );
 }
 

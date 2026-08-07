@@ -5,8 +5,8 @@ import { addDays, fromISODate, toISODate } from "./dates.ts";
 /**
  * The task overview — the single definition of how open tasks and the next
  * days' events are sectioned and ordered. One function, two modes: the team
- * view ("Heute") and a person's assigned-tasks view (which replaced the
- * mirror, docs/adr/0011). Grouping rules (overdue by person, workload per
+ * view ("Heute") and a person's assigned-tasks view ("Aufgaben",
+ * docs/adr/0011). Grouping rules (overdue by person, workload per
  * person) live here, never in a component. The worker loads raw rows and the
  * client selector assembles OverviewRows; both project with this module.
  */

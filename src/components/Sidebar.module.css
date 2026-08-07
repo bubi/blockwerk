@@ -81,13 +81,25 @@
   flex: none;
 }
 
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
 .srow {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--r-sm);
+}
+
+.srowtop {
   display: flex;
   align-items: center;
   border-radius: var(--r-sm);
 }
 
-.srow:hover {
+.srowtop:hover {
   background: var(--hover);
 }
 
@@ -134,7 +146,8 @@
   text-align: center;
 }
 
-.srow:hover .skill {
+.srowtop:hover .skill,
+.srowtop:focus-within .skill {
   color: var(--text3);
 }
 
@@ -145,6 +158,103 @@
 .me {
   font-style: normal;
   margin-left: var(--s2);
+}
+
+/* Unterliste: die zweite Ebene der Leiste (design-system 5) — eingerückt,
+   kleiner gewichtet als der Bereichsname, aktiver Eintrag wie üblich. */
+.sublist {
+  list-style: none;
+  margin: 0 0 var(--s1);
+  padding: 0 0 0 var(--s5);
+  display: flex;
+  flex-direction: column;
+}
+
+.subrow {
+  display: flex;
+  align-items: center;
+  border-radius: var(--r-xs);
+}
+
+.subrow:hover {
+  background: var(--hover);
+}
+
+.subitem,
+.subitemOn {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex: 1;
+  min-width: 0;
+  padding: var(--s1) var(--s3);
+  border-radius: var(--r-xs);
+  font-size: 14px;
+  color: var(--text2);
+}
+
+.subitem:hover {
+  color: var(--text);
+}
+
+.subitemOn {
+  background: var(--green-soft);
+  color: var(--green-dk);
+  font-weight: 600;
+}
+
+.subname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subact {
+  width: 24px;
+  flex: none;
+  font-size: 16px;
+  line-height: 1;
+  color: transparent;
+  text-align: center;
+}
+
+.subrow:hover .subact,
+.subrow:focus-within .subact {
+  color: var(--text3);
+}
+
+.subact:hover {
+  color: var(--green-dk);
+}
+
+.subdel:hover {
+  color: var(--red);
+}
+
+.subadd {
+  padding: var(--s1) var(--s3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text3);
+  border-radius: var(--r-xs);
+  text-align: left;
+}
+
+.subadd:hover {
+  color: var(--green-dk);
+}
+
+.subedit {
+  flex: 1;
+  min-width: 0;
+  margin: 0 var(--s2);
+  padding: var(--s1) var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--white);
+  font-size: 14px;
 }
 
 .grpempty {

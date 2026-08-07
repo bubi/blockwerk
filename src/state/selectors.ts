@@ -103,7 +103,7 @@ export function selectTeamOverview(
   return buildTaskOverview(mine, allTasks, eventRows(state, today), spaces, today);
 }
 
-/** A person's assigned-tasks view (replaces the mirror): their tasks only. */
+/** A person's assigned-tasks entry ("Aufgaben"): their tasks only (docs/adr/0011). */
 export function selectPersonOverview(
   state: AppState,
   today: string,
@@ -114,7 +114,7 @@ export function selectPersonOverview(
   return buildTaskOverview(rowsForPerson(allTasks, personId), allTasks, [], spaces, today);
 }
 
-/** The open task count of a person — the "Zugewiesen" tab badge. */
+/** The open task count of a person — the "Aufgaben" entry badge. */
 export function selectPersonOpenCount(state: AppState, personId: string): number {
   let count = 0;
   for (const item of state.items.values()) {
