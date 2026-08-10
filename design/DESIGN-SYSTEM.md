@@ -236,6 +236,14 @@ Zustände tragen **niemals** eine Kante (siehe 1.2), sondern Fläche und Schrift
 | Erledigt                     | `--text3` plus Durchstreichung                              |
 | Tastaturfokus                | `outline: 2px solid var(--green); outline-offset: 2px`      |
 
+**Hover verstärkt, Hover schaltet nicht ein.** Ein Bedienelement ist im
+Ruhezustand sichtbar; Hover und Fokus erhöhen nur Kontrast, Deckkraft oder
+Prominenz. Anlegende und bestätigende Aktionen (`+`, Absenden) sind ausnahmslos
+dauerhaft voll sichtbar. Zeilengebundene zerstörende Schalter (`×`, `✎`) bleiben
+im Ruhezustand sehr zurückhaltend (gedämpfte Deckkraft auf `--text3`), damit der
+Blockstrom nicht von Löschkreuzen überzogen wird — aber sichtbar, und auf Geräten
+ohne Zeiger (`hover: none`) immer voll sichtbar.
+
 ---
 
 ## 4. Layout

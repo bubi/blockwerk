@@ -4,7 +4,8 @@
   max-width: var(--measure);
 }
 
-/* Die Trennlinie mit mittigem Plus (Bug 6). */
+/* Die Trennlinie mit mittigem Plus (Bug 6). Das Plus ist im Ruhezustand
+   sichtbar — Hover verstärkt nur (design-system 3.8), es schaltet nicht ein. */
 .rule {
   display: flex;
   align-items: center;
@@ -29,31 +30,14 @@
   font-size: 16px;
   line-height: 1;
   color: var(--text3);
-  opacity: 0;
   transition:
-    opacity 0.14s,
     color 0.14s,
     background 0.14s;
-}
-
-.newbar:hover .plus {
-  opacity: 1;
 }
 
 .plus:hover {
   color: var(--green-dk);
   background: var(--hover);
-}
-
-.plus:focus-visible {
-  opacity: 1;
-}
-
-/* Auf Touch keine Trennung durch Hover: das Plus ist immer da. */
-@media (hover: none) {
-  .plus {
-    opacity: 1;
-  }
 }
 
 .tmenu {

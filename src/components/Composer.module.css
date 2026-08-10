@@ -63,12 +63,6 @@
   color: var(--green-dk);
   padding: 0;
   margin-top: 2px;
-  opacity: 0;
-}
-
-.composer:hover .go,
-.composer:focus-within .go {
-  opacity: 1;
 }
 
 /* Befehls- und Personenliste. */
@@ -118,11 +112,4 @@
 .hint {
   font-size: 12px;
   color: var(--text3);
-}
-
-/* Ohne Zeiger sind Symbol- und Etikettenaktionen dauerhaft sichtbar. */
-@media (hover: none) {
-  .go {
-    opacity: 1;
-  }
 }

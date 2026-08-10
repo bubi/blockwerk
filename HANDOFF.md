@@ -36,6 +36,11 @@ lässt sich aus dem Code nicht ableiten, weil es Entscheidungen _gegen_ etwas si
   Bereich (Person: Aufgaben, Jour Fix, Notizseiten; Thema: Jour Fix, Notizseiten),
   Akkordeon mit Zählerwanderung, „Aufgaben" ersetzt „Zugewiesen", „Jour Fix" als
   virtueller Eintrag ohne Datenhaltung, Tab-Reihe aus dem Streamkopf entfernt
+- Feature-Batch 2, Bug 12: „Hover verstärkt, Hover schaltet nicht ein" —
+  `.plus` (Block anlegen) und Composer-`Hinzufügen` dauerhaft sichtbar,
+  zeilengebundene `×`/`✎` leise sichtbar (gedämpfte Deckkraft) mit
+  `hover: none`-Rückfall; Regel in DESIGN-SYSTEM 3.8. Bug 8: keine Stelle
+  gefunden, wo Neuanlage und Bearbeitung unterschiedliche Schalter zeigen
 - Remote: Migration 0005 (`list_mark`) angewendet, Worker deployt
   (https://blockwerk.m-schmidinger.workers.dev)
 

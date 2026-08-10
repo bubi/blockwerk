@@ -142,17 +142,28 @@
   flex: none;
   font-size: 16px;
   line-height: 1;
-  color: transparent;
+  color: var(--text3);
+  opacity: 0.5;
   text-align: center;
+  transition:
+    opacity 0.14s,
+    color 0.14s;
 }
 
 .srowtop:hover .skill,
 .srowtop:focus-within .skill {
-  color: var(--text3);
+  opacity: 1;
 }
 
 .skill:hover {
   color: var(--red);
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .skill {
+    opacity: 1;
+  }
 }
 
 .me {
@@ -216,21 +227,32 @@
   flex: none;
   font-size: 16px;
   line-height: 1;
-  color: transparent;
+  color: var(--text3);
+  opacity: 0.5;
   text-align: center;
+  transition:
+    opacity 0.14s,
+    color 0.14s;
 }
 
 .subrow:hover .subact,
 .subrow:focus-within .subact {
-  color: var(--text3);
+  opacity: 1;
 }
 
 .subact:hover {
   color: var(--green-dk);
+  opacity: 1;
 }
 
 .subdel:hover {
   color: var(--red);
+}
+
+@media (hover: none) {
+  .subact {
+    opacity: 1;
+  }
 }
 
 .subadd {

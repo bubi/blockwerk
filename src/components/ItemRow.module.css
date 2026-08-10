@@ -19,7 +19,7 @@
 
 .item:focus-visible .kill,
 .item:focus-visible .noteAdd {
-  color: var(--text3);
+  opacity: 1;
 }
 
 /* Einrückung unter Überschriften (design-system 5, Zeile). */
@@ -180,21 +180,35 @@
   background: var(--hover);
 }
 
-/* Zeile entfernen — Glyphe 20, erst beim Überfahren der Zeile sichtbar. */
+/* Zeile entfernen — Glyphe 20. Zerstörend, deshalb im Ruhezustand sehr
+   leise, aber sichtbar (design-system 3.8); Hover und Fokus verstärken, auf
+   Touch ist es voll sichtbar. */
 .kill {
   order: 3;
   width: 24px;
   flex: none;
   font-size: 20px;
   line-height: 1;
-  color: transparent;
+  color: var(--text3);
+  opacity: 0.5;
   text-align: center;
+  transition:
+    opacity 0.14s,
+    color 0.14s;
 }
 
-.item:hover .kill {
-  color: var(--text3);
+.item:hover .kill,
+.item:focus-visible .kill {
+  opacity: 1;
 }
 
 .kill:hover {
   color: var(--red);
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .kill {
+    opacity: 1;
+  }
 }
