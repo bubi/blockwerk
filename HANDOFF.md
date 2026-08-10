@@ -41,6 +41,11 @@ lässt sich aus dem Code nicht ableiten, weil es Entscheidungen _gegen_ etwas si
   zeilengebundene `×`/`✎` leise sichtbar (gedämpfte Deckkraft) mit
   `hover: none`-Rückfall; Regel in DESIGN-SYSTEM 3.8. Bug 8: keine Stelle
   gefunden, wo Neuanlage und Bearbeitung unterschiedliche Schalter zeigen
+- Feature-Batch 2, Feature 1: Zeilen per `Shift+↑/↓` markieren und über das
+  Slash-Menü „Zu einer Liste zusammenfassen" zu **einer** Listenzeile bündeln
+  (Domänenfunktion `mergeNotesToList` in `/src/domain/merge.ts`, nur Notizen,
+  Tasks/Termine/Verweise/Überschriften sperren mit sichtbarer Begründung);
+  ADR 0008 um die Bereichsauswahl ergänzt
 - Remote: Migration 0005 (`list_mark`) angewendet, Worker deployt
   (https://blockwerk.m-schmidinger.workers.dev)
 
@@ -170,6 +175,11 @@ Damit sie nicht ein zweites Mal passieren.
   (Überblick ~362 px, Blockkarten ~450 px) statt auf das Textmaß — die Sektionen
   hatten unterschiedliche Breiten. Zentrierung gehört auf die Block-Container, nicht
   auf Flex-Kinder.
+- **Substring-Assertions im e2e auf gemergte Inhalte.** Der erste Merge-Test
+  prüfte mit `textarea:has-text("erster Punkt")` — der gemergte Eintrag enthält
+  beide Originaltexte als Zeilen und bestand jeden Substring-Test, obwohl er
+  korrekt zusammenfasste. Assertions, die nach einer Zusammenführung „weg" prüfen,
+  müssen exakte Werte zählen, nicht Substrings.
 
 ---
 

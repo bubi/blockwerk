@@ -12,6 +12,16 @@
   background: var(--bg);
 }
 
+/* Teil einer Bereichsauswahl (Shift+↑/↓, Feature 1): dieselbe Aktivfläche wie
+   die fokussierte Zeile; die fokussierte Zeile unterscheidet der Fokusring. */
+.selected {
+  background: var(--green-soft);
+}
+
+.selected:hover {
+  background: var(--green-soft);
+}
+
 /* Fokussiert (Zeile): Fläche, der Tastaturring bleibt (design-system 3.8). */
 .item:focus-visible {
   background: var(--green-soft);

@@ -19,6 +19,11 @@ interface ComposerProps {
   /** Every block in the loaded view — ref targets, excluding the block itself. */
   blocks: readonly BlockRow[];
   today: Date;
+  /** "Zu einer Liste zusammenfassen" (Feature 1): why the action is locked,
+   * or the enabled hint. The Composer only renders these; BlockCard decides. */
+  mergeLocked?: boolean;
+  mergeHint?: string;
+  onMergeSelected?: () => void;
   onCreateItem: (fields: ComposerItemFields) => void;
 }
 
@@ -44,6 +49,9 @@ export function Composer({
   spaces,
   blocks,
   today,
+  mergeLocked = true,
+  mergeHint,
+  onMergeSelected,
   onCreateItem,
 }: ComposerProps) {
   const [value, setValue] = useState("");
@@ -98,6 +106,17 @@ export function Composer({
   const mentionId_ = `composer-mention-${blockId}`;
 
   const pick = (key: ComposerCommandKey) => {
+    if (key === "merge") {
+      // The merge acts on the range selection immediately — no text input
+      // follows (Feature 1). Locked means the reason is shown in the menu.
+      if (!mergeLocked) onMergeSelected?.();
+      setValue("");
+      setSelected(0);
+      setCaret(0);
+      setMode(null);
+      inputRef.current?.focus();
+      return;
+    }
     setMode(key);
     setValue("");
     setSelected(0);
@@ -327,24 +346,32 @@ export function Composer({
           role="listbox"
           aria-label="Befehl wählen"
         >
-          {menu.map((command, index) => (
-            <li key={command.key}>
-              <button
-                type="button"
-                id={`${menuId}-option-${command.key}`}
-                role="option"
-                aria-selected={index === selected}
-                className={
-                  index === selected ? styles.optionSelected : styles.option
-                }
-                onMouseEnter={() => setSelected(index)}
-                onClick={() => pick(command.key)}
-              >
-                <span className={styles.command}>/{command.key}</span>
-                <span className={styles.hint}>{command.hint}</span>
-              </button>
-            </li>
-          ))}
+          {menu.map((command, index) => {
+            const mergeItem = command.key === "merge";
+            const locked = mergeItem && mergeLocked;
+            return (
+              <li key={command.key}>
+                <button
+                  type="button"
+                  id={`${menuId}-option-${command.key}`}
+                  role="option"
+                  aria-selected={index === selected}
+                  aria-disabled={locked}
+                  disabled={locked}
+                  className={
+                    index === selected ? styles.optionSelected : styles.option
+                  }
+                  onMouseEnter={() => setSelected(index)}
+                  onClick={() => pick(command.key)}
+                >
+                  <span className={styles.command}>/{command.key}</span>
+                  <span className={styles.hint}>
+                    {mergeItem ? (mergeHint ?? command.hint) : command.hint}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

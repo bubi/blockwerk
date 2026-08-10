@@ -67,3 +67,15 @@ Der einzige gerenderte Komponenten-Zustand ist der Composer-Entwurf
   Fokus trotzdem nicht bewegen kann (die imperativen `.focus()`-Aufrufe blieben,
   jetzt in Effects versteckt). Es bricht zudem das bestehende Muster: `spaceId`,
   `pageId`, `pane`, `month`, `jump` liegen alle in Komponenten, nicht im Reducer.
+
+## Erweiterung: Bereichsauswahl (Feature 1, 2026)
+
+**Eine Ausnahme vom „kein Zustand"-Satz ist nötig geworden:** Die
+Bereichsauswahl (`Shift+↑/↓`, „Zu einer Liste zusammenfassen") braucht einen
+Anker und ein Ende im Speicher — der DOM-Fokus kann nur eine einzelne Zeile
+wissen. BlockCard hält deshalb genau diesen einen Zustand (zwei Enden in
+`block.sections.order`); er ist nach demselben Muster gerendertes Markup wie
+der Composer-Entwurf, kein zweiter Modus-Umschalter. Ein Pfeil ohne Shift
+verwirft den Bereich, Escape verlässt ihn. Die fokussierte Zeile bleibt die
+einzige Wahrheit für die Navigation; die Auswahl ist ein rein lokaler,
+abgeleiteter Range darüber.

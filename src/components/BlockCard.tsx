@@ -1,8 +1,14 @@
 import { Fragment, useRef, useState } from "react";
-import type { BlockRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
+import type {
+  BlockRow,
+  ItemRow as ItemRowRow,
+  SpaceRow,
+  TemplateRow,
+} from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
 import type { ComposerItemFields } from "../domain/composer.ts";
 import { newItemId } from "../domain/ids.ts";
+import { canMergeNotes, mergeNotesToList } from "../domain/merge.ts";
 import { insertPositionBetween } from "../domain/position.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
 import type { BlockView } from "../state/selectors.ts";
@@ -54,6 +60,12 @@ export function BlockCard({
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
   const inputRefs = useRef(new Map<string, HTMLTextAreaElement>());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  /** The range selection (Shift+↑/↓, Feature 1) as its two ends in display
+   * order — the one piece of owned block state (docs/adr/0008 addition). */
+  const [selection, setSelection] = useState<{
+    anchor: string;
+    focus: string;
+  } | null>(null);
 
   const doneCount = block.sections.tasks.filter((task) => task.done).length;
   const eventCount = block.sections.events.length;
@@ -67,11 +79,58 @@ export function BlockCard({
     else inputRefs.current.delete(id);
   };
 
+  // The selected rows' ids in display order (the range between the two ends).
+  const selectedIds = new Set<string>();
+  if (selection) {
+    const order = block.sections.order;
+    const from = order.indexOf(selection.anchor);
+    const to = order.indexOf(selection.focus);
+    if (from !== -1 && to !== -1) {
+      const [lo, hi] = from < to ? [from, to] : [to, from];
+      for (let i = lo; i <= hi; i++) selectedIds.add(order[i]!);
+    }
+  }
+  const itemById = new Map(block.items.map((entry) => [entry.id, entry]));
+  const selectedItems: ItemRowRow[] = block.sections.order
+    .filter((id) => selectedIds.has(id))
+    .map((id) => itemById.get(id))
+    .filter((entry): entry is ItemRowRow => entry !== undefined);
+  const mergeLocked = !canMergeNotes(selectedItems);
+  const mergeHint = mergeLocked
+    ? selectedItems.length < 2
+      ? "Zuerst Zeilen mit Shift+↑/↓ markieren."
+      : "Nur Notizen zusammenfassen — keine Aufgaben, Termine, Verweise oder Überschriften."
+    : "markierte Notizen zu Punkten bündeln";
+
   const nav = (itemId: string, dir: -1 | 1) => {
     const order = block.sections.order;
     const next = order[order.indexOf(itemId) + dir];
     if (next === undefined) return;
+    setSelection(null);
     rowRefs.current.get(next)?.focus();
+  };
+
+  const extendNav = (itemId: string, dir: -1 | 1) => {
+    const order = block.sections.order;
+    const next = order[order.indexOf(itemId) + dir];
+    if (next === undefined) return;
+    setSelection((previous) => ({
+      anchor: previous?.anchor ?? itemId,
+      focus: next,
+    }));
+    rowRefs.current.get(next)?.focus();
+  };
+
+  const mergeSelected = () => {
+    const result = mergeNotesToList(selectedItems);
+    if (!result) return;
+    setSelection(null);
+    onPatchItem(result.keepId, {
+      text: result.text,
+      listMark: result.listMark,
+    });
+    for (const id of result.deleteIds) onDeleteItem(id);
+    focusInput(result.keepId);
   };
 
   const focusInput = (itemId: string) => {
@@ -262,6 +321,9 @@ export function BlockCard({
             onInsertAfter={insertAfter}
             onDeleteRow={deleteRow}
             onNav={nav}
+            onExtendSelect={extendNav}
+            onClearSelection={() => setSelection(null)}
+            selected={selectedIds.has(item.id)}
             onRowRef={(el) => registerRow(item.id, el)}
             onInputRef={(el) => registerInput(item.id, el)}
           />
@@ -305,6 +367,9 @@ export function BlockCard({
                   onAddNote={addTaskNote}
                   onDeleteRow={deleteRow}
                   onNav={nav}
+                  onExtendSelect={extendNav}
+                  onClearSelection={() => setSelection(null)}
+                  selected={selectedIds.has(task.id)}
                   onRowRef={(el) => registerRow(task.id, el)}
                   onInputRef={(el) => registerInput(task.id, el)}
                 />
@@ -319,6 +384,9 @@ export function BlockCard({
                     onInsertAfter={insertAfter}
                     onDeleteRow={deleteRow}
                     onNav={nav}
+                    onExtendSelect={extendNav}
+                    onClearSelection={() => setSelection(null)}
+                    selected={selectedIds.has(note.id)}
                     onRowRef={(el) => registerRow(note.id, el)}
                     onInputRef={(el) => registerInput(note.id, el)}
                   />
@@ -345,6 +413,9 @@ export function BlockCard({
                 onJumpToBlock={onJumpToBlock}
                 onDeleteRow={deleteRow}
                 onNav={nav}
+                onExtendSelect={extendNav}
+                onClearSelection={() => setSelection(null)}
+                selected={selectedIds.has(event.id)}
                 onRowRef={(el) => registerRow(event.id, el)}
                 onInputRef={(el) => registerInput(event.id, el)}
               />
@@ -358,6 +429,9 @@ export function BlockCard({
         spaces={spaces}
         blocks={[...blocksById.values()]}
         today={today}
+        mergeLocked={mergeLocked}
+        mergeHint={mergeHint}
+        onMergeSelected={mergeSelected}
         onCreateItem={createComposerItem}
       />
 

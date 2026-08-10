@@ -10,7 +10,8 @@ import { parseTokens } from "./tokens.ts";
  * logic in components).
  */
 
-export type ComposerCommandKey = "task" | "event" | "heading" | "note" | "ref";
+export type ComposerCommandKey =
+  "task" | "event" | "heading" | "note" | "ref" | "merge";
 
 export interface ComposerCommand {
   key: ComposerCommandKey;
@@ -21,9 +22,18 @@ export interface ComposerCommand {
 export const COMPOSER_COMMANDS: readonly ComposerCommand[] = [
   { key: "task", label: "Task", hint: "@Person und !datum werden erkannt" },
   { key: "event", label: "Termin", hint: "!datum und 14:00 werden erkannt" },
-  { key: "heading", label: "Überschrift", hint: "oder einfach # am Zeilenanfang" },
+  {
+    key: "heading",
+    label: "Überschrift",
+    hint: "oder einfach # am Zeilenanfang",
+  },
   { key: "note", label: "Notiz", hint: "einfache Textzeile" },
   { key: "ref", label: "Verweis", hint: "auf einen anderen Block zeigen" },
+  {
+    key: "merge",
+    label: "Zu einer Liste zusammenfassen",
+    hint: "markierte Notizen zu Punkten bündeln",
+  },
 ];
 
 export function commandLabel(key: ComposerCommandKey): string {
@@ -39,15 +49,28 @@ export function matchComposerCommands(filter: string): ComposerCommand[] {
   const query = filter.toLowerCase();
   if (query === "") return [...COMPOSER_COMMANDS];
   return COMPOSER_COMMANDS.filter(
-    (command) => command.label.toLowerCase().startsWith(query) || command.key.startsWith(query),
+    (command) =>
+      command.label.toLowerCase().startsWith(query) ||
+      command.key.startsWith(query),
   );
 }
 
 /** The item fields a composer command produces; BlockCard adds id/blockId/position. */
 export type ComposerItemFields =
   | { kind: "note"; text: string; heading: 1 | 2 | null }
-  | { kind: "task"; text: string; done: boolean; dueDate: string | null; assigneeSpaceId: string | null }
-  | { kind: "event"; text: string; eventDate: string | null; eventTime: string | null }
+  | {
+      kind: "task";
+      text: string;
+      done: boolean;
+      dueDate: string | null;
+      assigneeSpaceId: string | null;
+    }
+  | {
+      kind: "event";
+      text: string;
+      eventDate: string | null;
+      eventTime: string | null;
+    }
   | { kind: "ref"; text: string; refBlockId: string };
 
 export function composeItem(input: {
@@ -86,14 +109,27 @@ export function composeItem(input: {
         assigneeSpaceId: input.mentionId ?? tokens.assigneeId,
       };
     case "event":
-      return { kind: "event", text: tokens.text, eventDate: tokens.dueDate ?? toISODate(input.today), eventTime: tokens.eventTime };
+      return {
+        kind: "event",
+        text: tokens.text,
+        eventDate: tokens.dueDate ?? toISODate(input.today),
+        eventTime: tokens.eventTime,
+      };
     case "heading": {
       const detected = detectHeading(raw);
       return { kind: "note", text: detected ? detected.text : raw, heading: 1 };
     }
     case "note": {
       const detected = detectHeading(raw);
-      return { kind: "note", text: detected ? detected.text : raw, heading: detected ? detected.heading : null };
+      return {
+        kind: "note",
+        text: detected ? detected.text : raw,
+        heading: detected ? detected.heading : null,
+      };
     }
+    case "merge":
+      // Never reaches composeItem: the Composer acts on the selection when the
+      // merge command is picked. Kept for the exhaustive switch over the key.
+      return null;
   }
 }

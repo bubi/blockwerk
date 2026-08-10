@@ -32,6 +32,12 @@ interface ItemRowProps {
   onDeleteRow?: (itemId: string, prevId: string | null) => void;
   /** Arrow keys move the row selection through the block's display order. */
   onNav?: (itemId: string, dir: -1 | 1) => void;
+  /** Shift+Arrow extends the range selection anchored at the first shift. */
+  onExtendSelect?: (itemId: string, dir: -1 | 1) => void;
+  /** Escape in row mode leaves the range selection (if any). */
+  onClearSelection?: () => void;
+  /** Part of the active range selection (docs/adr/0008 addition). */
+  selected?: boolean;
   onRowRef?: (el: HTMLLIElement | null) => void;
   onInputRef?: (el: HTMLTextAreaElement | null) => void;
 }
@@ -72,6 +78,9 @@ export function ItemRow({
   onAddNote,
   onDeleteRow,
   onNav,
+  onExtendSelect,
+  onClearSelection,
+  selected,
   onRowRef,
   onInputRef,
 }: ItemRowProps) {
@@ -109,7 +118,11 @@ export function ItemRow({
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       if (!inField) {
         event.preventDefault();
-        onNav?.(item.id, event.key === "ArrowDown" ? 1 : -1);
+        const dir = event.key === "ArrowDown" ? 1 : -1;
+        // Shift extends the range selection (Feature 1); a plain arrow moves
+        // the selection and drops the range (docs/adr/0008).
+        if (event.shiftKey) onExtendSelect?.(item.id, dir);
+        else onNav?.(item.id, dir);
         return;
       }
       // In a text field the cursor walks the text first; only when the
@@ -201,6 +214,13 @@ export function ItemRow({
       return;
     }
 
+    if (event.key === "Escape") {
+      // In row mode Escape leaves the range selection (Feature 1).
+      event.preventDefault();
+      onClearSelection?.();
+      return;
+    }
+
     if (event.key === " ") {
       event.preventDefault();
       if (item.kind === "task") onPatch(item.id, { done: !item.done });
@@ -254,6 +274,7 @@ export function ItemRow({
     isChild ? styles.child : "",
     item.done ? styles.done : "",
     isHeading ? styles.heading : "",
+    selected ? styles.selected : "",
   ]
     .filter(Boolean)
     .join(" ");
