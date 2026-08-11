@@ -193,6 +193,29 @@ export async function deleteItem(db: D1Database, id: string): Promise<boolean> {
   return result.meta.changes > 0;
 }
 
+/**
+ * Moves an item into another block (Feature 2, docs/adr/0017): only `block_id`
+ * and `position` change, everything else keeps its identity. The client
+ * computes the position for the target block; the block stays in the same
+ * ownership chain (Bereich → Seite → Block → Item).
+ */
+export async function moveItemToBlock(
+  db: D1Database,
+  id: string,
+  blockId: string,
+  position: number,
+  now: number,
+): Promise<ItemRow | null> {
+  const result = await db
+    .prepare(
+      "UPDATE items SET block_id = ?, position = ?, updated_at = ? WHERE id = ?",
+    )
+    .bind(blockId, position, now, id)
+    .run();
+  if (result.meta.changes === 0) return null;
+  return getItem(db, id);
+}
+
 // ============================================================
 // Ordered insertion with block re-spacing
 // ============================================================

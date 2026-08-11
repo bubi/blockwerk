@@ -50,6 +50,12 @@ lässt sich aus dem Code nicht ableiten, weil es Entscheidungen _gegen_ etwas si
   Composer am Kopf der „Aufgaben"-Ansicht, der Task landet in einem
   „Ohne Kontext"-Block auf der Notizseite der Person (Datum heute, Seite wird
   bei Bedarf angelegt); ohne `@Person` wird er der Person zugewiesen
+- Feature-Batch 2, Feature 2 (ADR 0017): Jour-Fix-Themen — `/jfx` im
+  Slash-Menü sammelt ein Thema in den Jour-Fix-Block des Bereichs (bei
+  `@Person` in deren Bereich), der Jour-Fix-Eintrag zeigt die offenen Themen,
+  ein Meeting-Block übernimmt sie per Verschieben (neuer `POST
+/api/items/:id/move`-Pfad: `block_id` + `position`, Identität bleibt, kein
+  Kopieren)
 - Remote: Migration 0005 (`list_mark`) angewendet, Worker deployt
   (https://blockwerk.m-schmidinger.workers.dev)
 

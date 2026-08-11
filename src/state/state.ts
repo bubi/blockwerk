@@ -1,7 +1,19 @@
 import type { ApiErrorBody } from "../../shared/api.ts";
 import type { SearchResponse } from "../../shared/api.ts";
-import type { BlockRow, ItemRow, PageRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
-import type { BlockPatch, ItemPatch, PagePatch, SpacePatch, TemplatePatch } from "../../shared/schemas.ts";
+import type {
+  BlockRow,
+  ItemRow,
+  PageRow,
+  SpaceRow,
+  TemplateRow,
+} from "../../shared/db.ts";
+import type {
+  BlockPatch,
+  ItemPatch,
+  PagePatch,
+  SpacePatch,
+  TemplatePatch,
+} from "../../shared/schemas.ts";
 
 /**
  * The normalized application state. Every row lives exactly once in one of
@@ -13,7 +25,8 @@ import type { BlockPatch, ItemPatch, PagePatch, SpacePatch, TemplatePatch } from
 export type EntityName = "space" | "page" | "block" | "item" | "template";
 
 export type EntityRow = SpaceRow | PageRow | BlockRow | ItemRow | TemplateRow;
-export type EntityPatch = SpacePatch | PagePatch | BlockPatch | TemplatePatch | ItemPatch;
+export type EntityPatch =
+  SpacePatch | PagePatch | BlockPatch | TemplatePatch | ItemPatch;
 
 /** A write error classified by the API client: a network failure (retryable)
  * or an HTTP response (4xx/5xx, not retryable). */
@@ -47,7 +60,7 @@ export interface PendingOperation {
   opKey: string;
   entity: EntityName;
   id: string;
-  change: "put" | "patch" | "delete";
+  change: "put" | "patch" | "delete" | "move";
   /** What `writeFailed` must undo. Transient — dropped on confirmation. */
   undo: UndoPlan;
 }
@@ -125,9 +138,27 @@ export type OptimisticWrite =
   | EntityWrite<"page", PageRow, PagePatch>
   | EntityWrite<"block", BlockRow, BlockPatch>
   | EntityWrite<"item", ItemRow, ItemPatch>
-  | EntityWrite<"template", TemplateRow, TemplatePatch>;
+  | EntityWrite<"template", TemplateRow, TemplatePatch>
+  | ItemMoveWrite;
 
-export type EntityWrite<Entity extends EntityName, Row extends EntityRow, Patch extends EntityPatch> =
+/**
+ * A move: the item changes its block and position (Feature 2, docs/adr/0017),
+ * identity, kind and text stay. blockId is not an ItemPatch field.
+ */
+export interface ItemMoveWrite {
+  opKey: string;
+  entity: "item";
+  id: string;
+  change: "move";
+  blockId: string;
+  position: number;
+}
+
+export type EntityWrite<
+  Entity extends EntityName,
+  Row extends EntityRow,
+  Patch extends EntityPatch,
+> =
   | { opKey: string; entity: Entity; id: string; change: "put"; row: Row }
   | { opKey: string; entity: Entity; id: string; change: "patch"; patch: Patch }
   | { opKey: string; entity: Entity; id: string; change: "delete" };

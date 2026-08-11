@@ -10,6 +10,7 @@ import {
 } from "../domain/composer.ts";
 import { formatShort } from "../domain/dates.ts";
 import { deriveShort } from "../domain/naming.ts";
+import { parseTokens } from "../domain/tokens.ts";
 import { GrowingTextarea } from "./GrowingTextarea.tsx";
 import styles from "./Composer.module.css";
 
@@ -27,6 +28,9 @@ interface ComposerProps {
   /** Hide the merge command — for composers without a block's row selection
    * (e.g. the person's task bar, Feature 3). */
   showMergeCommand?: boolean;
+  /** A "/jfx" theme: create it in the Jour-Fix block of the mentioned person
+   * (or the current space) instead of this block (Feature 2, docs/adr/0017). */
+  onCreateJourFix?: (text: string, personSpaceId: string | null) => void;
   onCreateItem: (fields: ComposerItemFields) => void;
 }
 
@@ -56,6 +60,7 @@ export function Composer({
   mergeHint,
   onMergeSelected,
   showMergeCommand = true,
+  onCreateJourFix,
   onCreateItem,
 }: ComposerProps) {
   const [value, setValue] = useState("");
@@ -143,6 +148,20 @@ export function Composer({
   };
 
   const commit = () => {
+    if (mode === "jfx") {
+      // A Jour-Fix theme goes to the target space's Jour-Fix block, not this
+      // one (Feature 2, docs/adr/0017). The mentioned person wins; without a
+      // mention the current space is the target.
+      const tokens = parseTokens(value, spaces, today);
+      if (!tokens.text) return;
+      onCreateJourFix?.(tokens.text, mentionId ?? tokens.assigneeId);
+      setValue("");
+      setCaret(0);
+      setMentionId(null);
+      setMentionSuppressed(false);
+      setMode(null);
+      return;
+    }
     if (mode === "ref") {
       if (!refTarget) return;
       onCreateItem({ kind: "ref", text: "", refBlockId: refTarget });

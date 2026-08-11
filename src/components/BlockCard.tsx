@@ -27,12 +27,18 @@ interface BlockCardProps {
   blocksById: ReadonlyMap<string, BlockRow>;
   pulse?: boolean;
   today: Date;
+  /** The current space's open Jour-Fix themes (Feature 2). */
+  jfxThemes?: readonly ItemRowRow[];
   onPatchBlock: (id: string, patch: BlockPatch) => void;
   onPatchItem: (id: string, patch: ItemPatch) => void;
   onCreateItem: (input: ItemCreateInput) => void;
   onDeleteItem: (id: string) => void;
   onDeleteBlock: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
+  /** A "/jfx" theme goes to the target space's Jour-Fix block. */
+  onCreateJourFix?: (text: string, personSpaceId: string | null) => void;
+  /** Moves a Jour-Fix theme into this block (Feature 2). */
+  onMoveTheme: (itemId: string, targetBlockId: string) => void;
 }
 
 /**
@@ -50,12 +56,15 @@ export function BlockCard({
   blocksById,
   pulse,
   today,
+  jfxThemes = [],
   onPatchBlock,
   onPatchItem,
   onCreateItem,
   onDeleteItem,
   onDeleteBlock,
   onJumpToBlock,
+  onCreateJourFix,
+  onMoveTheme,
 }: BlockCardProps) {
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
   const inputRefs = useRef(new Map<string, HTMLTextAreaElement>());
@@ -66,6 +75,11 @@ export function BlockCard({
     anchor: string;
     focus: string;
   } | null>(null);
+  /** The "Themen aus dem Jour Fix übernehmen" picker (Feature 2). */
+  const [jfxOpen, setJfxOpen] = useState(false);
+  const [jfxSelected, setJfxSelected] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
 
   const doneCount = block.sections.tasks.filter((task) => task.done).length;
   const eventCount = block.sections.events.length;
@@ -131,6 +145,21 @@ export function BlockCard({
     });
     for (const id of result.deleteIds) onDeleteItem(id);
     focusInput(result.keepId);
+  };
+
+  const toggleJfxTheme = (itemId: string) => {
+    setJfxSelected((previous) => {
+      const next = new Set(previous);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  };
+
+  const takeOverThemes = () => {
+    for (const itemId of jfxSelected) onMoveTheme(itemId, block.id);
+    setJfxSelected(new Set());
+    setJfxOpen(false);
   };
 
   const focusInput = (itemId: string) => {
@@ -424,6 +453,45 @@ export function BlockCard({
         </section>
       )}
 
+      {jfxThemes.length > 0 && (
+        <div className={styles.jfxover}>
+          <button
+            type="button"
+            className={`${styles.jfxbtn} label`}
+            onClick={() => setJfxOpen((open) => !open)}
+            aria-expanded={jfxOpen}
+          >
+            Themen aus dem Jour Fix übernehmen
+          </button>
+          {jfxOpen && (
+            <div className={styles.jfxpanel}>
+              <ul className={styles.jfxlist}>
+                {jfxThemes.map((theme) => (
+                  <li key={theme.id}>
+                    <label className={styles.jfxrow}>
+                      <input
+                        type="checkbox"
+                        checked={jfxSelected.has(theme.id)}
+                        onChange={() => toggleJfxTheme(theme.id)}
+                      />
+                      <span>{theme.text || "Thema"}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                className="btn"
+                disabled={jfxSelected.size === 0}
+                onClick={takeOverThemes}
+              >
+                Übernehmen
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <Composer
         blockId={block.id}
         spaces={spaces}
@@ -432,6 +500,7 @@ export function BlockCard({
         mergeLocked={mergeLocked}
         mergeHint={mergeHint}
         onMergeSelected={mergeSelected}
+        onCreateJourFix={onCreateJourFix}
         onCreateItem={createComposerItem}
       />
 

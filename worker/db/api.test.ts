@@ -1611,25 +1611,27 @@ describe("item re-spacing (respace)", () => {
     // with the next top-level row instead.
     const afterFirst = await streamItems(db, "cn-block", "cn-page");
     const child1 = afterFirst.find((item) => item.id === "cn-child1")!;
-    const second = await json<ItemWriteResponse>("PUT", "/api/items/cn-child2", {
-      blockId: "cn-block",
-      kind: "note",
-      position: insertPositionBetween(child1.position, null),
-      text: "zweite",
-      heading: null,
-      parentItemId: "cn-task",
-    });
+    const second = await json<ItemWriteResponse>(
+      "PUT",
+      "/api/items/cn-child2",
+      {
+        blockId: "cn-block",
+        kind: "note",
+        position: insertPositionBetween(child1.position, null),
+        text: "zweite",
+        heading: null,
+        parentItemId: "cn-task",
+      },
+    );
     expect(second.status).toBe(200);
 
     const items = await streamItems(db, "cn-block", "cn-page");
     const children = items.filter((item) => item.parentItemId === "cn-task");
     expect(children.map((item) => item.text)).toEqual(["erste", "zweite"]);
     const taskIndex = items.findIndex((item) => item.id === "cn-task");
-    expect(items.slice(taskIndex, taskIndex + 3).map((item) => item.id)).toEqual([
-      "cn-task",
-      "cn-child1",
-      "cn-child2",
-    ]);
+    expect(
+      items.slice(taskIndex, taskIndex + 3).map((item) => item.id),
+    ).toEqual(["cn-task", "cn-child1", "cn-child2"]);
   });
 });
 
@@ -1642,6 +1644,82 @@ async function streamItems(
   const block = page.find((entry) => entry.id === blockId);
   return block?.items ?? [];
 }
+
+describe("item move (docs/adr/0017)", () => {
+  it("moves an item into another block, keeping its identity and text", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "mv-space");
+    await seedPage(db, "mv-page", "mv-space");
+    await seedBlock(db, "mv-a", "mv-page");
+    await seedBlock(db, "mv-b", "mv-page");
+    await createItem(
+      db,
+      {
+        id: "mv-item",
+        blockId: "mv-a",
+        position: 1000,
+        kind: "note",
+        text: "Thema",
+        heading: null,
+      },
+      NOW,
+    );
+
+    const result = await json<ItemWriteResponse>(
+      "POST",
+      "/api/items/mv-item/move",
+      { blockId: "mv-b", position: 4000 },
+    );
+    expect(result.status).toBe(200);
+    expect(result.body.row.blockId).toBe("mv-b");
+    expect(result.body.row.position).toBe(4000);
+    expect(result.body.row.text).toBe("Thema");
+    expect(result.body.row.kind).toBe("note");
+
+    const page = await loadPageBlocks(db, "mv-page");
+    const inA = page
+      .find((block) => block.id === "mv-a")
+      ?.items.some((item) => item.id === "mv-item");
+    const inB = page
+      .find((block) => block.id === "mv-b")
+      ?.items.some((item) => item.id === "mv-item");
+    expect(inA).toBe(false);
+    expect(inB).toBe(true);
+  });
+
+  it("rejects a move to a missing block and a move of a missing item", async () => {
+    const db = await getTestDb();
+    await seedSpace(db, "mv2-space");
+    await seedPage(db, "mv2-page", "mv2-space");
+    await seedBlock(db, "mv2-a", "mv2-page");
+    await createItem(
+      db,
+      {
+        id: "mv2-item",
+        blockId: "mv2-a",
+        position: 1000,
+        kind: "note",
+        text: "x",
+        heading: null,
+      },
+      NOW,
+    );
+
+    const missingBlock = await json<ErrorBody>(
+      "POST",
+      "/api/items/mv2-item/move",
+      { blockId: "no-such-block", position: 1000 },
+    );
+    expect(missingBlock.status).toBe(400);
+
+    const missingItem = await json<ErrorBody>(
+      "POST",
+      "/api/items/no-such-item/move",
+      { blockId: "mv2-a", position: 1000 },
+    );
+    expect(missingItem.status).toBe(404);
+  });
+});
 
 describe("list points (list_mark on a note, like heading)", () => {
   it("stores a list point and returns it in the page", async () => {

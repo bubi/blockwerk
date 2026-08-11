@@ -1,6 +1,14 @@
 import { ZodError } from "zod";
-import { calendarParamsSchema, overviewParamsSchema, searchParamsSchema } from "../shared/schemas.ts";
-import type { CalendarResponse, OverviewResponse, SearchResponse } from "../shared/api.ts";
+import {
+  calendarParamsSchema,
+  overviewParamsSchema,
+  searchParamsSchema,
+} from "../shared/schemas.ts";
+import type {
+  CalendarResponse,
+  OverviewResponse,
+  SearchResponse,
+} from "../shared/api.ts";
 import type { AccessIdentity } from "../shared/access.ts";
 import type { Env } from "./env.ts";
 import {
@@ -18,6 +26,7 @@ import {
   getPageDetail,
   getSearch,
   getSpaces,
+  moveItemHandler,
   patchBlock,
   patchItem,
   patchPage,
@@ -31,7 +40,13 @@ import {
   type EntityName,
 } from "./handlers.ts";
 
-const ENTITY_NAMES = ["spaces", "pages", "blocks", "items", "templates"] as const;
+const ENTITY_NAMES = [
+  "spaces",
+  "pages",
+  "blocks",
+  "items",
+  "templates",
+] as const;
 type UrlEntity = (typeof ENTITY_NAMES)[number];
 
 const URL_ENTITY_TO_NAME: Record<UrlEntity, EntityName> = {
@@ -43,12 +58,17 @@ const URL_ENTITY_TO_NAME: Record<UrlEntity, EntityName> = {
 };
 
 function isUrlEntity(value: string | undefined): value is UrlEntity {
-  return value !== undefined && (ENTITY_NAMES as readonly string[]).includes(value);
+  return (
+    value !== undefined && (ENTITY_NAMES as readonly string[]).includes(value)
+  );
 }
 
 function assertId(segment: string | undefined): string {
   if (segment === undefined || segment.length === 0 || segment.length > 128) {
-    throw new ValidationError([{ path: "id", code: "invalid_id" }], "Invalid entity id");
+    throw new ValidationError(
+      [{ path: "id", code: "invalid_id" }],
+      "Invalid entity id",
+    );
   }
   return segment;
 }
@@ -71,7 +91,11 @@ function handleError(err: unknown): Response {
   if (err instanceof HttpError) return jsonError(err.status, err.body);
   if (err instanceof ZodError) {
     return jsonError(400, {
-      error: { code: "validation", message: "Invalid input", issues: zodToFieldIssues(err) },
+      error: {
+        code: "validation",
+        message: "Invalid input",
+        issues: zodToFieldIssues(err),
+      },
     });
   }
   console.error(err);
@@ -86,25 +110,46 @@ async function readJson(request: Request): Promise<unknown> {
   }
 }
 
-async function getCalendarFromParams(db: D1Database, params: URLSearchParams): Promise<CalendarResponse> {
-  const parsed = calendarParamsSchema.safeParse({ from: params.get("from"), to: params.get("to") });
-  if (!parsed.success) throw new ValidationError(zodToFieldIssues(parsed.error));
+async function getCalendarFromParams(
+  db: D1Database,
+  params: URLSearchParams,
+): Promise<CalendarResponse> {
+  const parsed = calendarParamsSchema.safeParse({
+    from: params.get("from"),
+    to: params.get("to"),
+  });
+  if (!parsed.success)
+    throw new ValidationError(zodToFieldIssues(parsed.error));
   return getCalendar(db, parsed.data.from, parsed.data.to);
 }
 
-async function getSearchFromParams(db: D1Database, params: URLSearchParams): Promise<SearchResponse> {
+async function getSearchFromParams(
+  db: D1Database,
+  params: URLSearchParams,
+): Promise<SearchResponse> {
   const parsed = searchParamsSchema.safeParse({ q: params.get("q") });
-  if (!parsed.success) throw new ValidationError(zodToFieldIssues(parsed.error));
+  if (!parsed.success)
+    throw new ValidationError(zodToFieldIssues(parsed.error));
   return getSearch(db, parsed.data.q);
 }
 
-async function getOverviewFromParams(db: D1Database, params: URLSearchParams): Promise<OverviewResponse> {
+async function getOverviewFromParams(
+  db: D1Database,
+  params: URLSearchParams,
+): Promise<OverviewResponse> {
   const parsed = overviewParamsSchema.safeParse({ today: params.get("today") });
-  if (!parsed.success) throw new ValidationError(zodToFieldIssues(parsed.error));
+  if (!parsed.success)
+    throw new ValidationError(zodToFieldIssues(parsed.error));
   return getOverview(db, parsed.data.today);
 }
 
-function putEntity(db: D1Database, entity: EntityName, id: string, body: unknown, email: string) {
+function putEntity(
+  db: D1Database,
+  entity: EntityName,
+  id: string,
+  body: unknown,
+  email: string,
+) {
   const now = Date.now();
   switch (entity) {
     case "space":
@@ -120,7 +165,13 @@ function putEntity(db: D1Database, entity: EntityName, id: string, body: unknown
   }
 }
 
-function patchEntity(db: D1Database, entity: EntityName, id: string, body: unknown, email: string) {
+function patchEntity(
+  db: D1Database,
+  entity: EntityName,
+  id: string,
+  body: unknown,
+  email: string,
+) {
   const now = Date.now();
   switch (entity) {
     case "space":
@@ -153,25 +204,66 @@ export async function handleApiRequest(
       throw new MethodNotAllowedError("GET");
     }
     if (a === "calendar" && !b) {
-      if (method === "GET") return ok(await getCalendarFromParams(env.DB, url.searchParams));
+      if (method === "GET")
+        return ok(await getCalendarFromParams(env.DB, url.searchParams));
       throw new MethodNotAllowedError("GET");
     }
     if (a === "search" && !b) {
-      if (method === "GET") return ok(await getSearchFromParams(env.DB, url.searchParams));
+      if (method === "GET")
+        return ok(await getSearchFromParams(env.DB, url.searchParams));
       throw new MethodNotAllowedError("GET");
     }
     if (a === "overview" && !b) {
-      if (method === "GET") return ok(await getOverviewFromParams(env.DB, url.searchParams));
+      if (method === "GET")
+        return ok(await getOverviewFromParams(env.DB, url.searchParams));
       throw new MethodNotAllowedError("GET");
+    }
+    if (a === "items" && b && c === "move") {
+      // A dedicated move route (Feature 2, docs/adr/0017): blockId is not part
+      // of the generic item patch.
+      if (method !== "POST") throw new MethodNotAllowedError("POST");
+      return ok(
+        await moveItemHandler(
+          env.DB,
+          assertId(b),
+          await readJson(request),
+          Date.now(),
+          identity.email,
+        ),
+      );
     }
     if (b && !c && isUrlEntity(a)) {
       const id = assertId(b);
       const email = identity.email;
-      if (a === "pages" && method === "GET") return ok(await getPageDetail(env.DB, id));
-      if (method === "PUT") return ok(await putEntity(env.DB, URL_ENTITY_TO_NAME[a], id, await readJson(request), email));
-      if (method === "PATCH") return ok(await patchEntity(env.DB, URL_ENTITY_TO_NAME[a], id, await readJson(request), email));
+      if (a === "pages" && method === "GET")
+        return ok(await getPageDetail(env.DB, id));
+      if (method === "PUT")
+        return ok(
+          await putEntity(
+            env.DB,
+            URL_ENTITY_TO_NAME[a],
+            id,
+            await readJson(request),
+            email,
+          ),
+        );
+      if (method === "PATCH")
+        return ok(
+          await patchEntity(
+            env.DB,
+            URL_ENTITY_TO_NAME[a],
+            id,
+            await readJson(request),
+            email,
+          ),
+        );
       if (method === "DELETE") {
-        const deleted = await deleteEntity(env.DB, URL_ENTITY_TO_NAME[a], id, email);
+        const deleted = await deleteEntity(
+          env.DB,
+          URL_ENTITY_TO_NAME[a],
+          id,
+          email,
+        );
         if (!deleted) throw new NotFoundError();
         return new Response(null, { status: 204 });
       }

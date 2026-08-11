@@ -1,13 +1,39 @@
-import type { ApiBlock, OverviewResponse, SearchResponse } from "../../shared/api.ts";
-import type { BlockRow, ItemRow, PageRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
-import type { AppState, ClientError, DeleteWrite, EntityName, EntityRow, OptimisticWrite, PendingOperation, UndoPlan, ViewStatus } from "./state.ts";
+import type {
+  ApiBlock,
+  OverviewResponse,
+  SearchResponse,
+} from "../../shared/api.ts";
+import type {
+  BlockRow,
+  ItemRow,
+  PageRow,
+  SpaceRow,
+  TemplateRow,
+} from "../../shared/db.ts";
+import type {
+  AppState,
+  ClientError,
+  DeleteWrite,
+  EntityName,
+  EntityRow,
+  OptimisticWrite,
+  PendingOperation,
+  UndoPlan,
+  ViewStatus,
+} from "./state.ts";
 
 export type Dispatch = (action: Action) => void;
 
 export type Action =
   // ---- loads (per view: started / loaded / failed, data kept on reload) ----
   | { type: "spacesLoadStarted" }
-  | { type: "spacesLoaded"; spaces: SpaceRow[]; pages: PageRow[]; templates: TemplateRow[]; meSpaceId: string | null }
+  | {
+      type: "spacesLoaded";
+      spaces: SpaceRow[];
+      pages: PageRow[];
+      templates: TemplateRow[];
+      meSpaceId: string | null;
+    }
   | { type: "spacesLoadFailed"; error: ClientError }
   | { type: "pageLoadStarted"; pageId: string }
   | { type: "pageLoaded"; page: PageRow; blocks: ApiBlock[] }
@@ -42,13 +68,27 @@ export function reduce(state: AppState, action: Action): AppState {
         spacesView: { status: "loaded" },
       };
     case "spacesLoadFailed":
-      return { ...state, spacesView: { status: "failed", error: action.error } };
+      return {
+        ...state,
+        spacesView: { status: "failed", error: action.error },
+      };
     case "pageLoadStarted":
-      return { ...state, pageViews: setView(state.pageViews, action.pageId, { status: "loading" }) };
+      return {
+        ...state,
+        pageViews: setView(state.pageViews, action.pageId, {
+          status: "loading",
+        }),
+      };
     case "pageLoaded":
       return applyPageLoaded(state, action);
     case "pageLoadFailed":
-      return { ...state, pageViews: setView(state.pageViews, action.pageId, { status: "failed", error: action.error }) };
+      return {
+        ...state,
+        pageViews: setView(state.pageViews, action.pageId, {
+          status: "failed",
+          error: action.error,
+        }),
+      };
     case "calendarLoadStarted":
       return { ...state, calendarView: { status: "loading" } };
     case "calendarLoaded":
@@ -58,26 +98,53 @@ export function reduce(state: AppState, action: Action): AppState {
         calendarView: { status: "loaded" },
       };
     case "calendarLoadFailed":
-      return { ...state, calendarView: { status: "failed", error: action.error } };
+      return {
+        ...state,
+        calendarView: { status: "failed", error: action.error },
+      };
     case "overviewLoadStarted":
       return { ...state, overviewView: { status: "loading" } };
     case "overviewLoaded":
       return applyOverviewLoaded(state, action);
     case "overviewLoadFailed":
-      return { ...state, overviewView: { status: "failed", error: action.error } };
+      return {
+        ...state,
+        overviewView: { status: "failed", error: action.error },
+      };
     case "searchLoadStarted":
       return {
         ...state,
         // Keep the previous results while the new query loads, so live
         // search does not flicker on every keystroke.
-        search: { query: action.query, results: state.search.results, view: { status: "loading" } },
+        search: {
+          query: action.query,
+          results: state.search.results,
+          view: { status: "loading" },
+        },
       };
     case "searchLoaded":
-      return { ...state, search: { query: action.response.query, results: action.response, view: { status: "loaded" } } };
+      return {
+        ...state,
+        search: {
+          query: action.response.query,
+          results: action.response,
+          view: { status: "loaded" },
+        },
+      };
     case "searchLoadFailed":
-      return { ...state, search: { query: action.query, results: null, view: { status: "failed", error: action.error } } };
+      return {
+        ...state,
+        search: {
+          query: action.query,
+          results: null,
+          view: { status: "failed", error: action.error },
+        },
+      };
     case "searchCleared":
-      return { ...state, search: { query: "", results: null, view: { status: "idle" } } };
+      return {
+        ...state,
+        search: { query: "", results: null, view: { status: "idle" } },
+      };
     case "writeOptimistic":
       return applyWrite(state, action.op, action.now);
     case "writeConfirmed":
@@ -85,7 +152,12 @@ export function reduce(state: AppState, action: Action): AppState {
     case "writeFailed":
       return failWrite(state, action.opKey, action.error, action.now);
     case "dismissNotification":
-      return { ...state, notifications: state.notifications.filter((notification) => notification.id !== action.id) };
+      return {
+        ...state,
+        notifications: state.notifications.filter(
+          (notification) => notification.id !== action.id,
+        ),
+      };
   }
 }
 
@@ -102,13 +174,16 @@ function applyPageLoaded(
 
   // Replace this page's block subtree: drop blocks no longer returned (and
   // their items), then merge the returned ones.
-  const dropped = [...state.blocks.values()].filter((entry) => entry.pageId === page.id && !returned.has(entry.id));
+  const dropped = [...state.blocks.values()].filter(
+    (entry) => entry.pageId === page.id && !returned.has(entry.id),
+  );
   const droppedIds = new Set(dropped.map((entry) => entry.id));
 
   const blocksMap = new Map(state.blocks);
   const itemsMap = new Map(state.items);
   for (const droppedBlock of dropped) blocksMap.delete(droppedBlock.id);
-  for (const [id, item] of itemsMap) if (droppedIds.has(item.blockId)) itemsMap.delete(id);
+  for (const [id, item] of itemsMap)
+    if (droppedIds.has(item.blockId)) itemsMap.delete(id);
   for (const entry of blocks) {
     blocksMap.set(entry.id, entry);
     for (const item of entry.items) itemsMap.set(item.id, item);
@@ -141,12 +216,19 @@ function applyOverviewLoaded(
 // Optimistic writes
 // ============================================================
 
-function applyWrite(state: AppState, op: OptimisticWrite, now: number): AppState {
+function applyWrite(
+  state: AppState,
+  op: OptimisticWrite,
+  now: number,
+): AppState {
   const existing = getRow(state, op.entity, op.id);
   switch (op.change) {
     case "put": {
       const undo: UndoPlan = existing
-        ? { remove: [], restore: [{ entity: op.entity, id: op.id, row: existing }] }
+        ? {
+            remove: [],
+            restore: [{ entity: op.entity, id: op.id, row: existing }],
+          }
         : { remove: [{ entity: op.entity, id: op.id }], restore: [] };
       return addPending(setRow(state, op.entity, op.row), op, undo);
     }
@@ -157,8 +239,28 @@ function applyWrite(state: AppState, op: OptimisticWrite, now: number): AppState
       // `existing` and `op.patch` are correlated per `op.entity`; the merged
       // spread is the entity's row, so the cast is structural, not a lie.
       const merged = { ...existing, ...op.patch, updatedAt: now } as EntityRow;
-      const undo: UndoPlan = { remove: [], restore: [{ entity: op.entity, id: op.id, row: existing }] };
+      const undo: UndoPlan = {
+        remove: [],
+        restore: [{ entity: op.entity, id: op.id, row: existing }],
+      };
       return addPending(setRow(state, op.entity, merged), op, undo);
+    }
+    case "move": {
+      // The item moves to another block (Feature 2, docs/adr/0017); identity,
+      // kind and text stay. The undo restores block and position.
+      const item = state.items.get(op.id);
+      if (!item) return state;
+      const undo: UndoPlan = {
+        remove: [],
+        restore: [{ entity: "item", id: op.id, row: item }],
+      };
+      const moved = {
+        ...item,
+        blockId: op.blockId,
+        position: op.position,
+        updatedAt: now,
+      };
+      return addPending(setRow(state, "item", moved), op, undo);
     }
     case "delete":
       return applyDelete(state, op);
@@ -180,7 +282,10 @@ function applyDelete(state: AppState, op: DeleteWrite): AppState {
   }
 }
 
-function deleteItem(state: AppState, op: Extract<DeleteWrite, { entity: "item" }>): AppState {
+function deleteItem(
+  state: AppState,
+  op: Extract<DeleteWrite, { entity: "item" }>,
+): AppState {
   const existing = state.items.get(op.id);
   if (!existing) return state;
 
@@ -188,7 +293,9 @@ function deleteItem(state: AppState, op: Extract<DeleteWrite, { entity: "item" }
   // CASCADE (docs/adr/0014), mirrored optimistically so the children do not
   // linger until the next reload.
   let next = removeRow(state, "item", op.id);
-  const restore: UndoPlan["restore"] = [{ entity: "item", id: op.id, row: existing }];
+  const restore: UndoPlan["restore"] = [
+    { entity: "item", id: op.id, row: existing },
+  ];
   if (existing.kind === "task") {
     for (const item of state.items.values()) {
       if (item.parentItemId !== op.id) continue;
@@ -201,11 +308,16 @@ function deleteItem(state: AppState, op: Extract<DeleteWrite, { entity: "item" }
   return addPending(next, op, undo);
 }
 
-function deleteBlock(state: AppState, op: Extract<DeleteWrite, { entity: "block" }>): AppState {
+function deleteBlock(
+  state: AppState,
+  op: Extract<DeleteWrite, { entity: "block" }>,
+): AppState {
   const block = state.blocks.get(op.id);
   if (!block) return state;
 
-  const removedItems = [...state.items.values()].filter((item) => item.blockId === op.id);
+  const removedItems = [...state.items.values()].filter(
+    (item) => item.blockId === op.id,
+  );
   const restore: UndoPlan["restore"] = [];
   const itemsMap = new Map(state.items);
   for (const [id, item] of itemsMap) {
@@ -215,7 +327,8 @@ function deleteBlock(state: AppState, op: Extract<DeleteWrite, { entity: "block"
     }
   }
   for (const item of removedItems) itemsMap.delete(item.id);
-  for (const item of removedItems) restore.push({ entity: "item", id: item.id, row: item });
+  for (const item of removedItems)
+    restore.push({ entity: "item", id: item.id, row: item });
 
   const blocksMap = new Map(state.blocks);
   blocksMap.delete(op.id);
@@ -224,17 +337,32 @@ function deleteBlock(state: AppState, op: Extract<DeleteWrite, { entity: "block"
   return addPending({ ...state, blocks: blocksMap, items: itemsMap }, op, undo);
 }
 
-function deletePage(state: AppState, op: Extract<DeleteWrite, { entity: "page" }>): AppState {
+function deletePage(
+  state: AppState,
+  op: Extract<DeleteWrite, { entity: "page" }>,
+): AppState {
   const page = state.pages.get(op.id);
   if (!page) return state;
 
-  const removedBlocks = [...state.blocks.values()].filter((block) => block.pageId === op.id);
-  const removedItems = [...state.items.values()].filter((item) => removedBlocks.some((block) => block.id === item.blockId));
+  const removedBlocks = [...state.blocks.values()].filter(
+    (block) => block.pageId === op.id,
+  );
+  const removedItems = [...state.items.values()].filter((item) =>
+    removedBlocks.some((block) => block.id === item.blockId),
+  );
 
   const restore: UndoPlan["restore"] = [
     { entity: "page", id: op.id, row: page },
-    ...removedBlocks.map((entry) => ({ entity: "block" as const, id: entry.id, row: entry })),
-    ...removedItems.map((entry) => ({ entity: "item" as const, id: entry.id, row: entry })),
+    ...removedBlocks.map((entry) => ({
+      entity: "block" as const,
+      id: entry.id,
+      row: entry,
+    })),
+    ...removedItems.map((entry) => ({
+      entity: "item" as const,
+      id: entry.id,
+      row: entry,
+    })),
   ];
 
   const pagesMap = new Map(state.pages);
@@ -249,32 +377,69 @@ function deletePage(state: AppState, op: Extract<DeleteWrite, { entity: "page" }
   pageViews.delete(op.id);
 
   const undo: UndoPlan = { remove: [], restore };
-  return addPending({ ...state, pages: pagesMap, blocks: blocksMap, items: itemsMap, pageViews }, op, undo);
+  return addPending(
+    {
+      ...state,
+      pages: pagesMap,
+      blocks: blocksMap,
+      items: itemsMap,
+      pageViews,
+    },
+    op,
+    undo,
+  );
 }
 
-function deleteSpace(state: AppState, op: Extract<DeleteWrite, { entity: "space" }>): AppState {
+function deleteSpace(
+  state: AppState,
+  op: Extract<DeleteWrite, { entity: "space" }>,
+): AppState {
   const space = state.spaces.get(op.id);
   if (!space) return state;
 
-  const removedPages = [...state.pages.values()].filter((page) => page.spaceId === op.id);
-  const removedBlockIds = new Set(
-    [...state.blocks.values()].filter((block) => removedPages.some((page) => page.id === block.pageId)).map((block) => block.id),
+  const removedPages = [...state.pages.values()].filter(
+    (page) => page.spaceId === op.id,
   );
-  const removedBlocks = [...state.blocks.values()].filter((block) => removedBlockIds.has(block.id));
-  const removedItems = [...state.items.values()].filter((item) => removedBlockIds.has(item.blockId));
+  const removedBlockIds = new Set(
+    [...state.blocks.values()]
+      .filter((block) => removedPages.some((page) => page.id === block.pageId))
+      .map((block) => block.id),
+  );
+  const removedBlocks = [...state.blocks.values()].filter((block) =>
+    removedBlockIds.has(block.id),
+  );
+  const removedItems = [...state.items.values()].filter((item) =>
+    removedBlockIds.has(item.blockId),
+  );
 
   const restore: UndoPlan["restore"] = [
     { entity: "space", id: op.id, row: space },
-    ...removedPages.map((entry) => ({ entity: "page" as const, id: entry.id, row: entry })),
-    ...removedBlocks.map((entry) => ({ entity: "block" as const, id: entry.id, row: entry })),
-    ...removedItems.map((entry) => ({ entity: "item" as const, id: entry.id, row: entry })),
+    ...removedPages.map((entry) => ({
+      entity: "page" as const,
+      id: entry.id,
+      row: entry,
+    })),
+    ...removedBlocks.map((entry) => ({
+      entity: "block" as const,
+      id: entry.id,
+      row: entry,
+    })),
+    ...removedItems.map((entry) => ({
+      entity: "item" as const,
+      id: entry.id,
+      row: entry,
+    })),
   ];
 
   const itemsMap = new Map(state.items);
   // Foreign tasks keep their row and only lose the assignment — the server's
   // ON DELETE SET NULL, mirrored locally.
   for (const [id, item] of itemsMap) {
-    if (item.kind === "task" && item.assigneeSpaceId === op.id && !removedBlockIds.has(item.blockId)) {
+    if (
+      item.kind === "task" &&
+      item.assigneeSpaceId === op.id &&
+      !removedBlockIds.has(item.blockId)
+    ) {
       restore.push({ entity: "item", id, row: item });
       itemsMap.set(id, { ...item, assigneeSpaceId: null });
     }
@@ -289,14 +454,29 @@ function deleteSpace(state: AppState, op: Extract<DeleteWrite, { entity: "space"
   for (const entry of removedItems) itemsMap.delete(entry.id);
 
   const undo: UndoPlan = { remove: [], restore };
-  return addPending({ ...state, spaces: spacesMap, pages: pagesMap, blocks: blocksMap, items: itemsMap }, op, undo);
+  return addPending(
+    {
+      ...state,
+      spaces: spacesMap,
+      pages: pagesMap,
+      blocks: blocksMap,
+      items: itemsMap,
+    },
+    op,
+    undo,
+  );
 }
 
-function deleteTemplate(state: AppState, op: Extract<DeleteWrite, { entity: "template" }>): AppState {
+function deleteTemplate(
+  state: AppState,
+  op: Extract<DeleteWrite, { entity: "template" }>,
+): AppState {
   const template = state.templates.get(op.id);
   if (!template) return state;
 
-  const restore: UndoPlan["restore"] = [{ entity: "template", id: op.id, row: template }];
+  const restore: UndoPlan["restore"] = [
+    { entity: "template", id: op.id, row: template },
+  ];
   const blocksMap = new Map(state.blocks);
   for (const [id, block] of blocksMap) {
     if (block.templateId === op.id) {
@@ -309,17 +489,35 @@ function deleteTemplate(state: AppState, op: Extract<DeleteWrite, { entity: "tem
   templatesMap.delete(op.id);
 
   const undo: UndoPlan = { remove: [], restore };
-  return addPending({ ...state, templates: templatesMap, blocks: blocksMap }, op, undo);
+  return addPending(
+    { ...state, templates: templatesMap, blocks: blocksMap },
+    op,
+    undo,
+  );
 }
 
-function addPending(state: AppState, op: OptimisticWrite, undo: UndoPlan): AppState {
+function addPending(
+  state: AppState,
+  op: OptimisticWrite,
+  undo: UndoPlan,
+): AppState {
   const pending = new Map(state.pending);
-  const entry: PendingOperation = { opKey: op.opKey, entity: op.entity, id: op.id, change: op.change, undo };
+  const entry: PendingOperation = {
+    opKey: op.opKey,
+    entity: op.entity,
+    id: op.id,
+    change: op.change,
+    undo,
+  };
   pending.set(op.opKey, entry);
   return { ...state, pending };
 }
 
-function confirmWrite(state: AppState, opKey: string, respaced?: Record<string, number>): AppState {
+function confirmWrite(
+  state: AppState,
+  opKey: string,
+  respaced?: Record<string, number>,
+): AppState {
   const pending = new Map(state.pending);
   if (!pending.delete(opKey)) return state;
   if (!respaced) return { ...state, pending };
@@ -334,13 +532,20 @@ function confirmWrite(state: AppState, opKey: string, respaced?: Record<string, 
   return { ...state, pending, items };
 }
 
-function failWrite(state: AppState, opKey: string, error: ClientError, now: number): AppState {
+function failWrite(
+  state: AppState,
+  opKey: string,
+  error: ClientError,
+  now: number,
+): AppState {
   const op = state.pending.get(opKey);
   if (!op) return state;
 
   let next = state;
-  for (const entry of op.undo.remove) next = removeRow(next, entry.entity, entry.id);
-  for (const entry of op.undo.restore) next = setRow(next, entry.entity, entry.row);
+  for (const entry of op.undo.remove)
+    next = removeRow(next, entry.entity, entry.id);
+  for (const entry of op.undo.restore)
+    next = setRow(next, entry.entity, entry.row);
 
   const pending = new Map(next.pending);
   pending.delete(opKey);
@@ -353,34 +558,55 @@ function failWrite(state: AppState, opKey: string, error: ClientError, now: numb
     error,
     createdAt: now,
   };
-  return { ...next, pending, notifications: [...next.notifications, notification] };
+  return {
+    ...next,
+    pending,
+    notifications: [...next.notifications, notification],
+  };
 }
 
 // ============================================================
 // Map helpers
 // ============================================================
 
-function mapOf<Row extends { id: string }>(rows: readonly Row[]): Map<string, Row> {
+function mapOf<Row extends { id: string }>(
+  rows: readonly Row[],
+): Map<string, Row> {
   return new Map(rows.map((row) => [row.id, row]));
 }
 
-function setMap<Key, Value>(map: Map<Key, Value>, key: Key, value: Value): Map<Key, Value> {
+function setMap<Key, Value>(
+  map: Map<Key, Value>,
+  key: Key,
+  value: Value,
+): Map<Key, Value> {
   const next = new Map(map);
   next.set(key, value);
   return next;
 }
 
-function setView(map: Map<string, ViewStatus>, key: string, status: ViewStatus): Map<string, ViewStatus> {
+function setView(
+  map: Map<string, ViewStatus>,
+  key: string,
+  status: ViewStatus,
+): Map<string, ViewStatus> {
   return setMap(map, key, status);
 }
 
-function mergeRows<Row extends { id: string }>(map: Map<string, Row>, rows: readonly Row[]): Map<string, Row> {
+function mergeRows<Row extends { id: string }>(
+  map: Map<string, Row>,
+  rows: readonly Row[],
+): Map<string, Row> {
   const next = new Map(map);
   for (const row of rows) next.set(row.id, row);
   return next;
 }
 
-function getRow(state: AppState, entity: EntityName, id: string): EntityRow | undefined {
+function getRow(
+  state: AppState,
+  entity: EntityName,
+  id: string,
+): EntityRow | undefined {
   switch (entity) {
     case "space":
       return state.spaces.get(id);
@@ -398,15 +624,24 @@ function getRow(state: AppState, entity: EntityName, id: string): EntityRow | un
 function setRow(state: AppState, entity: EntityName, row: EntityRow): AppState {
   switch (entity) {
     case "space":
-      return { ...state, spaces: setMap(state.spaces, row.id, row as SpaceRow) };
+      return {
+        ...state,
+        spaces: setMap(state.spaces, row.id, row as SpaceRow),
+      };
     case "page":
       return { ...state, pages: setMap(state.pages, row.id, row as PageRow) };
     case "block":
-      return { ...state, blocks: setMap(state.blocks, row.id, row as BlockRow) };
+      return {
+        ...state,
+        blocks: setMap(state.blocks, row.id, row as BlockRow),
+      };
     case "item":
       return { ...state, items: setMap(state.items, row.id, row as ItemRow) };
     case "template":
-      return { ...state, templates: setMap(state.templates, row.id, row as TemplateRow) };
+      return {
+        ...state,
+        templates: setMap(state.templates, row.id, row as TemplateRow),
+      };
   }
 }
 
@@ -425,7 +660,10 @@ function removeRow(state: AppState, entity: EntityName, id: string): AppState {
   }
 }
 
-function without<Value>(map: Map<string, Value>, id: string): Map<string, Value> {
+function without<Value>(
+  map: Map<string, Value>,
+  id: string,
+): Map<string, Value> {
   const next = new Map(map);
   next.delete(id);
   return next;

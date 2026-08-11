@@ -55,6 +55,10 @@ interface StreamProps {
   onRetryOverview: () => void;
   /** A task created in the person's "Aufgaben" view (Feature 3). */
   onCreateTask: (fields: ComposerItemFields) => void;
+  /** A "/jfx" theme goes to the target space's Jour-Fix block (Feature 2). */
+  onCreateJourFix: (text: string, personSpaceId: string | null) => void;
+  /** Moves a Jour-Fix theme into the given block (Feature 2). */
+  onMoveTheme: (itemId: string, targetBlockId: string) => void;
   onCreateBlock: (templateId: string | null) => void;
   onDeleteBlock: (id: string) => void;
   /** Opens the shared TemplateManager (owned by the App shell). */
@@ -89,6 +93,8 @@ export function Stream(props: StreamProps) {
     onRetryPage,
     onRetryOverview,
     onCreateTask,
+    onCreateJourFix,
+    onMoveTheme,
     onCreateBlock,
     onDeleteBlock,
     onManageTemplates,
@@ -152,6 +158,7 @@ export function Stream(props: StreamProps) {
           blocksById={blocksById}
           spaces={spaces}
           today={todayDate}
+          jfxThemes={jfxThemes}
           onPatchBlock={onPatchBlock}
           onPatchItem={onPatchItem}
           onCreateItem={onCreateItem}
@@ -161,6 +168,8 @@ export function Stream(props: StreamProps) {
           onCreateBlock={onCreateBlock}
           onDeleteBlock={onDeleteBlock}
           onManageTemplates={onManageTemplates}
+          onCreateJourFix={onCreateJourFix}
+          onMoveTheme={onMoveTheme}
         />
       )}
     </div>
@@ -199,6 +208,7 @@ function PagePane({
   blocksById,
   spaces,
   today,
+  jfxThemes,
   onPatchBlock,
   onPatchItem,
   onCreateItem,
@@ -208,6 +218,8 @@ function PagePane({
   onCreateBlock,
   onDeleteBlock,
   onManageTemplates,
+  onCreateJourFix,
+  onMoveTheme,
 }: {
   pageView: ViewStatus;
   pageBlocks: BlockView[];
@@ -219,6 +231,7 @@ function PagePane({
   blocksById: ReadonlyMap<string, BlockRow>;
   spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
   today: Date;
+  jfxThemes: ItemRow[];
   onPatchBlock: (id: string, patch: BlockPatch) => void;
   onPatchItem: (id: string, patch: ItemPatch) => void;
   onCreateItem: (input: ItemCreateInput) => void;
@@ -228,6 +241,8 @@ function PagePane({
   onCreateBlock: (templateId: string | null) => void;
   onDeleteBlock: (id: string) => void;
   onManageTemplates: () => void;
+  onCreateJourFix: (text: string, personSpaceId: string | null) => void;
+  onMoveTheme: (itemId: string, targetBlockId: string) => void;
 }) {
   if (pageView.status === "idle" || pageView.status === "loading")
     return <Loading />;
@@ -261,12 +276,15 @@ function PagePane({
               spaces={spaces}
               today={today}
               pulse={pulseBlockId === block.id}
+              jfxThemes={jfxThemes}
               onPatchBlock={onPatchBlock}
               onPatchItem={onPatchItem}
               onCreateItem={onCreateItem}
               onDeleteItem={onDeleteItem}
               onDeleteBlock={onDeleteBlock}
               onJumpToBlock={onJumpToBlock}
+              onCreateJourFix={onCreateJourFix}
+              onMoveTheme={onMoveTheme}
             />
           ))}
         </div>

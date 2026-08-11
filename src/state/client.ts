@@ -1,4 +1,12 @@
-import type { ApiErrorBody, CalendarResponse, ItemWriteResponse, OverviewResponse, PageResponse, SearchResponse, SpacesResponse } from "../../shared/api.ts";
+import type {
+  ApiErrorBody,
+  CalendarResponse,
+  ItemWriteResponse,
+  OverviewResponse,
+  PageResponse,
+  SearchResponse,
+  SpacesResponse,
+} from "../../shared/api.ts";
 import type { ClientError, EntityName, EntityRow } from "./state.ts";
 
 /** The typed surface of the phase-2b API. The only part of the frontend that
@@ -14,6 +22,8 @@ export interface ApiClient {
   /** Item writes return the stored row plus a block re-space map, if any. */
   putItem(id: string, body: unknown): Promise<ItemWriteResponse>;
   patchItem(id: string, body: unknown): Promise<ItemWriteResponse>;
+  /** Moves an item into another block (Feature 2, docs/adr/0017). */
+  moveItem(id: string, body: unknown): Promise<ItemWriteResponse>;
   delete(entity: EntityName, id: string): Promise<void>;
 }
 
@@ -62,7 +72,9 @@ export class FetchApiClient implements ApiClient {
   }
 
   getCalendar(from: string, to: string): Promise<CalendarResponse> {
-    return this.read(`/api/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+    return this.read(
+      `/api/calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    );
   }
 
   getOverview(today: string): Promise<OverviewResponse> {
@@ -82,31 +94,64 @@ export class FetchApiClient implements ApiClient {
   }
 
   putItem(id: string, body: unknown): Promise<ItemWriteResponse> {
-    return this.perform("PUT", this.path("item", id), body, true).then((response) => this.parse(response));
+    return this.perform("PUT", this.path("item", id), body, true).then(
+      (response) => this.parse(response),
+    );
+  }
+
+  /** Moves an item into another block (Feature 2, docs/adr/0017). */
+  moveItem(id: string, body: unknown): Promise<ItemWriteResponse> {
+    return this.perform(
+      "POST",
+      `${this.path("item", id)}/move`,
+      body,
+      true,
+    ).then((response) => this.parse(response));
   }
 
   patchItem(id: string, body: unknown): Promise<ItemWriteResponse> {
-    return this.perform("PATCH", this.path("item", id), body, true).then((response) => this.parse(response));
+    return this.perform("PATCH", this.path("item", id), body, true).then(
+      (response) => this.parse(response),
+    );
   }
 
   async delete(entity: EntityName, id: string): Promise<void> {
-    const response = await this.perform("DELETE", this.path(entity, id), undefined, true);
+    const response = await this.perform(
+      "DELETE",
+      this.path(entity, id),
+      undefined,
+      true,
+    );
     if (!response.ok) throw await this.httpError(response);
   }
 
   private read<T>(path: string): Promise<T> {
-    return this.perform("GET", path, undefined, false).then((response) => this.parse(response));
+    return this.perform("GET", path, undefined, false).then((response) =>
+      this.parse(response),
+    );
   }
 
-  private write(method: "PUT" | "PATCH", entity: EntityName, id: string, body: unknown): Promise<EntityRow> {
-    return this.perform(method, this.path(entity, id), body, true).then((response) => this.parse(response));
+  private write(
+    method: "PUT" | "PATCH",
+    entity: EntityName,
+    id: string,
+    body: unknown,
+  ): Promise<EntityRow> {
+    return this.perform(method, this.path(entity, id), body, true).then(
+      (response) => this.parse(response),
+    );
   }
 
   private path(entity: EntityName, id: string): string {
     return `/api/${URL_ENTITY[entity]}/${encodeURIComponent(id)}`;
   }
 
-  private async perform(method: string, path: string, body: unknown, retryable: boolean): Promise<Response> {
+  private async perform(
+    method: string,
+    path: string,
+    body: unknown,
+    retryable: boolean,
+  ): Promise<Response> {
     const init: RequestInit = { method };
     if (body !== undefined) {
       init.headers = { "content-type": "application/json" };
@@ -122,7 +167,8 @@ export class FetchApiClient implements ApiClient {
         const doFetch = this.fetchImpl;
         return await doFetch(url, init);
       } catch (err) {
-        if (!retryable || attempt >= this.maxAttempts - 1) throw networkError(err);
+        if (!retryable || attempt >= this.maxAttempts - 1)
+          throw networkError(err);
         attempt++;
         await new Promise((resolve) => setTimeout(resolve, this.retryDelayMs));
       }
@@ -138,7 +184,8 @@ export class FetchApiClient implements ApiClient {
     let body: ApiErrorBody | null = null;
     try {
       const parsed = (await response.json()) as { error?: unknown };
-      if (parsed && typeof parsed === "object" && parsed.error) body = parsed as ApiErrorBody;
+      if (parsed && typeof parsed === "object" && parsed.error)
+        body = parsed as ApiErrorBody;
     } catch {
       // Non-JSON error body — stay with null.
     }
@@ -149,11 +196,17 @@ export class FetchApiClient implements ApiClient {
 /** Coerces anything thrown by the client layer into a classified ClientError. */
 export function asClientError(err: unknown): ClientError {
   if (isClientError(err)) return err;
-  return { kind: "unexpected", message: err instanceof Error ? err.message : "Unexpected error" };
+  return {
+    kind: "unexpected",
+    message: err instanceof Error ? err.message : "Unexpected error",
+  };
 }
 
 function networkError(cause: unknown): ClientError {
-  return { kind: "network", message: cause instanceof Error ? cause.message : "Network request failed" };
+  return {
+    kind: "network",
+    message: cause instanceof Error ? cause.message : "Network request failed",
+  };
 }
 
 function isClientError(err: unknown): err is ClientError {

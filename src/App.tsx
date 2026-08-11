@@ -245,6 +245,63 @@ export function App() {
 
   const jfxThemes = space !== null ? selectJourFixThemes(state, space.id) : [];
 
+  // A "/jfx" theme (Feature 2, docs/adr/0017): the note lands in the
+  // Jour-Fix block of the mentioned person, else of the current space. Page
+  // and block are created lazily on the first theme, like Feature 3's
+  // "Ohne Kontext" block.
+  const createJourFixTheme = (text: string, personSpaceId: string | null) => {
+    const target =
+      personSpaceId !== null
+        ? (spaces.find((entry) => entry.id === personSpaceId) ?? space)
+        : space;
+    if (target === null || text === "") return;
+    const page =
+      target.pages.find((entry) => entry.title === "Notizen") ??
+      target.pages[0] ??
+      null;
+    const pageId = page?.id ?? newPageId();
+    const block = page
+      ? ([...state.blocks.values()].find(
+          (entry) => entry.pageId === page.id && entry.title === "Jour Fix",
+        ) ?? null)
+      : null;
+    const blockId = block?.id ?? newBlockId();
+    if (page === null)
+      ops.createPage({ id: pageId, spaceId: target.id, title: "Notizen" });
+    if (block === null)
+      ops.createBlock({
+        id: blockId,
+        pageId,
+        templateId: null,
+        title: "Jour Fix",
+        date: today,
+      });
+    const lastPosition = [...state.items.values()]
+      .filter((entry) => entry.blockId === blockId)
+      .reduce((max, entry) => Math.max(max, entry.position), 0);
+    ops.createItem({
+      id: newItemId(),
+      blockId,
+      kind: "note",
+      position: insertPositionBetween(lastPosition || null, null),
+      text,
+      heading: null,
+    });
+  };
+
+  // Moves a Jour-Fix theme into a meeting block (Feature 2): the item changes
+  // its block and position — it is not copied, so it leaves the open list.
+  const moveTheme = (itemId: string, targetBlockId: string) => {
+    const lastPosition = [...state.items.values()]
+      .filter((entry) => entry.blockId === targetBlockId)
+      .reduce((max, entry) => Math.max(max, entry.position), 0);
+    void ops.moveItem(
+      itemId,
+      targetBlockId,
+      insertPositionBetween(lastPosition || null, null),
+    );
+  };
+
   const monthFrom = toISODate(new Date(month.year, month.month, 1));
   const monthTo = toISODate(new Date(month.year, month.month + 1, 0));
 
@@ -706,6 +763,8 @@ export function App() {
       onRetryPage={() => void ops.loadPage(selectedPageId)}
       onRetryOverview={() => void ops.loadOverview(today)}
       onCreateTask={createPersonTask}
+      onCreateJourFix={createJourFixTheme}
+      onMoveTheme={moveTheme}
       onCreateBlock={createBlock}
       onDeleteBlock={deleteBlock}
       onManageTemplates={() => setTplOpen(true)}

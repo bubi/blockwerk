@@ -312,6 +312,7 @@ Bewusst _nicht_ gebaut, bis jemand einen konkreten Bedarf zeigt:
 | 10    | Bug- und Change-Sammlung 06.08.2026: Breiten (gemeinsames Maß, Metazeile), Editor (leerer Notizbereich, sichtbare Eingabezeile, Listenpunkte), Sortierung + Klappzustand, Feinschliff (Block anlegen, Umschalter)            | erledigt  |
 | 11    | Seitennavigation in der Bereichsleiste (ADR 0015): Einträge als Unterliste je Bereich, „Aufgaben" und „Jour Fix" als virtuelle Einträge, Tab-Reihe aus dem Streamkopf entfernt                                               | erledigt  |
 | 12    | Feature-Batch 2: Bug 12 (Hover verstärkt, schaltet nicht ein), Feature 1 (Zeilen per Shift+↑/↓ markieren und zu einer Liste zusammenfassen), Feature 3 (Task direkt bei einer Person anlegen — Ohne-Kontext-Block, ADR 0016) | erledigt  |
+| 13    | Feature-Batch 2, Feature 2 (ADR 0017): Jour-Fix-Themen sammeln — `/jfx` im Slash-Menü, Themen als `note`-Items im Jour-Fix-Block je Bereich, Übernehmen in ein Meeting verschiebt das Item (keine Kopie, kein Statusfeld)    | erledigt  |
 
 Erst wenn eine Phase steht, beginnt die nächste. Phase 1 vor Phase 2 ist Absicht: die
 Auslieferungskette soll funktionieren, solange noch nichts kaputtgehen kann.

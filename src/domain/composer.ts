@@ -11,7 +11,7 @@ import { parseTokens } from "./tokens.ts";
  */
 
 export type ComposerCommandKey =
-  "task" | "event" | "heading" | "note" | "ref" | "merge";
+  "task" | "event" | "heading" | "note" | "ref" | "merge" | "jfx";
 
 export interface ComposerCommand {
   key: ComposerCommandKey;
@@ -33,6 +33,11 @@ export const COMPOSER_COMMANDS: readonly ComposerCommand[] = [
     key: "merge",
     label: "Zu einer Liste zusammenfassen",
     hint: "markierte Notizen zu Punkten bündeln",
+  },
+  {
+    key: "jfx",
+    label: "Jour Fix",
+    hint: "@Person wählt den Bereich",
   },
 ];
 
@@ -128,8 +133,10 @@ export function composeItem(input: {
       };
     }
     case "merge":
-      // Never reaches composeItem: the Composer acts on the selection when the
-      // merge command is picked. Kept for the exhaustive switch over the key.
+    case "jfx":
+      // Neither reaches composeItem: the merge acts on the selection, jfx
+      // creates a theme in the Jour-Fix block of a target space. Kept for the
+      // exhaustive switch over the key.
       return null;
   }
 }

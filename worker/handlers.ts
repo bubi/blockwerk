@@ -11,6 +11,7 @@ import {
   blockPatchSchema,
   blockWriteSchema,
   itemKindRuleViolations,
+  itemMoveSchema,
   itemPatchSchema,
   itemWriteSchema,
   pagePatchSchema,
@@ -46,6 +47,7 @@ import {
   loadOverview,
   loadPageBlocks,
   loadSearch,
+  moveItemToBlock,
   updateBlock,
   updateItem,
   updatePage,
@@ -56,7 +58,7 @@ import {
 export type EntityName = "space" | "page" | "block" | "item" | "template";
 
 function logWrite(
-  method: "PUT" | "PATCH" | "DELETE",
+  method: "PUT" | "PATCH" | "DELETE" | "MOVE",
   entity: string,
   id: string,
   email: string,
@@ -493,6 +495,31 @@ export async function patchItem(
   }
   return {
     row: assertRow(await updateItem(db, id, patch, now)),
+    respaced: null,
+  };
+}
+
+/**
+ * Moves an item into another block (Feature 2, docs/adr/0017): only the new
+ * block and position change — identity, kind and text stay. The item leaves
+ * the open Jour-Fix list because it now lives in the meeting block.
+ */
+export async function moveItemHandler(
+  db: D1Database,
+  id: string,
+  body: unknown,
+  now: number,
+  email: string,
+): Promise<ItemWriteResponse> {
+  logWrite("MOVE", "item", id, email);
+  const existing = await getItem(db, id);
+  if (!existing) throw new NotFoundError(`Item '${id}' does not exist`);
+  const input = itemMoveSchema.parse(body);
+  await ensureExists(db, "block", input.blockId, "blockId");
+  return {
+    row: assertRow(
+      await moveItemToBlock(db, id, input.blockId, input.position, now),
+    ),
     respaced: null,
   };
 }

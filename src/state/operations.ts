@@ -1,5 +1,19 @@
-import type { BlockRow, ItemKind, ItemRow, PageRow, SpaceKind, SpaceRow, TemplateRow } from "../../shared/db.ts";
-import type { BlockPatch, ItemPatch, PagePatch, SpacePatch, TemplatePatch } from "../../shared/schemas.ts";
+import type {
+  BlockRow,
+  ItemKind,
+  ItemRow,
+  PageRow,
+  SpaceKind,
+  SpaceRow,
+  TemplateRow,
+} from "../../shared/db.ts";
+import type {
+  BlockPatch,
+  ItemPatch,
+  PagePatch,
+  SpacePatch,
+  TemplatePatch,
+} from "../../shared/schemas.ts";
 import { asClientError, type ApiClient } from "./client.ts";
 import type { Action, Dispatch } from "./reducer.ts";
 import type { OptimisticWrite } from "./state.ts";
@@ -36,6 +50,8 @@ export interface Operations {
   createItem(input: ItemCreateInput): Promise<void>;
   updateItem(id: string, patch: ItemPatch): Promise<void>;
   deleteItem(id: string): Promise<void>;
+  /** Moves an item into another block (Feature 2, docs/adr/0017). */
+  moveItem(id: string, blockId: string, position: number): Promise<void>;
 
   createTemplate(input: TemplateCreateInput): Promise<void>;
   updateTemplate(id: string, patch: TemplatePatch): Promise<void>;
@@ -93,7 +109,10 @@ export interface TemplateCreateInput {
   seed?: string[];
 }
 
-export function createOperations(client: ApiClient, dispatch: Dispatch): Operations {
+export function createOperations(
+  client: ApiClient,
+  dispatch: Dispatch,
+): Operations {
   const loadSpaces = async () => {
     dispatch({ type: "spacesLoadStarted" });
     try {
@@ -134,14 +153,19 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
     dispatch({ type: "calendarLoadStarted" });
     try {
       const window = await client.getCalendar(from, to);
-      dispatch({ type: "calendarLoaded", dueTasks: window.dueTasks, events: window.events });
+      dispatch({
+        type: "calendarLoaded",
+        dueTasks: window.dueTasks,
+        events: window.events,
+      });
     } catch (err) {
       dispatch({ type: "calendarLoadFailed", error: asClientError(err) });
     }
   };
 
   let opSeq = 0;
-  const opKey = (entity: string, id: string, change: string) => `${entity}:${id}:${change}:${++opSeq}`;
+  const opKey = (entity: string, id: string, change: string) =>
+    `${entity}:${id}:${change}:${++opSeq}`;
 
   // Search is a live view: each keystroke may fire a request, and responses
   // can arrive out of order. Only the request for the newest query may touch
@@ -171,13 +195,21 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
     dispatch({ type: "searchCleared" });
   };
 
-  const runWrite = async (op: OptimisticWrite, send: () => Promise<unknown>) => {
+  const runWrite = async (
+    op: OptimisticWrite,
+    send: () => Promise<unknown>,
+  ) => {
     dispatch({ type: "writeOptimistic", op, now: Date.now() });
     try {
       const result = await send();
       dispatch(confirmedAction(op.opKey, result));
     } catch (err) {
-      dispatch({ type: "writeFailed", opKey: op.opKey, error: asClientError(err), now: Date.now() });
+      dispatch({
+        type: "writeFailed",
+        opKey: op.opKey,
+        error: asClientError(err),
+        now: Date.now(),
+      });
     }
   };
 
@@ -190,52 +222,181 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
     clearSearch,
 
     createSpace: (input) =>
-      runWrite({ opKey: opKey("space", input.id, "put"), entity: "space", id: input.id, change: "put", row: toSpaceRow(input) }, () =>
-        client.put("space", input.id, toSpaceBody(input)),
+      runWrite(
+        {
+          opKey: opKey("space", input.id, "put"),
+          entity: "space",
+          id: input.id,
+          change: "put",
+          row: toSpaceRow(input),
+        },
+        () => client.put("space", input.id, toSpaceBody(input)),
       ),
     updateSpace: (id, patch) =>
-      runWrite({ opKey: opKey("space", id, "patch"), entity: "space", id, change: "patch", patch }, () => client.patch("space", id, patch)),
+      runWrite(
+        {
+          opKey: opKey("space", id, "patch"),
+          entity: "space",
+          id,
+          change: "patch",
+          patch,
+        },
+        () => client.patch("space", id, patch),
+      ),
     deleteSpace: (id) =>
-      runWrite({ opKey: opKey("space", id, "delete"), entity: "space", id, change: "delete" }, () => client.delete("space", id)),
+      runWrite(
+        {
+          opKey: opKey("space", id, "delete"),
+          entity: "space",
+          id,
+          change: "delete",
+        },
+        () => client.delete("space", id),
+      ),
 
     createPage: (input) =>
-      runWrite({ opKey: opKey("page", input.id, "put"), entity: "page", id: input.id, change: "put", row: toPageRow(input) }, () =>
-        client.put("page", input.id, toPageBody(input)),
+      runWrite(
+        {
+          opKey: opKey("page", input.id, "put"),
+          entity: "page",
+          id: input.id,
+          change: "put",
+          row: toPageRow(input),
+        },
+        () => client.put("page", input.id, toPageBody(input)),
       ),
     updatePage: (id, patch) =>
-      runWrite({ opKey: opKey("page", id, "patch"), entity: "page", id, change: "patch", patch }, () => client.patch("page", id, patch)),
+      runWrite(
+        {
+          opKey: opKey("page", id, "patch"),
+          entity: "page",
+          id,
+          change: "patch",
+          patch,
+        },
+        () => client.patch("page", id, patch),
+      ),
     deletePage: (id) =>
-      runWrite({ opKey: opKey("page", id, "delete"), entity: "page", id, change: "delete" }, () => client.delete("page", id)),
+      runWrite(
+        {
+          opKey: opKey("page", id, "delete"),
+          entity: "page",
+          id,
+          change: "delete",
+        },
+        () => client.delete("page", id),
+      ),
 
     createBlock: (input) =>
-      runWrite({ opKey: opKey("block", input.id, "put"), entity: "block", id: input.id, change: "put", row: toBlockRow(input) }, () =>
-        client.put("block", input.id, toBlockBody(input)),
+      runWrite(
+        {
+          opKey: opKey("block", input.id, "put"),
+          entity: "block",
+          id: input.id,
+          change: "put",
+          row: toBlockRow(input),
+        },
+        () => client.put("block", input.id, toBlockBody(input)),
       ),
     updateBlock: (id, patch) =>
-      runWrite({ opKey: opKey("block", id, "patch"), entity: "block", id, change: "patch", patch }, () => client.patch("block", id, patch)),
+      runWrite(
+        {
+          opKey: opKey("block", id, "patch"),
+          entity: "block",
+          id,
+          change: "patch",
+          patch,
+        },
+        () => client.patch("block", id, patch),
+      ),
     deleteBlock: (id) =>
-      runWrite({ opKey: opKey("block", id, "delete"), entity: "block", id, change: "delete" }, () => client.delete("block", id)),
+      runWrite(
+        {
+          opKey: opKey("block", id, "delete"),
+          entity: "block",
+          id,
+          change: "delete",
+        },
+        () => client.delete("block", id),
+      ),
 
     createItem: (input) =>
-      runWrite({ opKey: opKey("item", input.id, "put"), entity: "item", id: input.id, change: "put", row: toItemRow(input) }, () =>
-        client.putItem(input.id, toItemBody(input)),
+      runWrite(
+        {
+          opKey: opKey("item", input.id, "put"),
+          entity: "item",
+          id: input.id,
+          change: "put",
+          row: toItemRow(input),
+        },
+        () => client.putItem(input.id, toItemBody(input)),
       ),
     updateItem: (id, patch) =>
-      runWrite({ opKey: opKey("item", id, "patch"), entity: "item", id, change: "patch", patch }, () => client.patchItem(id, patch)),
+      runWrite(
+        {
+          opKey: opKey("item", id, "patch"),
+          entity: "item",
+          id,
+          change: "patch",
+          patch,
+        },
+        () => client.patchItem(id, patch),
+      ),
     deleteItem: (id) =>
-      runWrite({ opKey: opKey("item", id, "delete"), entity: "item", id, change: "delete" }, () => client.delete("item", id)),
+      runWrite(
+        {
+          opKey: opKey("item", id, "delete"),
+          entity: "item",
+          id,
+          change: "delete",
+        },
+        () => client.delete("item", id),
+      ),
+    moveItem: (id, blockId, position) =>
+      runWrite(
+        {
+          opKey: opKey("item", id, "move"),
+          entity: "item",
+          id,
+          change: "move",
+          blockId,
+          position,
+        },
+        () => client.moveItem(id, { blockId, position }),
+      ),
 
     createTemplate: (input) =>
       runWrite(
-        { opKey: opKey("template", input.id, "put"), entity: "template", id: input.id, change: "put", row: toTemplateRow(input) },
+        {
+          opKey: opKey("template", input.id, "put"),
+          entity: "template",
+          id: input.id,
+          change: "put",
+          row: toTemplateRow(input),
+        },
         () => client.put("template", input.id, toTemplateBody(input)),
       ),
     updateTemplate: (id, patch) =>
-      runWrite({ opKey: opKey("template", id, "patch"), entity: "template", id, change: "patch", patch }, () =>
-        client.patch("template", id, patch),
+      runWrite(
+        {
+          opKey: opKey("template", id, "patch"),
+          entity: "template",
+          id,
+          change: "patch",
+          patch,
+        },
+        () => client.patch("template", id, patch),
       ),
     deleteTemplate: (id) =>
-      runWrite({ opKey: opKey("template", id, "delete"), entity: "template", id, change: "delete" }, () => client.delete("template", id)),
+      runWrite(
+        {
+          opKey: opKey("template", id, "delete"),
+          entity: "template",
+          id,
+          change: "delete",
+        },
+        () => client.delete("template", id),
+      ),
 
     dismissNotification: (id) => dispatch({ type: "dismissNotification", id }),
   };
@@ -250,15 +411,21 @@ export function createOperations(client: ApiClient, dispatch: Dispatch): Operati
  * server's answer to an exhausted position gap). The confirmation action
  * forwards them so the reducer can bring the local order in line.
  */
-function confirmedAction(opKey: string, result: unknown): Extract<Action, { type: "writeConfirmed" }> {
+function confirmedAction(
+  opKey: string,
+  result: unknown,
+): Extract<Action, { type: "writeConfirmed" }> {
   const respaced = extractRespaced(result);
-  return respaced === null ? { type: "writeConfirmed", opKey } : { type: "writeConfirmed", opKey, respaced };
+  return respaced === null
+    ? { type: "writeConfirmed", opKey }
+    : { type: "writeConfirmed", opKey, respaced };
 }
 
 function extractRespaced(result: unknown): Record<string, number> | null {
   if (typeof result === "object" && result !== null && "row" in result) {
     const respaced = (result as { respaced?: unknown }).respaced;
-    if (respaced !== null && typeof respaced === "object") return respaced as Record<string, number>;
+    if (respaced !== null && typeof respaced === "object")
+      return respaced as Record<string, number>;
   }
   return null;
 }
@@ -269,12 +436,26 @@ function now(): number {
 
 function toSpaceRow(input: SpaceCreateInput): SpaceRow {
   const ts = now();
-  return { id: input.id, name: input.name, kind: input.kind, short: input.short, email: input.email ?? null, createdAt: ts, updatedAt: ts };
+  return {
+    id: input.id,
+    name: input.name,
+    kind: input.kind,
+    short: input.short,
+    email: input.email ?? null,
+    createdAt: ts,
+    updatedAt: ts,
+  };
 }
 
 function toPageRow(input: PageCreateInput): PageRow {
   const ts = now();
-  return { id: input.id, spaceId: input.spaceId, title: input.title, createdAt: ts, updatedAt: ts };
+  return {
+    id: input.id,
+    spaceId: input.spaceId,
+    title: input.title,
+    createdAt: ts,
+    updatedAt: ts,
+  };
 }
 
 function toBlockRow(input: BlockCreateInput): BlockRow {
@@ -314,11 +495,23 @@ function toItemRow(input: ItemCreateInput): ItemRow {
 
 function toTemplateRow(input: TemplateCreateInput): TemplateRow {
   const ts = now();
-  return { id: input.id, label: input.label, hue: input.hue, seed: input.seed ?? [], createdAt: ts, updatedAt: ts };
+  return {
+    id: input.id,
+    label: input.label,
+    hue: input.hue,
+    seed: input.seed ?? [],
+    createdAt: ts,
+    updatedAt: ts,
+  };
 }
 
 function toSpaceBody(input: SpaceCreateInput) {
-  return { name: input.name, kind: input.kind, short: input.short, email: input.email ?? null };
+  return {
+    name: input.name,
+    kind: input.kind,
+    short: input.short,
+    email: input.email ?? null,
+  };
 }
 
 function toPageBody(input: PageCreateInput) {
@@ -326,7 +519,12 @@ function toPageBody(input: PageCreateInput) {
 }
 
 function toBlockBody(input: BlockCreateInput) {
-  return { pageId: input.pageId, templateId: input.templateId ?? null, title: input.title, date: input.date };
+  return {
+    pageId: input.pageId,
+    templateId: input.templateId ?? null,
+    title: input.title,
+    date: input.date,
+  };
 }
 
 function toItemBody(input: ItemCreateInput) {

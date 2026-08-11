@@ -117,3 +117,45 @@
   color: var(--text2);
   background: var(--bg);
 }
+
+/* Jour-Fix-Themen übernehmen (Feature 2): ein Etiketten-Schalter am Blockfuss,
+   das Panel öffnet die offenen Themen mit Auswahl. */
+.jfxover {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s2);
+  margin-top: var(--s3);
+}
+
+.jfxbtn {
+  color: var(--green-dk);
+}
+
+.jfxpanel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  padding: var(--s3);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.jfxlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.jfxrow {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  font-size: 14px;
+  color: var(--text);
+}

@@ -307,6 +307,19 @@ export const itemPatchSchema = z
   .strict()
   .partial();
 
+/**
+ * MOVE body for an item (Feature 2, docs/adr/0017): the item changes its
+ * block — it is not copied, `kind`/`text`/`parentItemId` stay untouched. The
+ * client sends the new block and the new position in one step; `blockId` is
+ * deliberately not part of `itemPatchSchema`.
+ */
+export const itemMoveSchema = z
+  .object({
+    blockId: idString,
+    position: z.number().int().min(0),
+  })
+  .strict();
+
 // ============================================================
 // calendar query params
 // ============================================================
