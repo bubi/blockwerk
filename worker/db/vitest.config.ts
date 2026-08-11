@@ -23,6 +23,10 @@ export default defineConfig(async () => {
     test: {
       include: ["worker/db/**/*.test.ts"],
       setupFiles: ["worker/db/testing/apply-migrations.ts"],
+      // The D1 integration tests seed hundreds of rows in the workerd pool;
+      // on the slower GitHub runner a default 5s timeout trips (the fixed
+      // query-count test seeds 50 blocks / 500 items before measuring).
+      testTimeout: 20_000,
     },
   };
 });
