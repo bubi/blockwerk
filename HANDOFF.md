@@ -190,6 +190,11 @@ Damit sie nicht ein zweites Mal passieren.
   beide Originaltexte als Zeilen und bestand jeden Substring-Test, obwohl er
   korrekt zusammenfasste. Assertions, die nach einer Zusammenführung „weg" prüfen,
   müssen exakte Werte zählen, nicht Substrings.
+- **Eager angelegter „Ohne Kontext"-Block.** Die erste Fassung von Feature 3
+  erzeugte den Zielblock, sobald die „Aufgaben"-Ansicht geöffnet wurde — jedes
+  bloße Ansehen einer Person legte einen leeren Block an (und e2e-Tests, die zu
+  mehreren Personen navigieren, gleich mehrere). Erst das Lazy-Anlegen beim
+  ersten Task macht daraus einen echten Zielblock.
 
 ---
 
