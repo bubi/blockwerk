@@ -1,12 +1,19 @@
 import type { SpaceWithPages } from "../../shared/api.ts";
-import type { BlockRow, SpaceRow, TemplateRow } from "../../shared/db.ts";
+import type {
+  BlockRow,
+  ItemRow,
+  SpaceRow,
+  TemplateRow,
+} from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
+import type { ComposerItemFields } from "../domain/composer.ts";
 import type { TaskOverviewView } from "../domain/overview.ts";
 import type { PageSelection } from "../state/navigation.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
 import type { ViewStatus } from "../state/state.ts";
 import type { BlockView } from "../state/selectors.ts";
 import { BlockCard } from "./BlockCard.tsx";
+import { Composer } from "./Composer.tsx";
 import { formatError } from "./errorText.ts";
 import { FALLBACK_TEMPLATE } from "./fallbackTemplate.ts";
 import { NewBlockBar } from "./NewBlockBar.tsx";
@@ -18,6 +25,8 @@ interface StreamProps {
   space: SpaceWithPages;
   selectedPageId: PageSelection;
   isPerson: boolean;
+  /** The current space's open Jour-Fix themes (Feature 2). */
+  jfxThemes: ItemRow[];
   pageBlocks: BlockView[];
   /** The person's assigned-tasks view, null when unknown. */
   personView: TaskOverviewView | null;
@@ -44,6 +53,8 @@ interface StreamProps {
   ) => void;
   onRetryPage: () => void;
   onRetryOverview: () => void;
+  /** A task created in the person's "Aufgaben" view (Feature 3). */
+  onCreateTask: (fields: ComposerItemFields) => void;
   onCreateBlock: (templateId: string | null) => void;
   onDeleteBlock: (id: string) => void;
   /** Opens the shared TemplateManager (owned by the App shell). */
@@ -55,6 +66,7 @@ export function Stream(props: StreamProps) {
     space,
     selectedPageId,
     isPerson,
+    jfxThemes,
     pageBlocks,
     personView,
     overviewView,
@@ -76,6 +88,7 @@ export function Stream(props: StreamProps) {
     onJumpToOverviewRow,
     onRetryPage,
     onRetryOverview,
+    onCreateTask,
     onCreateBlock,
     onDeleteBlock,
     onManageTemplates,
@@ -115,14 +128,18 @@ export function Stream(props: StreamProps) {
           view={personView}
           viewStatus={overviewView}
           today={today}
+          todayDate={todayDate}
           meSpaceId={meSpaceId}
           spacesById={spacesById}
+          spaces={spaces}
+          blocks={[...blocksById.values()]}
+          onCreateTask={onCreateTask}
           onToggle={(itemId, done) => onPatchItem(itemId, { done })}
           onJumpToBlock={onJumpToOverviewRow}
           onRetry={onRetryOverview}
         />
       ) : pane === "jourfix" ? (
-        <JourFixPane />
+        <JourFixPane themes={jfxThemes} />
       ) : (
         <PagePane
           pageView={pageView}
@@ -150,11 +167,23 @@ export function Stream(props: StreamProps) {
   );
 }
 
-/** The virtual "Jour Fix" entry: calm placeholder, no data yet (ADR 0015). */
-function JourFixPane() {
+/** The "Jour Fix" entry (Feature 2, docs/adr/0017): the open themes of the
+ * space's Jour-Fix block, or a calm hint while none exist yet. */
+function JourFixPane({ themes }: { themes: ItemRow[] }) {
+  if (themes.length === 0) {
+    return (
+      <div className={styles.jourfix}>
+        <p>Jour Fix — noch nichts hinterlegt. Tippe im Composer „/jfx“.</p>
+      </div>
+    );
+  }
   return (
     <div className={styles.jourfix}>
-      <p>Jour Fix — noch nichts hinterlegt.</p>
+      <ul className={styles.jfxlist}>
+        {themes.map((theme) => (
+          <li key={theme.id}>{theme.text || "Thema"}</li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -251,8 +280,12 @@ function PersonPane({
   view,
   viewStatus,
   today,
+  todayDate,
   meSpaceId,
   spacesById,
+  spaces,
+  blocks,
+  onCreateTask,
   onToggle,
   onJumpToBlock,
   onRetry,
@@ -261,8 +294,12 @@ function PersonPane({
   view: TaskOverviewView | null;
   viewStatus: ViewStatus;
   today: string;
+  todayDate: Date;
   meSpaceId: string | null;
   spacesById: ReadonlyMap<string, SpaceRow>;
+  spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
+  blocks: readonly BlockRow[];
+  onCreateTask: (fields: ComposerItemFields) => void;
   onToggle: (itemId: string, done: boolean) => void;
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
   onRetry: () => void;
@@ -275,15 +312,27 @@ function PersonPane({
     );
   if (view === null) return null;
   return (
-    <TaskOverview
-      mode="person"
-      person={space}
-      view={view}
-      today={today}
-      meSpaceId={meSpaceId}
-      spacesById={spacesById}
-      onToggle={onToggle}
-      onJumpToBlock={onJumpToBlock}
-    />
+    <div className={styles.person}>
+      {/* The block id only names the composer's DOM ids — the target block is
+          resolved lazily at create time (Feature 3, docs/adr/0016). */}
+      <Composer
+        blockId={space.id}
+        spaces={spaces}
+        blocks={blocks}
+        today={todayDate}
+        showMergeCommand={false}
+        onCreateItem={onCreateTask}
+      />
+      <TaskOverview
+        mode="person"
+        person={space}
+        view={view}
+        today={today}
+        meSpaceId={meSpaceId}
+        spacesById={spacesById}
+        onToggle={onToggle}
+        onJumpToBlock={onJumpToBlock}
+      />
+    </div>
   );
 }

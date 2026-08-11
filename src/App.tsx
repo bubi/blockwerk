@@ -21,6 +21,7 @@ import { Today } from "./components/Today.tsx";
 import { formatError } from "./components/errorText.ts";
 import { LoadError, Loading } from "./components/status.tsx";
 import { monthLedger } from "./domain/calendar.ts";
+import type { ComposerItemFields } from "./domain/composer.ts";
 import { fromISODate, refreshToday, toISODate } from "./domain/dates.ts";
 import { detectHeading } from "./domain/headings.ts";
 import {
@@ -31,6 +32,7 @@ import {
   newTemplateId,
 } from "./domain/ids.ts";
 import { deriveShort } from "./domain/naming.ts";
+import { insertPositionBetween } from "./domain/position.ts";
 import {
   readScope,
   writeScope,
@@ -53,6 +55,7 @@ import {
   selectSpacesView,
   selectTeamOverview,
   selectTemplates,
+  selectJourFixThemes,
 } from "./state/selectors.ts";
 import { useApp } from "./state/useApp.ts";
 import styles from "./App.module.css";
@@ -171,6 +174,76 @@ export function App() {
     resolvedPageId !== null && !tasksMode && !jourfixMode
       ? resolvedPageId
       : null;
+
+  const createPersonTask = (fields: ComposerItemFields) => {
+    if (!isPerson || space === null) return;
+    // The "Ohne Kontext" target block is created lazily on the first task of
+    // the day — merely opening the "Aufgaben" view creates nothing (Feature 3,
+    // docs/adr/0016). Page and block go in the same optimistic burst.
+    const page =
+      space.pages.find((entry) => entry.title === "Notizen") ??
+      space.pages[0] ??
+      null;
+    const pageId = page?.id ?? newPageId();
+    const block = page
+      ? ([...state.blocks.values()].find(
+          (entry) =>
+            entry.pageId === page.id &&
+            entry.title === "Ohne Kontext" &&
+            entry.date === today,
+        ) ?? null)
+      : null;
+    const blockId = block?.id ?? newBlockId();
+    if (page === null)
+      ops.createPage({ id: pageId, spaceId: space.id, title: "Notizen" });
+    if (block === null)
+      ops.createBlock({
+        id: blockId,
+        pageId,
+        templateId: null,
+        title: "Ohne Kontext",
+        date: today,
+      });
+    const lastPosition = [...state.items.values()]
+      .filter((entry) => entry.blockId === blockId)
+      .reduce((max, entry) => Math.max(max, entry.position), 0);
+    const base = {
+      id: newItemId(),
+      blockId,
+      position: insertPositionBetween(lastPosition || null, null),
+      text: fields.text,
+      heading: fields.kind === "note" ? fields.heading : null,
+    };
+    switch (fields.kind) {
+      case "task":
+        // Without an explicit @Person the task belongs to the person whose
+        // "Aufgaben" view created it — otherwise it would not show there.
+        ops.createItem({
+          ...base,
+          kind: "task",
+          done: fields.done,
+          dueDate: fields.dueDate,
+          assigneeSpaceId: fields.assigneeSpaceId ?? space.id,
+        });
+        break;
+      case "note":
+        ops.createItem({ ...base, kind: "note" });
+        break;
+      case "event":
+        ops.createItem({
+          ...base,
+          kind: "event",
+          eventDate: fields.eventDate,
+          eventTime: fields.eventTime,
+        });
+        break;
+      case "ref":
+        ops.createItem({ ...base, kind: "ref", refBlockId: fields.refBlockId });
+        break;
+    }
+  };
+
+  const jfxThemes = space !== null ? selectJourFixThemes(state, space.id) : [];
 
   const monthFrom = toISODate(new Date(month.year, month.month, 1));
   const monthTo = toISODate(new Date(month.year, month.month + 1, 0));
@@ -610,6 +683,7 @@ export function App() {
       space={s}
       selectedPageId={selectedPageId}
       isPerson={isPerson}
+      jfxThemes={jfxThemes}
       pageBlocks={pageBlocks}
       personView={personView}
       overviewView={overviewView}
@@ -631,6 +705,7 @@ export function App() {
       onJumpToOverviewRow={jumpToTarget}
       onRetryPage={() => void ops.loadPage(selectedPageId)}
       onRetryOverview={() => void ops.loadOverview(today)}
+      onCreateTask={createPersonTask}
       onCreateBlock={createBlock}
       onDeleteBlock={deleteBlock}
       onManageTemplates={() => setTplOpen(true)}

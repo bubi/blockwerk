@@ -2,7 +2,11 @@ import type { ApiBlock, SpaceWithPages } from "../../shared/api.ts";
 import type { CalendarWindow, ItemRow, TemplateRow } from "../../shared/db.ts";
 import { buildBlockView, type BlockSection } from "../domain/blockView.ts";
 import { projectCalendar } from "../domain/calendar.ts";
-import { orderBlockItems, orderPageBlocks, taskChildrenByParent } from "../domain/order.ts";
+import {
+  orderBlockItems,
+  orderPageBlocks,
+  taskChildrenByParent,
+} from "../domain/order.ts";
 import {
   buildTaskOverview,
   inOverviewWindow,
@@ -42,14 +46,24 @@ export function selectTemplates(state: AppState): TemplateRow[] {
 }
 
 export function selectPageBlocks(state: AppState, pageId: string): BlockView[] {
-  return orderPageBlocks([...state.blocks.values()].filter((block) => block.pageId === pageId)).map((block) => ({
+  return orderPageBlocks(
+    [...state.blocks.values()].filter((block) => block.pageId === pageId),
+  ).map((block) => ({
     ...block,
-    items: orderBlockItems([...state.items.values()].filter((item) => item.blockId === block.id)),
-    sections: buildBlockView([...state.items.values()].filter((item) => item.blockId === block.id)),
+    items: orderBlockItems(
+      [...state.items.values()].filter((item) => item.blockId === block.id),
+    ),
+    sections: buildBlockView(
+      [...state.items.values()].filter((item) => item.blockId === block.id),
+    ),
   }));
 }
 
-export function selectCalendar(state: AppState, from: string, to: string): CalendarWindow {
+export function selectCalendar(
+  state: AppState,
+  from: string,
+  to: string,
+): CalendarWindow {
   return projectCalendar([...state.items.values()], from, to);
 }
 
@@ -100,7 +114,13 @@ export function selectTeamOverview(
         ? allTasks.filter((row) => row.item.assigneeSpaceId === meSpaceId)
         : []
       : allTasks;
-  return buildTaskOverview(mine, allTasks, eventRows(state, today), spaces, today);
+  return buildTaskOverview(
+    mine,
+    allTasks,
+    eventRows(state, today),
+    spaces,
+    today,
+  );
 }
 
 /** A person's assigned-tasks entry ("Aufgaben"): their tasks only (docs/adr/0011). */
@@ -111,14 +131,24 @@ export function selectPersonOverview(
   spaces: readonly SpaceWithPages[],
 ): TaskOverviewView {
   const allTasks = openTaskRows(state);
-  return buildTaskOverview(rowsForPerson(allTasks, personId), allTasks, [], spaces, today);
+  return buildTaskOverview(
+    rowsForPerson(allTasks, personId),
+    allTasks,
+    [],
+    spaces,
+    today,
+  );
 }
 
 /** The open task count of a person — the "Aufgaben" entry badge. */
-export function selectPersonOpenCount(state: AppState, personId: string): number {
+export function selectPersonOpenCount(
+  state: AppState,
+  personId: string,
+): number {
   let count = 0;
   for (const item of state.items.values()) {
-    if (item.kind === "task" && !item.done && item.assigneeSpaceId === personId) count++;
+    if (item.kind === "task" && !item.done && item.assigneeSpaceId === personId)
+      count++;
   }
   return count;
 }
@@ -127,10 +157,38 @@ export function selectPersonOpenCount(state: AppState, personId: string): number
 export function selectOpenTaskCounts(state: AppState): Map<string, number> {
   const counts = new Map<string, number>();
   for (const item of state.items.values()) {
-    if (item.kind !== "task" || item.done || item.assigneeSpaceId === null) continue;
-    counts.set(item.assigneeSpaceId, (counts.get(item.assigneeSpaceId) ?? 0) + 1);
+    if (item.kind !== "task" || item.done || item.assigneeSpaceId === null)
+      continue;
+    counts.set(
+      item.assigneeSpaceId,
+      (counts.get(item.assigneeSpaceId) ?? 0) + 1,
+    );
   }
   return counts;
+}
+
+/**
+ * A space's open Jour-Fix themes (Feature 2, docs/adr/0017): the note items
+ * of its "Jour Fix" block, in display order. Empty while no /jfx theme has
+ * been collected yet — the block is created lazily on first use.
+ */
+export function selectJourFixThemes(
+  state: AppState,
+  spaceId: string,
+): ItemRow[] {
+  const pages = [...state.pages.values()].filter(
+    (page) => page.spaceId === spaceId,
+  );
+  const page =
+    pages.find((entry) => entry.title === "Notizen") ?? pages[0] ?? null;
+  if (page === null) return [];
+  const block = [...state.blocks.values()].find(
+    (entry) => entry.pageId === page.id && entry.title === "Jour Fix",
+  );
+  if (block === undefined) return [];
+  return orderBlockItems(
+    [...state.items.values()].filter((entry) => entry.blockId === block.id),
+  );
 }
 
 function openTaskRows(state: AppState): OverviewRow[] {
@@ -147,7 +205,12 @@ function openTaskRows(state: AppState): OverviewRow[] {
 function eventRows(state: AppState, today: string): OverviewRow[] {
   const rows: OverviewRow[] = [];
   for (const item of state.items.values()) {
-    if (item.kind !== "event" || item.eventDate === null || !inOverviewWindow(item.eventDate, today)) continue;
+    if (
+      item.kind !== "event" ||
+      item.eventDate === null ||
+      !inOverviewWindow(item.eventDate, today)
+    )
+      continue;
     const row = toOverviewRow(state, item, new Map());
     if (row) rows.push(row);
   }
@@ -164,7 +227,13 @@ function toOverviewRow(
   const page = state.pages.get(block.pageId);
   return {
     item,
-    block: { id: block.id, pageId: block.pageId, spaceId: page?.spaceId ?? "", title: block.title, date: block.date },
+    block: {
+      id: block.id,
+      pageId: block.pageId,
+      spaceId: page?.spaceId ?? "",
+      title: block.title,
+      date: block.date,
+    },
     notes: item.kind === "task" ? (childrenByParent.get(item.id) ?? []) : [],
   };
 }

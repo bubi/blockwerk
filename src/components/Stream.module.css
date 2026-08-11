@@ -43,12 +43,29 @@
   margin: var(--s2) 0 0;
 }
 
-/* Jour Fix: ein virtueller Eintrag ohne Inhalt — ruhiger Platzhalter. */
+/* Jour Fix: die offenen Themen des Bereichs (Feature 2), ruhige Liste. */
 .jourfix {
   padding: var(--s6) 0;
   color: var(--text3);
   font-size: 15px;
   line-height: 1.7;
+}
+
+.jfxlist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+  color: var(--text);
+}
+
+/* Die "Aufgaben"-Ansicht: Composer über dem Überblick (Feature 3). */
+.person {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
 }
 
 .page {

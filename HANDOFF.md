@@ -46,6 +46,10 @@ lässt sich aus dem Code nicht ableiten, weil es Entscheidungen _gegen_ etwas si
   (Domänenfunktion `mergeNotesToList` in `/src/domain/merge.ts`, nur Notizen,
   Tasks/Termine/Verweise/Überschriften sperren mit sichtbarer Begründung);
   ADR 0008 um die Bereichsauswahl ergänzt
+- Feature-Batch 2, Feature 3 (ADR 0016): Task direkt bei einer Person anlegen —
+  Composer am Kopf der „Aufgaben"-Ansicht, der Task landet in einem
+  „Ohne Kontext"-Block auf der Notizseite der Person (Datum heute, Seite wird
+  bei Bedarf angelegt); ohne `@Person` wird er der Person zugewiesen
 - Remote: Migration 0005 (`list_mark`) angewendet, Worker deployt
   (https://blockwerk.m-schmidinger.workers.dev)
 

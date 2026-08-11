@@ -24,6 +24,9 @@ interface ComposerProps {
   mergeLocked?: boolean;
   mergeHint?: string;
   onMergeSelected?: () => void;
+  /** Hide the merge command — for composers without a block's row selection
+   * (e.g. the person's task bar, Feature 3). */
+  showMergeCommand?: boolean;
   onCreateItem: (fields: ComposerItemFields) => void;
 }
 
@@ -52,6 +55,7 @@ export function Composer({
   mergeLocked = true,
   mergeHint,
   onMergeSelected,
+  showMergeCommand = true,
   onCreateItem,
 }: ComposerProps) {
   const [value, setValue] = useState("");
@@ -79,7 +83,7 @@ export function Composer({
 
   const menu = matchComposerCommands(
     value.startsWith("/") ? value.slice(1) : "",
-  );
+  ).filter((command) => showMergeCommand || command.key !== "merge");
   const menuOpen = value.startsWith("/") && menu.length > 0;
   const menuId = `composer-menu-${blockId}`;
 
