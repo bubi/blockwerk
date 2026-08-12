@@ -5,11 +5,9 @@
    Werte sind bewusst gewählt; siehe DESIGN-SYSTEM.md für die Begründung.
    ============================================================ */
 
-/* Die Schriftfamilie wird über den Einstiegspunkt geladen, nicht hier:
-   @import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300..900;1,400&display=swap');
-   Der Stack nennt zuerst die lizenzierten Frutiger-Schnitte. Ist Frutiger
-   auf dem Gerät installiert, wird es benutzt; sonst greift Source Sans 3
-   als humanistischer Ersatz mit gleicher Grundhaltung. */
+/* Die Schriftfamilie wird über den Einstiegspunkt geladen, nicht hier
+   (index.html lädt Geist und Geist Mono von Google Fonts). Source Sans 3
+   bleibt als humanistischer Ersatz, falls Geist nicht lädt. */
 
 :root,
 .bw {
@@ -78,8 +76,11 @@
 
   /* ---------- Schrift ---------- */
   --sans:
-    "Frutiger LT Std", "Frutiger LT Pro", "Frutiger Neue LT", Frutiger,
-    "Source Sans 3", "Source Sans Pro", "Segoe UI", "Myriad Pro", -apple-system,
-    BlinkMacSystemFont, Roboto, sans-serif;
+    "Geist", "Source Sans 3", "Segoe UI", -apple-system, BlinkMacSystemFont,
+    Roboto, sans-serif;
   --display: var(--sans); /* eine Familie in allen Rollen, siehe Spec */
+  /* Datenziffern (Kennzahlen, Tagesziffer, Bereichsplakette): echte
+     Monospace statt nur tabular-nums. */
+  --mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", Consolas,
+    monospace;
 }

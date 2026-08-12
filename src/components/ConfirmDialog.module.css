@@ -41,10 +41,17 @@
   border-radius: var(--r-sm);
   background: var(--red);
   color: #fff;
+  transition:
+    opacity 0.14s ease,
+    transform 0.1s ease;
 }
 
 .confirm:hover {
   opacity: 0.9;
+}
+
+.confirm:active {
+  transform: scale(0.97);
 }
 
 .cancel {
@@ -52,6 +59,7 @@
   padding: var(--s2) var(--s4);
   border-radius: var(--r-sm);
   color: var(--text2);
+  transition: background 0.14s ease;
 }
 
 .cancel:hover {

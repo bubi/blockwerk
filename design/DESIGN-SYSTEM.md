@@ -1,6 +1,6 @@
 # Blockwerk — Design System
 
-Version 1.0 · Stand 3. August 2026
+Version 1.1 · Stand 12. August 2026
 
 Verbindliche Spezifikation für die Oberfläche von Blockwerk. Sie beschreibt, **was gilt**, nicht wie eine bestimmte Technik es umzusetzen hat. Die mitgelieferte `blockwerk.jsx` ist die Referenzimplementierung: sie hält diese Spezifikation vollständig ein und darf bei Zweifelsfragen als Beleg herangezogen werden.
 
@@ -110,9 +110,11 @@ Punkte sind `50%`. Sonst kommt kein anderer Radius vor.
 
 ### 2.4 Schrift
 
-Eine Familie in allen Rollen. Frutiger LT ist ein Gewichtssystem, kein Familienverbund — die Rollen entstehen durch Grad, Gewicht und Sperrung, nicht durch verschiedene Schriften. Eine Monospace gibt es nicht; Ziffern richten sich über `font-variant-numeric: tabular-nums` aus.
+Eine Familie in allen Rollen für Fließtext und Überschriften: Geist. Sie ist ein Gewichtssystem, kein Familienverbund — die Rollen entstehen durch Grad, Gewicht und Sperrung, nicht durch verschiedene Schriften.
 
-Stack: `--sans`, beginnend mit den lizenzierten Frutiger-Schnitten, dann Source Sans 3 als humanistischer Ersatz, dann Segoe UI und Myriad Pro als Systemrückfall.
+Stack: `--sans`/`--display`, beginnend mit Geist (von Google Fonts geladen, `index.html`), dann Source Sans 3 als humanistischer Ersatz, dann Segoe UI als Systemrückfall.
+
+**Datenziffern** (Kennzahl, Tagesziffer, Kopfleisten-Tagesstempel) laufen über eine zweite Familie, `--mono` (Geist Mono), statt nur `font-variant-numeric: tabular-nums` — eine echte Monospace gibt große Zahlen mehr Gewicht und trennt sie optisch von Fließtext-Zahlen. Fließtext-Zahlen (Fälligkeiten, Uhrzeiten in Zeilen) bleiben bei `--sans` mit `tabular-nums`; nur die vier großen Anzeigeziffern (36–44 px) wechseln auf `--mono`.
 
 **Textleiter** — elf Grade, mehr gibt es nicht:
 
@@ -163,7 +165,9 @@ Ein Sonderfall: `pulse` — ein grüner Ring, der über 1,4 s ausläuft, wenn au
 | Panel                         | `--white`   | –                            | `--r-lg` | `--s5`                       |
 | Leerer Zustand                | `--white`   | 1px **gestrichelt** `--line` | `--r-md` | `--s5`                       |
 
-Schatten trägt nur, was über der Oberfläche liegt: Karten `0 1px 2px rgba(29,33,37,.04)`, Menüs `0 12px 32px rgba(29,33,37,.14–.16)`, Panels `0 24px 60px rgba(29,33,37,.3)`, Hinweise `0 8px 24px rgba(29,33,37,.28)`. Beim Überfahren einer Eintragskarte `0 4px 12px rgba(29,33,37,.08)` — kein Anheben, kein `transform`.
+Schatten trägt nur, was über der Oberfläche liegt: Karten `0 1px 2px rgba(29,33,37,.04)`, Menüs `0 12px 32px rgba(29,33,37,.14–.16)`, Panels `0 24px 60px rgba(29,33,37,.3)`, Hinweise `0 8px 24px rgba(29,33,37,.28)`. Beim Überfahren einer Eintragskarte `0 4px 12px rgba(29,33,37,.08)` — kein Anheben, kein `transform`. Alle Schattenwerte sind gegen `--text` (29,33,37) getönt, nie reines Schwarz.
+
+Die Arbeitsfläche trägt ein feines Korn: ein fest positionierter, `pointer-events: none`-Overlay mit `feTurbulence`-Rauschen bei 2,5 % Deckkraft (`body::before`, `global.css`), gegen die Flachheit einer reinen Flächenfarbe. Er nimmt an `prefers-reduced-motion` nicht teil, weil er nicht animiert ist.
 
 ### 3.2 Etikett
 
@@ -243,6 +247,13 @@ dauerhaft voll sichtbar. Zeilengebundene zerstörende Schalter (`×`, `✎`) ble
 im Ruhezustand sehr zurückhaltend (gedämpfte Deckkraft auf `--text3`), damit der
 Blockstrom nicht von Löschkreuzen überzogen wird — aber sichtbar, und auf Geräten
 ohne Zeiger (`hover: none`) immer voll sichtbar.
+
+**Gedrückt.** Hauptaktion (`.btn`), Kontrollkästchen und der zerstörende
+Bestätigungsknopf (`.confirm`) bekommen zusätzlich einen Druckzustand:
+`transform: scale(.98)` bzw. `scale(.92)` beim Kontrollkästchen, 100 ms. Das
+ist die einzige Stelle, an der `transform` auf einem Bedienelement selbst
+liegt (nicht auf einer Karte) — reine Rückmeldung auf einen Klick, kein
+Layout-Effekt.
 
 ---
 
@@ -349,4 +360,4 @@ Bewusst nicht entschieden, weil die Daten dafür fehlen:
 - **Dunkle Fassung.** Die Token sind darauf vorbereitet (Fläche, Linie und Schrift sind getrennt benannt), eine zweite Palette existiert aber nicht. Nicht nebenbei einführen.
 - **Dichte Ansicht.** Für lange Blocklisten könnte eine kompaktere Zeilenhöhe sinnvoll sein. Wäre über eine zweite Abstandsleiter zu lösen, nicht über Einzelwerte.
 - **Druckansicht.** Nicht spezifiziert.
-- **Schriftlizenz.** Der Stack nennt Frutiger LT zuerst und fällt sonst auf Source Sans 3 zurück. Ob Frutiger für den Einsatzzweck lizenziert ist, ist vor Auslieferung zu klären; die Gestaltung funktioniert in beiden Fällen.
+- **Ladezustand außerhalb des Boot-Screens.** Die atmende Punkt-Rückmeldung (`status.module.css`, `.loading`) deckt den einfachen Fall; ob lange Ladevorgänge (erster Seitenaufbau) einen Platzhalter in Blockform brauchen, der die künftige Kartenform vorwegnimmt, ist offen.

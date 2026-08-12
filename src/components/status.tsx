@@ -1,7 +1,7 @@
 import styles from "./status.module.css";
 
 export function Loading({ label = "Wird geladen…" }: { label?: string }) {
-  return <p className={styles.status}>{label}</p>;
+  return <p className={`${styles.status} ${styles.loading}`}>{label}</p>;
 }
 
 export function LoadError({ message, onRetry }: { message?: string; onRetry?: () => void }) {

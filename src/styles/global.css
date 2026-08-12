@@ -62,10 +62,13 @@
   --ls-wordmark: -0.022em;
 
   --sans:
-    "Frutiger LT Std", "Frutiger LT Pro", "Frutiger Neue LT", Frutiger,
-    "Source Sans 3", "Source Sans Pro", "Segoe UI", "Myriad Pro", -apple-system,
-    BlinkMacSystemFont, Roboto, sans-serif;
+    "Geist", "Source Sans 3", "Segoe UI", -apple-system, BlinkMacSystemFont,
+    Roboto, sans-serif;
   --display: var(--sans);
+  /* Datenziffern (Kennzahlen, Tagesziffer, Bereichsplakette): eine echte
+     Monospace statt nur tabular-nums, damit große Zahlen Gewicht bekommen. */
+  --mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", Consolas,
+    monospace;
 }
 
 *,
@@ -82,6 +85,24 @@ body {
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+/* Feines Korn auf der Arbeitsfläche, gegen die Flachheit einer reinen
+   Flächenfarbe. Fest positioniert, ohne Layout- oder Klickwirkung. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+#root {
+  position: relative;
+  z-index: 1;
 }
 
 button,
@@ -231,10 +252,17 @@ ul {
   border-radius: var(--r-sm);
   background: var(--green);
   color: #fff;
+  transition:
+    background 0.14s ease,
+    transform 0.1s ease;
 }
 
 .btn:hover {
   background: var(--green-dk);
+}
+
+.btn:active {
+  transform: scale(0.98);
 }
 
 /* Kontrollkästchen (design-system 3.5). */
@@ -250,12 +278,17 @@ ul {
   background: var(--white);
   transition:
     border-color 0.12s,
-    background 0.12s;
+    background 0.12s,
+    transform 0.1s ease;
 }
 
 .check:hover {
   border-color: var(--green);
   background: var(--green-soft);
+}
+
+.check:active {
+  transform: scale(0.92);
 }
 
 .check span {

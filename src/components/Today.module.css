@@ -55,11 +55,11 @@
 }
 
 .statnum {
-  font-family: var(--display);
+  font-family: var(--mono);
   font-size: 36px;
   font-weight: 700;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
 
