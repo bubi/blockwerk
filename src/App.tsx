@@ -54,6 +54,7 @@ import {
   selectOpenTaskCounts,
   selectOverviewView,
   selectPageBlocks,
+  selectJourFixBlocks,
   selectPageView,
   selectPersonOpenCount,
   selectPersonOverview,
@@ -965,6 +966,17 @@ export function App() {
       selectedPageId={selectedPageId}
       isPerson={isPerson}
       jfxThemes={jfxThemes}
+      jourFixBlocks={
+        virtualNotePageId ? selectJourFixBlocks(state, virtualNotePageId) : []
+      }
+      onCreateJourFixItem={async (input) => {
+        if (!space) return false;
+        if (state.blocks.has(input.blockId)) return ops.createItem(input);
+        const destination = await ensureCaptureBlock(space, "Jour Fix");
+        return destination
+          ? ops.createItem({ ...input, ...destination })
+          : false;
+      }}
       pageBlocks={pageBlocks}
       personView={personView}
       overviewView={overviewView}

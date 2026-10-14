@@ -233,10 +233,10 @@ test("a block is created from a template with its seed lines", async ({
     .getByRole("button", { name: "Anlegen", exact: true })
     .dispatchEvent("click");
 
-  const blocksBefore = await page.locator("[data-block-id]").count();
   await expect(
     page.getByRole("button", { name: "Block anlegen" }),
   ).toBeVisible();
+  const blocksBefore = await page.locator("[data-block-id]").count();
   await page
     .getByRole("button", { name: "Block anlegen" })
     .dispatchEvent("click");

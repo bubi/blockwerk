@@ -26,6 +26,14 @@ Trennlinie. Zeilenaktionen und Checkboxen haben größere Trefferflächen.
 Bearbeitbare Felder erhalten einen klaren Fokuszustand. Sprache: „Aufgabe“,
 „Vorlage“, „Zuständig“, „Fällig“. Daten und bestehende Vorlagennamen bleiben erhalten.
 
+Jour Fix verwendet dieselben Blockkarten, wachsenden Notizfelder, Zeilenaktionen
+und den Composer wie der reguläre Notizstrom. Es gibt keine eigene Liste aus
+kurzen Standard-Inputs. Mehrzeilige Themen, Fokus, Bereichsauswahl und Befehle
+verhalten sich identisch. Der reservierte Jour-Fix-Block zeigt seinen Kontext
+schreibgeschützt; Gesprächsverweise bleiben in „Bisherige Gespräche“ erreichbar.
+Der Editor bleibt beim Nachladen erhalten, damit die erste Speicherung keinen
+Entwurf oder Cursorzustand verliert.
+
 Dialoge halten den Fokus, machen den Hintergrund inert, behandeln Escape und
 stellen den Ausgangsfokus wieder her. Löschdialoge starten bei „Abbrechen“;
 Speicherdialoge verwenden Grün. Reiter und Vorlagenmenüs unterstützen Pfeiltasten,

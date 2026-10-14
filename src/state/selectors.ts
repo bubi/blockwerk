@@ -59,6 +59,22 @@ export function selectPageBlocks(state: AppState, pageId: string): BlockView[] {
   }));
 }
 
+/** The real Jour-Fix blocks use the same presentation model as every note block. */
+export function selectJourFixBlocks(
+  state: AppState,
+  pageId: string,
+): BlockView[] {
+  return selectPageBlocks(state, pageId)
+    .filter(
+      (block) => block.title === "Jour Fix" || block.id.startsWith("b-jfx-"),
+    )
+    .map((block) => {
+      // Conversation references are presented together in the existing history disclosure.
+      const items = block.items.filter((item) => item.kind !== "ref");
+      return { ...block, items, sections: buildBlockView(items) };
+    });
+}
+
 export function selectCalendar(
   state: AppState,
   from: string,

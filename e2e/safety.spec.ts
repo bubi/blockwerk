@@ -26,14 +26,20 @@ test("Jour Fix loads persisted person themes after reload and allows direct capt
   await page.getByRole("button", { name: /^Jour Fix/ }).click();
   const pane = page.locator("[class*=jourfix]");
   await expect(
-    pane.getByLabel("Jour-Fix-Thema").filter({ visible: true }).first(),
+    pane.getByLabel("Notiz", { exact: true }).filter({ visible: true }).first(),
   ).toBeVisible();
-  await expect(pane.locator(`input[value="${theme}"]`)).toBeVisible();
+  await expect(
+    pane.locator("[data-item-id] textarea").filter({ hasText: theme }),
+  ).toBeVisible();
   const input = pane.getByLabel("Neue Zeile");
   await input.fill(`Direct ${theme}`);
   await input.press("Enter");
   await expect(input).toHaveValue("");
-  await expect(pane.locator(`input[value="Direct ${theme}"]`)).toBeVisible();
+  await expect(
+    pane
+      .locator("[data-item-id] textarea")
+      .filter({ hasText: `Direct ${theme}` }),
+  ).toBeVisible();
 });
 
 test("composer retains its draft when a write fails", async ({ page }) => {

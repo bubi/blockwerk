@@ -20,7 +20,9 @@ test("/jfx collects a theme in the space's Jour Fix and a meeting block can take
   // The theme shows in the space's Jour-Fix entry.
   await page.getByRole("button", { name: /^Jour Fix/ }).click();
   await expect(
-    page.locator(`[class*=jourfix] input[value="${theme}"]`),
+    page
+      .locator("[class*=jourfix] [data-item-id] textarea")
+      .filter({ hasText: theme }),
   ).toBeVisible();
 
   // A meeting block takes it over: the item moves, it is not copied.
@@ -41,7 +43,9 @@ test("/jfx collects a theme in the space's Jour Fix and a meeting block can take
   // The theme is gone from the open list — it lives in the block now.
   await page.getByRole("button", { name: /^Jour Fix/ }).click();
   await expect(
-    page.locator(`[class*=jourfix] input[value="${theme}"]`),
+    page
+      .locator("[class*=jourfix] [data-item-id] textarea")
+      .filter({ hasText: theme }),
   ).not.toBeVisible();
 });
 
@@ -68,6 +72,8 @@ test("/jfx with @Person collects the theme in that person's Jour Fix", async ({
   await page.getByRole("button", { name: /^Lena Brandt(?:\s+\d+)?$/ }).click();
   await page.getByRole("button", { name: /^Jour Fix/ }).click();
   await expect(
-    page.locator(`[class*=jourfix] input[value="${theme}"]`),
+    page
+      .locator("[class*=jourfix] [data-item-id] textarea")
+      .filter({ hasText: theme }),
   ).toBeVisible();
 });

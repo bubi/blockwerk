@@ -1,10 +1,3 @@
-import { useState } from "react";
-import { ItemCommandMenu } from "./ItemCommandMenu.tsx";
-import {
-  inlineMergeItems,
-  insertedCommand,
-  slashStartsCommand,
-} from "../domain/inlineCommands.ts";
 import type { SpaceWithPages } from "../../shared/api.ts";
 import type {
   BlockRow,
@@ -22,6 +15,8 @@ import type { PageSelection } from "../state/navigation.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
 import type { ViewStatus } from "../state/state.ts";
 import type { BlockView } from "../state/selectors.ts";
+import { buildBlockView } from "../domain/blockView.ts";
+import { toISODate } from "../domain/dates.ts";
 import { itemLink } from "../domain/links.ts";
 import { BlockCard } from "./BlockCard.tsx";
 import { Composer } from "./Composer.tsx";
@@ -38,6 +33,8 @@ interface StreamProps {
   isPerson: boolean;
   /** The current space's open Jour-Fix themes (Feature 2). */
   jfxThemes: ItemRow[];
+  jourFixBlocks: BlockView[];
+  onCreateJourFixItem: (input: ItemCreateInput) => Promise<boolean>;
   pageBlocks: BlockView[];
   /** The person's assigned-tasks view, null when unknown. */
   personView: TaskOverviewView | null;
@@ -98,6 +95,8 @@ export function Stream(props: StreamProps) {
     selectedPageId,
     isPerson,
     jfxThemes,
+    jourFixBlocks,
+    onCreateJourFixItem,
     pageBlocks,
     personView,
     overviewView,
@@ -178,17 +177,23 @@ export function Stream(props: StreamProps) {
         />
       ) : pane === "jourfix" ? (
         <JourFixPane
-          themes={jfxThemes}
           space={space}
+          blocks={jourFixBlocks}
           spaces={spaces}
-          blocks={[...blocksById.values()]}
+          blocksById={blocksById}
+          spacesById={spacesById}
+          templatesById={templatesById}
+          meSpaceId={meSpaceId}
           today={todayDate}
           onRunItemCommand={onRunItemCommand}
           onMergeItems={onMergeItems}
-          onCreate={onCreateJourFix}
+          onCreate={onCreateJourFixItem}
+          onCreateJourFix={onCreateJourFix}
           onPatch={onPatchItem}
           onEdit={onEditItem}
           onDelete={onDeleteItem}
+          onJumpToBlock={onJumpToBlock}
+          onMoveTheme={onMoveTheme}
           view={pageView}
           onRetry={onRetryPage}
           references={references}
@@ -227,206 +232,127 @@ export function Stream(props: StreamProps) {
   );
 }
 
-/** The "Jour Fix" entry (Feature 2, docs/adr/0017): the open themes of the
- * space's Jour-Fix block, or a calm hint while none exist yet. */
+/** Jour Fix shares the persistent note editor; only its collection context differs. */
 function JourFixPane({
+  space,
+  blocks,
+  spaces,
+  blocksById,
+  spacesById,
+  templatesById,
+  meSpaceId,
+  today,
   onRunItemCommand,
   onMergeItems,
-  themes,
-  space,
-  spaces,
-  blocks,
-  today,
   onCreate,
+  onCreateJourFix,
   onPatch,
+  onEdit,
   onDelete,
+  onJumpToBlock,
+  onMoveTheme,
   view,
   onRetry,
-  onEdit,
   references,
 }: {
-  onRunItemCommand: (
-    id: string,
-    command: ComposerCommandKey,
-    targetId?: string,
-  ) => Promise<boolean>;
-  onMergeItems: (items: readonly ItemRow[]) => Promise<boolean>;
-  themes: ItemRow[];
   space: SpaceWithPages;
+  blocks: BlockView[];
   spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
-  blocks: readonly BlockRow[];
+  blocksById: ReadonlyMap<string, BlockRow>;
+  spacesById: ReadonlyMap<string, SpaceRow>;
+  templatesById: ReadonlyMap<string, TemplateRow>;
+  meSpaceId: string | null;
   today: Date;
-  onCreate: (
-    text: string,
-    person: string | null,
-  ) => void | boolean | Promise<boolean>;
-  onPatch: (id: string, patch: ItemPatch) => void;
-  onDelete: (id: string) => void;
-  references: readonly ItemRow[];
+  onRunItemCommand: StreamProps["onRunItemCommand"];
+  onMergeItems: StreamProps["onMergeItems"];
+  onCreate: (input: ItemCreateInput) => Promise<boolean>;
+  onCreateJourFix: StreamProps["onCreateJourFix"];
+  onPatch: StreamProps["onPatchItem"];
+  onEdit: StreamProps["onEditItem"];
+  onDelete: StreamProps["onDeleteItem"];
+  onJumpToBlock: StreamProps["onJumpToBlock"];
+  onMoveTheme: StreamProps["onMoveTheme"];
   view: ViewStatus;
   onRetry: () => void;
-  onEdit: (id: string) => void;
+  references: readonly ItemRow[];
 }) {
-  const [command, setCommand] = useState<{
-    id: string;
-    query: string;
-    start: number;
-    end: number;
-  } | null>(null);
-  const closeCommand = (restore = true, id = command?.id) => {
-    const caret = command;
-    setCommand(null);
-    if (restore && id)
-      requestAnimationFrame(() => {
-        const input = document.querySelector<HTMLInputElement>(
-          `[data-item-id="${CSS.escape(id)}"] input[aria-label="Jour-Fix-Thema"]`,
-        );
-        input?.focus();
-        if (caret) input?.setSelectionRange(caret.start, caret.end);
-      });
-  };
   const history = references.filter((ref) => {
-    const source = blocks.find((block) => block.id === ref.blockId);
+    const source = blocksById.get(ref.blockId);
     return (
-      source?.title === "Jour Fix" &&
+      source &&
+      (source.title === "Jour Fix" || source.id.startsWith("b-jfx-")) &&
       space.pages.some((page) => page.id === source.pageId)
     );
   });
+  // The empty card is a presentation only. Creation resolves real parents in App,
+  // and the stable composer key keeps existing drafts through that first write.
+  const visibleBlocks: BlockView[] = blocks.length
+    ? blocks
+    : [
+        {
+          id: `jfx-${space.id}`,
+          pageId: "",
+          title: "Jour Fix",
+          date: toISODate(today),
+          templateId: null,
+          createdAt: 0,
+          updatedAt: 0,
+          items: [],
+          sections: buildBlockView([]),
+        },
+      ];
   return (
     <div className={styles.jourfix}>
-      <p>
+      <p className={styles.jfxIntro}>
         Themen für das nächste Gespräch sammeln. Beim Übernehmen bleibt dieselbe
         Notiz erhalten.
       </p>
-      <Composer
-        key={space.id}
-        blockId={`jfx-${space.id}`}
-        initialMode="jfx"
-        spaces={spaces}
-        blocks={blocks}
-        today={today}
-        showMergeCommand={false}
-        onCreateJourFix={onCreate}
-        onCreateItem={(fields) => onCreate(fields.text, space.id)}
-      />
-      {view.status === "loading" || view.status === "idle" ? (
+      {(view.status === "loading" || view.status === "idle") && (
         <Loading label="Jour Fix wird geladen…" />
-      ) : view.status === "failed" ? (
-        <LoadError message={formatError(view.error)} onRetry={onRetry} />
-      ) : themes.length === 0 ? (
-        <p className="empty">
-          Noch keine offenen Themen. Hier kannst du das erste hinzufügen.
-        </p>
-      ) : (
-        <ul className={styles.jfxlist}>
-          {themes.map((theme) => (
-            <li key={theme.id} data-item-id={theme.id}>
-              <input
-                aria-label="Jour-Fix-Thema"
-                value={theme.text}
-                maxLength={10_000}
-                onChange={(event) => {
-                  const token = insertedCommand(theme.text, event.target.value);
-                  if (token)
-                    setCommand({
-                      id: theme.id,
-                      query: token.query,
-                      start: token.start,
-                      end: token.start,
-                    });
-                  else onPatch(theme.id, { text: event.target.value });
-                }}
-                onKeyDown={(event) => {
-                  const input = event.currentTarget;
-                  if (
-                    !event.nativeEvent.isComposing &&
-                    event.key === "/" &&
-                    (event.ctrlKey ||
-                      event.metaKey ||
-                      slashStartsCommand(
-                        input.value,
-                        input.selectionStart ?? 0,
-                      ))
-                  ) {
-                    event.preventDefault();
-                    setCommand({
-                      id: theme.id,
-                      query: "",
-                      start: input.selectionStart ?? 0,
-                      end: input.selectionEnd ?? 0,
-                    });
-                  }
-                }}
-              />
-              {command?.id === theme.id && (
-                <ItemCommandMenu
-                  key={theme.id}
-                  item={theme}
-                  initialQuery={command.query}
-                  mergeItems={inlineMergeItems(
-                    themes,
-                    themes.map((item) => item.id),
-                    new Set(),
-                    theme.id,
-                  )}
-                  selected={false}
-                  hasChildren={false}
-                  blocks={blocks}
-                  spaces={spaces}
-                  onClose={closeCommand}
-                  onLiteral={(text) => {
-                    onPatch(theme.id, {
-                      text:
-                        theme.text.slice(0, command.start) +
-                        text +
-                        theme.text.slice(command.end),
-                    });
-                    closeCommand();
-                  }}
-                  onRun={async (key, target) => {
-                    const candidates = inlineMergeItems(
-                      themes,
-                      themes.map((item) => item.id),
-                      new Set(),
-                      theme.id,
-                    );
-                    const success =
-                      key === "merge"
-                        ? await onMergeItems(candidates)
-                        : await onRunItemCommand(theme.id, key, target);
-                    if (success)
-                      closeCommand(
-                        true,
-                        key === "merge" ? candidates[0]?.id : theme.id,
-                      );
-                    return success;
-                  }}
-                />
-              )}
-              <button type="button" onClick={() => onEdit(theme.id)}>
-                Bearbeiten
-              </button>
-              <button
-                type="button"
-                onClick={() => onDelete(theme.id)}
-                aria-label="Thema entfernen"
-              >
-                Entfernen
-              </button>
-            </li>
-          ))}
-        </ul>
       )}
+      {view.status === "failed" && (
+        <LoadError message={formatError(view.error)} onRetry={onRetry} />
+      )}
+      <div className={styles.blocks}>
+        {visibleBlocks.map((block, index) => (
+          <BlockCard
+            key={index === 0 ? space.id : block.id}
+            block={block}
+            blockControls={false}
+            persistent={blocks.length > 0}
+            composerBlockId={index === 0 ? `jfx-${space.id}` : block.id}
+            template={
+              templatesById.get(block.templateId ?? "") ?? FALLBACK_TEMPLATE
+            }
+            meSpaceId={meSpaceId}
+            spaces={spaces}
+            spacesById={spacesById}
+            blocksById={blocksById}
+            today={today}
+            onPatchBlock={() => {}}
+            onPatchItem={onPatch}
+            onEditItem={onEdit}
+            references={references}
+            onCreateItem={onCreate}
+            onCreateJourFix={onCreateJourFix}
+            onDeleteItem={onDelete}
+            onDeleteBlock={() => {}}
+            onJumpToBlock={onJumpToBlock}
+            onMoveTheme={onMoveTheme}
+            onMergeItems={onMergeItems}
+            onRunItemCommand={onRunItemCommand}
+          />
+        ))}
+      </div>
       {history.length > 0 && (
-        <details>
+        <details className="backlinks">
           <summary>Bisherige Gespräche</summary>
           <ul>
             {history.map((ref) => (
               <li key={ref.id}>
                 {ref.refBlockId ? (
                   <a href={itemLink(ref.refBlockId)}>
-                    {blocks.find((block) => block.id === ref.refBlockId)
-                      ?.title || "Gespräch öffnen"}
+                    {blocksById.get(ref.refBlockId)?.title || "Gespräch öffnen"}
                   </a>
                 ) : (
                   "Ziel entfernt"

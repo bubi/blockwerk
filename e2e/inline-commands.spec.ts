@@ -172,10 +172,14 @@ test("Jour Fix moves a note with the same identity and also exposes inline comma
   await expect(row).toHaveCount(0);
   await page.getByRole("button", { name: /^Lena Brandt(?:\s+\d+)?$/ }).click();
   await page.getByRole("button", { name: /^Jour Fix/ }).click();
-  await expect(row.getByLabel("Jour-Fix-Thema")).toHaveValue(values[0]!);
-  await row.getByLabel("Jour-Fix-Thema").focus();
-  await row.getByLabel("Jour-Fix-Thema").press("Home");
+  await expect(row.getByLabel("Notiz", { exact: true })).toHaveValue(
+    values[0]!,
+  );
+  await row.getByLabel("Notiz", { exact: true }).focus();
+  await row.getByLabel("Notiz", { exact: true }).press("Home");
   await page.keyboard.type("/heading");
   await page.keyboard.press("Escape");
-  await expect(row.getByLabel("Jour-Fix-Thema")).toHaveValue(values[0]!);
+  await expect(row.getByLabel("Notiz", { exact: true })).toHaveValue(
+    values[0]!,
+  );
 });

@@ -26,6 +26,9 @@ import styles from "./BlockCard.module.css";
 
 interface BlockCardProps {
   block: BlockView;
+  composerBlockId?: string;
+  blockControls?: boolean;
+  persistent?: boolean;
   template: TemplateRow;
   meSpaceId: string | null;
   spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
@@ -69,6 +72,9 @@ interface BlockCardProps {
  */
 export function BlockCard({
   block,
+  composerBlockId,
+  blockControls = true,
+  persistent = true,
   template,
   meSpaceId,
   spaces,
@@ -438,21 +444,25 @@ export function BlockCard({
             <span className="sr-only">Blockdatum</span>
             <input
               type="date"
+              readOnly={!blockControls}
               value={block.date}
               onChange={(event) =>
+                blockControls &&
                 event.target.value &&
                 onPatchBlock(block.id, { date: event.target.value })
               }
             />
           </label>
-          <button
-            type="button"
-            className={`${styles.kill} label`}
-            onClick={() => setConfirmDelete(true)}
-            aria-label="Block entfernen"
-          >
-            Löschen
-          </button>
+          {blockControls && (
+            <button
+              type="button"
+              className={`${styles.kill} label`}
+              onClick={() => setConfirmDelete(true)}
+              aria-label="Block entfernen"
+            >
+              Löschen
+            </button>
+          )}
         </div>
         <GrowingTextarea
           className={styles.title}
@@ -637,7 +647,7 @@ export function BlockCard({
       )}
 
       <Composer
-        blockId={block.id}
+        blockId={composerBlockId ?? block.id}
         spaces={spaces}
         blocks={[...blocksById.values()]}
         today={today}
@@ -648,9 +658,11 @@ export function BlockCard({
         onCreateItem={createComposerItem}
       />
 
-      <div className="block-links">
-        <a href={itemLink(block.id)}>Direktlink zum Block</a>
-      </div>
+      {persistent && (
+        <div className="block-links">
+          <a href={itemLink(block.id)}>Direktlink zum Block</a>
+        </div>
+      )}
       {references.some(
         (ref) => ref.refBlockId === block.id && ref.blockId !== block.id,
       ) && (
