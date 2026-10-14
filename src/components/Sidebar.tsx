@@ -286,7 +286,7 @@ function SpaceGroup({
                     {deriveShort(space.name)}
                   </span>
                   <span className={styles.name}>
-                    {space.name}
+                    <span className={styles.nameText}>{space.name}</span>
                     {isMe && (
                       <em
                         className={`${styles.me} badge badge--own`}

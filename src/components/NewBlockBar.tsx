@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { TemplateRow } from "../../shared/db.ts";
 import styles from "./NewBlockBar.module.css";
 
@@ -22,12 +22,14 @@ export function NewBlockBar({
   onCreateBlock,
   onManageTemplates,
 }: NewBlockBarProps) {
+  const trigger = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
 
   return (
     <div className={styles.newbar}>
       <div className={styles.rule}>
         <button
+          ref={trigger}
           type="button"
           className={styles.plus}
           onClick={() => setOpen((current) => !current)}
@@ -44,11 +46,37 @@ export function NewBlockBar({
           role="menu"
           aria-label="Vorlage wählen"
           onKeyDown={(event) => {
-            if (event.key === "Escape") setOpen(false);
+            const elements = Array.from(
+              event.currentTarget.querySelectorAll<HTMLButtonElement>(
+                '[role="menuitem"]',
+              ),
+            );
+            const index = elements.indexOf(
+              document.activeElement as HTMLButtonElement,
+            );
+            if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
+              event.preventDefault();
+              const next =
+                event.key === "Home"
+                  ? 0
+                  : event.key === "End"
+                    ? elements.length - 1
+                    : (index +
+                        (event.key === "ArrowDown" ? 1 : -1) +
+                        elements.length) %
+                      elements.length;
+              elements[next]?.focus();
+            }
+            if (event.key === "Escape") {
+              event.preventDefault();
+              setOpen(false);
+              trigger.current?.focus();
+            }
           }}
         >
           {templates.map((template) => (
             <button
+              autoFocus={templates[0]?.id === template.id}
               key={template.id}
               type="button"
               role="menuitem"
@@ -69,13 +97,14 @@ export function NewBlockBar({
           <button
             type="button"
             role="menuitem"
+            autoFocus={templates.length === 0}
             className={`${styles.titem} typdot`}
             onClick={() => {
               onCreateBlock(null);
               setOpen(false);
             }}
           >
-            <span className={styles.tlabel}>Ohne Template</span>
+            <span className={styles.tlabel}>Ohne Vorlage</span>
             <span className={`${styles.tseed} label label--muted`}>leer</span>
           </button>
           <button

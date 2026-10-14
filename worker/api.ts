@@ -44,6 +44,14 @@ import { loadCatalog } from "./db/catalog.ts";
 import { restoreItems, convertItem } from "./item-actions.ts";
 import { mergeItems } from "./db/merge.ts";
 
+function requestVersion(request: Request): number | undefined {
+  const version = request.headers.get("If-Match");
+  if (version === null) return undefined;
+  if (!/^\d+$/.test(version) || !Number.isSafeInteger(Number(version)))
+    throw new BadRequestError("Invalid If-Match version");
+  return Number(version);
+}
+
 const ENTITY_NAMES = [
   "spaces",
   "pages",
@@ -153,6 +161,7 @@ function putEntity(
   id: string,
   body: unknown,
   email: string,
+  createOnly = false,
 ) {
   const now = Date.now();
   switch (entity) {
@@ -163,7 +172,7 @@ function putEntity(
     case "block":
       return putBlock(db, id, body, now, email);
     case "item":
-      return putItem(db, id, body, now, email);
+      return putItem(db, id, body, now, email, createOnly);
     case "template":
       return putTemplate(db, id, body, now, email);
   }
@@ -229,11 +238,20 @@ export async function handleApiRequest(
     }
     if (a === "items" && b === "restore" && !c) {
       if (method !== "POST") throw new MethodNotAllowedError("POST");
-      return ok(await restoreItems(env.DB, await readJson(request), Date.now()));
+      return ok(
+        await restoreItems(env.DB, await readJson(request), Date.now()),
+      );
     }
     if (a === "items" && b && c === "convert") {
       if (method !== "POST") throw new MethodNotAllowedError("POST");
-      return ok(await convertItem(env.DB, assertId(b), await readJson(request), Date.now()));
+      return ok(
+        await convertItem(
+          env.DB,
+          assertId(b),
+          await readJson(request),
+          Date.now(),
+        ),
+      );
     }
     if (a === "items" && b === "merge" && !c) {
       if (method !== "POST") throw new MethodNotAllowedError("POST");
@@ -250,6 +268,7 @@ export async function handleApiRequest(
           await readJson(request),
           Date.now(),
           identity.email,
+          requestVersion(request),
         ),
       );
     }
@@ -266,11 +285,10 @@ export async function handleApiRequest(
             id,
             await readJson(request),
             email,
+            request.headers.get("If-None-Match") === "*",
           ),
         );
       if (method === "PATCH") {
-        const version = request.headers.get("If-Match");
-        if (version !== null && !/^\d+$/.test(version)) throw new BadRequestError("Invalid If-Match version");
         return ok(
           await patchEntity(
             env.DB,
@@ -278,7 +296,7 @@ export async function handleApiRequest(
             id,
             await readJson(request),
             email,
-            version === null ? undefined : Number(version),
+            requestVersion(request),
           ),
         );
       }
@@ -288,6 +306,7 @@ export async function handleApiRequest(
           URL_ENTITY_TO_NAME[a],
           id,
           email,
+          requestVersion(request),
         );
         if (!deleted) throw new NotFoundError();
         return new Response(null, { status: 204 });

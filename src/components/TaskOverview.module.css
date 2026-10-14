@@ -231,3 +231,29 @@
 .foldbtn:hover {
   color: var(--text);
 }
+
+.edit {
+  flex: none;
+  min-height: 44px;
+  padding: var(--s2);
+  color: var(--text2);
+  font-size: 12px;
+  border-radius: var(--r-xs);
+}
+.edit:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+@media (max-width: 860px) {
+  .title {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .list li {
+    gap: var(--s2);
+    padding-inline: var(--s3);
+  }
+  .edit {
+    padding-inline: var(--s1);
+  }
+}

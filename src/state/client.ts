@@ -24,13 +24,34 @@ export interface ApiClient {
   patch(entity: EntityName, id: string, body: unknown): Promise<EntityRow>;
   /** Item writes return the stored row plus a block re-space map, if any. */
   putItem(id: string, body: unknown): Promise<ItemWriteResponse>;
-  patchItem(id: string, body: unknown, expectedUpdatedAt?: number): Promise<ItemWriteResponse>;
-  restoreItems?(items: unknown, expectedUpdatedAt?: number): Promise<{ rows: ItemRow[] }>;
-  convertItem?(id: string, kind: string, updatedAt: number): Promise<ItemWriteResponse>;
-  mergeItems?(items: { id: string; updatedAt: number }[]): Promise<{ row: ItemRow; deletedIds: string[] }>;
+  patchItem(
+    id: string,
+    body: unknown,
+    expectedUpdatedAt?: number,
+  ): Promise<ItemWriteResponse>;
+  restoreItems?(
+    items: unknown,
+    expectedUpdatedAt?: number,
+  ): Promise<{ rows: ItemRow[] }>;
+  convertItem?(
+    id: string,
+    kind: string,
+    updatedAt: number,
+  ): Promise<ItemWriteResponse>;
+  mergeItems?(
+    items: { id: string; updatedAt: number }[],
+  ): Promise<{ row: ItemRow; deletedIds: string[] }>;
   /** Moves an item into another block (Feature 2, docs/adr/0017). */
-  moveItem(id: string, body: unknown): Promise<ItemWriteResponse>;
-  delete(entity: EntityName, id: string): Promise<void>;
+  moveItem(
+    id: string,
+    body: unknown,
+    expectedUpdatedAt?: number,
+  ): Promise<ItemWriteResponse>;
+  delete(
+    entity: EntityName,
+    id: string,
+    expectedUpdatedAt?: number,
+  ): Promise<void>;
 }
 
 const URL_ENTITY: Record<EntityName, string> = {
@@ -69,7 +90,9 @@ export class FetchApiClient implements ApiClient {
     this.retryDelayMs = options.retryDelayMs ?? 300;
   }
 
-  getCatalog(): Promise<CatalogResponse> { return this.read("/api/catalog"); }
+  getCatalog(): Promise<CatalogResponse> {
+    return this.read("/api/catalog");
+  }
 
   getSpaces(): Promise<SpacesResponse> {
     return this.read("/api/spaces");
@@ -108,37 +131,68 @@ export class FetchApiClient implements ApiClient {
   }
 
   /** Moves an item into another block (Feature 2, docs/adr/0017). */
-  moveItem(id: string, body: unknown): Promise<ItemWriteResponse> {
+  moveItem(
+    id: string,
+    body: unknown,
+    expectedUpdatedAt?: number,
+  ): Promise<ItemWriteResponse> {
     return this.perform(
       "POST",
       `${this.path("item", id)}/move`,
       body,
-      true,
+      false,
+      expectedUpdatedAt,
     ).then((response) => this.parse(response));
   }
 
   restoreItems(items: unknown, expectedUpdatedAt?: number) {
-    return this.perform("POST", "/api/items/restore", { items, expectedUpdatedAt }, false).then(response => this.parse<{ rows: ItemRow[] }>(response));
+    return this.perform(
+      "POST",
+      "/api/items/restore",
+      { items, expectedUpdatedAt },
+      false,
+    ).then((response) => this.parse<{ rows: ItemRow[] }>(response));
   }
   convertItem(id: string, kind: string, updatedAt: number) {
-    return this.perform("POST", `${this.path("item", id)}/convert`, { kind, updatedAt }, false).then(response => this.parse<ItemWriteResponse>(response));
+    return this.perform(
+      "POST",
+      `${this.path("item", id)}/convert`,
+      { kind, updatedAt },
+      false,
+    ).then((response) => this.parse<ItemWriteResponse>(response));
   }
   mergeItems(items: { id: string; updatedAt: number }[]) {
-    return this.perform("POST", "/api/items/merge", { items }, false).then(response => this.parse<{ row: ItemRow; deletedIds: string[] }>(response));
-  }
-
-  patchItem(id: string, body: unknown, expectedUpdatedAt?: number): Promise<ItemWriteResponse> {
-    return this.perform("PATCH", this.path("item", id), body, false, expectedUpdatedAt).then(
-      (response) => this.parse(response),
+    return this.perform("POST", "/api/items/merge", { items }, false).then(
+      (response) =>
+        this.parse<{ row: ItemRow; deletedIds: string[] }>(response),
     );
   }
 
-  async delete(entity: EntityName, id: string): Promise<void> {
+  patchItem(
+    id: string,
+    body: unknown,
+    expectedUpdatedAt?: number,
+  ): Promise<ItemWriteResponse> {
+    return this.perform(
+      "PATCH",
+      this.path("item", id),
+      body,
+      false,
+      expectedUpdatedAt,
+    ).then((response) => this.parse(response));
+  }
+
+  async delete(
+    entity: EntityName,
+    id: string,
+    expectedUpdatedAt?: number,
+  ): Promise<void> {
     const response = await this.perform(
       "DELETE",
       this.path(entity, id),
       undefined,
-      true,
+      expectedUpdatedAt === undefined,
+      expectedUpdatedAt,
     );
     if (!response.ok) throw await this.httpError(response);
   }
@@ -176,7 +230,10 @@ export class FetchApiClient implements ApiClient {
       init.headers = { "content-type": "application/json" };
       init.body = JSON.stringify(body);
     }
-    if (expectedUpdatedAt !== undefined) init.headers = { ...init.headers, "If-Match": String(expectedUpdatedAt) };
+    if (expectedUpdatedAt !== undefined)
+      init.headers = { ...init.headers, "If-Match": String(expectedUpdatedAt) };
+    if (method === "PUT" && /^\/api\/items\/[^/]+$/.test(path))
+      init.headers = { ...init.headers, "If-None-Match": "*" };
     const url = `${this.baseUrl}${path}`;
 
     let attempt = 0;

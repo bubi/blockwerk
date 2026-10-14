@@ -8,10 +8,20 @@ import path from "node:path";
  * briefly right after startup; without this warm-up the first app requests
  * would hit that window and the UI would show load errors.
  */
-const WRANGLER_BIN = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "node_modules", ".bin", "wrangler");
+const WRANGLER_BIN = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "node_modules",
+  ".bin",
+  "wrangler",
+);
 const API_URL = "http://127.0.0.1:8787/api/spaces";
 
-const child = spawn(WRANGLER_BIN, ["dev"], { stdio: "inherit" });
+const child = spawn(
+  WRANGLER_BIN,
+  ["dev", "--persist-to", ".wrangler/e2e-state"],
+  { stdio: "inherit" },
+);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

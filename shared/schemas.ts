@@ -317,6 +317,7 @@ export const itemMoveSchema = z
   .object({
     blockId: idString,
     position: z.number().int().min(0),
+    append: z.boolean().optional(),
   })
   .strict();
 

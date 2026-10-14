@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:workers": "vitest run -c worker/db/vitest.config.ts",
     "test:e2e": "playwright test",
-    "e2e:server": "rm -rf .wrangler/state && npm run db:migrate:local && npm run db:seed && npm run build && node scripts/e2e-server.mjs",
+    "e2e:server": "rm -rf .wrangler/e2e-state && wrangler d1 migrations apply blockwerk --local --persist-to .wrangler/e2e-state && wrangler d1 execute blockwerk --local --persist-to .wrangler/e2e-state --file=./seed.sql && npm run build && node scripts/e2e-server.mjs",
     "types:worker": "wrangler types --strict-vars=false",
     "db:migrate:local": "wrangler d1 migrations apply blockwerk --local",
     "db:migrate:remote": "wrangler d1 migrations apply blockwerk --remote",

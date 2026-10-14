@@ -435,6 +435,7 @@ function TaskRow({
         {onEdit && (
           <button
             type="button"
+            className={styles.edit}
             onClick={() => onEdit(row.item.id)}
             aria-label={`Aufgabe „${row.item.text}" bearbeiten`}
           >

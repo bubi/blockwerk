@@ -180,17 +180,25 @@ export async function updateItem(
   if (expectedUpdatedAt !== undefined) values.push(expectedUpdatedAt);
 
   const result = await db
-    .prepare(`UPDATE items SET ${sets.join(", ")} WHERE id = ?${expectedUpdatedAt === undefined ? "" : " AND updated_at = ?"}`)
+    .prepare(
+      `UPDATE items SET ${sets.join(", ")} WHERE id = ?${expectedUpdatedAt === undefined ? "" : " AND updated_at = ?"}`,
+    )
     .bind(...values)
     .run();
   if (result.meta.changes === 0) return null;
   return getItem(db, id);
 }
 
-export async function deleteItem(db: D1Database, id: string): Promise<boolean> {
+export async function deleteItem(
+  db: D1Database,
+  id: string,
+  expectedUpdatedAt?: number,
+): Promise<boolean> {
   const result = await db
-    .prepare("DELETE FROM items WHERE id = ?")
-    .bind(id)
+    .prepare(
+      `DELETE FROM items WHERE id = ?${expectedUpdatedAt === undefined ? "" : " AND updated_at = ?"}`,
+    )
+    .bind(...(expectedUpdatedAt === undefined ? [id] : [id, expectedUpdatedAt]))
     .run();
   return result.meta.changes > 0;
 }
@@ -207,12 +215,21 @@ export async function moveItemToBlock(
   blockId: string,
   position: number,
   now: number,
+  expectedUpdatedAt?: number,
+  append = false,
 ): Promise<ItemRow | null> {
   const result = await db
     .prepare(
-      "UPDATE items SET block_id = ?, position = ?, updated_at = ? WHERE id = ?",
+      `UPDATE items SET block_id = ?, position = ${append ? "MAX(?, COALESCE((SELECT MAX(position) + 1000 FROM items WHERE block_id = ? AND id <> ?), 1000))" : "?"}, updated_at = MAX(?, updated_at + 1) WHERE id = ?${expectedUpdatedAt === undefined ? "" : " AND updated_at = ?"}`,
     )
-    .bind(blockId, position, now, id)
+    .bind(
+      blockId,
+      position,
+      ...(append ? [blockId, id] : []),
+      now,
+      id,
+      ...(expectedUpdatedAt === undefined ? [] : [expectedUpdatedAt]),
+    )
     .run();
   if (result.meta.changes === 0) return null;
   return getItem(db, id);

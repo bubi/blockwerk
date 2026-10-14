@@ -492,3 +492,17 @@ fieldset.editor-fields {
   margin: 0;
   min-width: 0;
 }
+
+.editor-fields label:has(input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  min-height: 44px;
+  cursor: pointer;
+}
+.editor-fields input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--green-dk);
+}

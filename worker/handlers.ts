@@ -330,7 +330,12 @@ export async function patchBlock(
   logWrite("PATCH", "block", id, email);
   const existing = await getBlock(db, id);
   if (!existing) throw new NotFoundError(`Block '${id}' does not exist`);
-  if ((existing.title === "Jour Fix" || id.startsWith("b-jfx-")) && patch.title !== undefined && patch.title !== "Jour Fix") throw immutable("title");
+  if (
+    (existing.title === "Jour Fix" || id.startsWith("b-jfx-")) &&
+    patch.title !== undefined &&
+    patch.title !== "Jour Fix"
+  )
+    throw immutable("title");
   if (patch.templateId !== undefined && patch.templateId !== null) {
     await ensureExists(db, "template", patch.templateId, "templateId");
   }
@@ -395,11 +400,28 @@ export async function putItem(
   body: unknown,
   now: number,
   email: string,
+  createOnly = false,
 ): Promise<ItemWriteResponse> {
   const input = itemWriteSchema.parse(body);
   logWrite("PUT", "item", id, email);
   const existing = await getItem(db, id);
   if (existing) {
+    if (createOnly) {
+      // A retried creation may acknowledge the same row, but never replace
+      // a note another client has edited since its first successful write.
+      const content = contentPatch(input);
+      const identical =
+        existing.kind === input.kind &&
+        existing.blockId === input.blockId &&
+        existing.parentItemId === input.parentItemId &&
+        Object.entries(content).every(
+          ([key, value]) =>
+            key === "position" ||
+            existing[key as keyof typeof existing] === value,
+        );
+      if (!identical) throw new ConflictError();
+      return { row: existing, respaced: null };
+    }
     if (input.kind !== existing.kind) throw immutable("kind");
     if (input.blockId !== existing.blockId) throw immutable("blockId");
     await checkItemRefs(db, input);
@@ -476,7 +498,11 @@ export async function patchItem(
   // child note can never gain a heading, and a list point can never become a
   // heading. parentItemId itself is immutable (docs/adr/0014); listMark is a
   // marker on the note like heading.
-  if (expectedUpdatedAt !== undefined && existing.updatedAt !== expectedUpdatedAt) throw new ConflictError();
+  if (
+    expectedUpdatedAt !== undefined &&
+    existing.updatedAt !== expectedUpdatedAt
+  )
+    throw new ConflictError();
   const violations = itemKindRuleViolations({
     kind: existing.kind,
     parentItemId: existing.parentItemId,
@@ -496,7 +522,13 @@ export async function patchItem(
   if (patch.refBlockId !== undefined && patch.refBlockId !== null) {
     await ensureExists(db, "block", patch.refBlockId, "refBlockId");
   }
-  const row = await updateItem(db, id, patch, Math.max(now, existing.updatedAt + 1), expectedUpdatedAt);
+  const row = await updateItem(
+    db,
+    id,
+    patch,
+    Math.max(now, existing.updatedAt + 1),
+    expectedUpdatedAt,
+  );
   if (!row) throw new ConflictError();
   return { row, respaced: null };
 }
@@ -512,18 +544,29 @@ export async function moveItemHandler(
   body: unknown,
   now: number,
   email: string,
+  expectedUpdatedAt?: number,
 ): Promise<ItemWriteResponse> {
   logWrite("MOVE", "item", id, email);
   const existing = await getItem(db, id);
   if (!existing) throw new NotFoundError(`Item '${id}' does not exist`);
+  if (
+    expectedUpdatedAt !== undefined &&
+    existing.updatedAt !== expectedUpdatedAt
+  )
+    throw new ConflictError();
   const input = itemMoveSchema.parse(body);
   await ensureExists(db, "block", input.blockId, "blockId");
-  return {
-    row: assertRow(
-      await moveItemToBlock(db, id, input.blockId, input.position, now),
-    ),
-    respaced: null,
-  };
+  const row = await moveItemToBlock(
+    db,
+    id,
+    input.blockId,
+    input.position,
+    now,
+    expectedUpdatedAt,
+    input.append,
+  );
+  if (!row) throw new ConflictError();
+  return { row, respaced: null };
 }
 
 // ============================================================
@@ -535,6 +578,7 @@ export async function deleteEntity(
   entity: EntityName,
   id: string,
   email: string,
+  expectedUpdatedAt?: number,
 ): Promise<boolean> {
   logWrite("DELETE", entity, id, email);
   switch (entity) {
@@ -544,8 +588,16 @@ export async function deleteEntity(
       return deletePage(db, id);
     case "block":
       return deleteBlock(db, id);
-    case "item":
-      return deleteItem(db, id);
+    case "item": {
+      const deleted = await deleteItem(db, id, expectedUpdatedAt);
+      if (
+        !deleted &&
+        expectedUpdatedAt !== undefined &&
+        (await getItem(db, id))
+      )
+        throw new ConflictError();
+      return deleted;
+    }
     case "template":
       return deleteTemplate(db, id);
   }

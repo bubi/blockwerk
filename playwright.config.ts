@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * E2E against the local environment: the built app served by the worker
  * (wrangler dev) over a seeded local D1 — the same serving path as
- * production. `npm run e2e:server` resets the local D1 state first, so a run
+ * production. `npm run e2e:server` resets only `.wrangler/e2e-state`, so a run
  * is deterministic and a checked-off task does not leak into the next run.
  * Port 8787 must be free (stop `npm run dev` first).
  */

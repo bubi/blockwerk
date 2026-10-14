@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { TemplateRow } from "../../shared/db.ts";
 import type { TemplatePatch } from "../../shared/schemas.ts";
 import { TEMPLATE_HUES } from "../domain/templates.ts";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
+import { useModalFocus } from "./useModalFocus.ts";
 import styles from "./TemplateManager.module.css";
 
 interface TemplateManagerProps {
@@ -26,20 +27,19 @@ export function TemplateManager({
   onDelete,
   onClose,
 }: TemplateManagerProps) {
+  const overlay = useRef<HTMLDivElement>(null);
+  const dialog = useRef<HTMLDivElement>(null);
+  useModalFocus(overlay, dialog, onClose);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
   return (
-    <div
-      className={styles.overlay}
-      onClick={onClose}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onClose();
-      }}
-    >
+    <div ref={overlay} className={styles.overlay} onClick={onClose}>
       <div
+        ref={dialog}
         className={styles.sheet}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-label="Vorlagen bearbeiten"
       >
         <header className={styles.sheethead}>

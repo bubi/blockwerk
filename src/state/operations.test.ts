@@ -302,3 +302,37 @@ describe("operations — search", () => {
     ]);
   });
 });
+
+it("re-reads a page when a write finishes while its old response is in flight", async () => {
+  const { ops, calls, actions } = makeHarness();
+  let finishRead!: (value: unknown) => void;
+  const old = {
+    page: { id: "p" },
+    blocks: [{ id: "b", items: [{ id: "i", text: "Old", updatedAt: 1 }] }],
+  };
+  const fresh = {
+    page: { id: "p" },
+    blocks: [{ id: "b", items: [{ id: "i", text: "New", updatedAt: 2 }] }],
+  };
+  calls.getPage
+    .mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishRead = resolve;
+        }),
+    )
+    .mockResolvedValue(fresh);
+  calls.patchItem.mockResolvedValue({
+    row: { id: "i", updatedAt: 2 },
+    respaced: null,
+  });
+  const loading = ops.loadPage("p");
+  await vi.waitFor(() => expect(calls.getPage).toHaveBeenCalledTimes(1));
+  await ops.updateItem("i", { text: "New" });
+  finishRead(old);
+  await loading;
+  expect(calls.getPage).toHaveBeenCalledTimes(2);
+  expect(actions.filter((action) => action.type === "pageLoaded")).toEqual([
+    { type: "pageLoaded", ...fresh },
+  ]);
+});

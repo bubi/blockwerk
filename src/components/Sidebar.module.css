@@ -321,3 +321,15 @@
     width: 44px;
   }
 }
+
+.name {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+}
+.nameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

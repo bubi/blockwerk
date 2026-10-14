@@ -96,3 +96,45 @@ test("mobile work is visible early and scope tabs support arrow keys", async ({
     page.getByRole("tab", { name: "Nur meine", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
 });
+
+test("template menu supports arrows and returns focus with Escape", async ({
+  page,
+}) => {
+  await planning(page);
+  const trigger = page.getByRole("button", {
+    name: "Block anlegen",
+    exact: true,
+  });
+  await trigger.click();
+  const menu = page.getByRole("menu", { name: "Vorlage wählen" });
+  await expect(menu.getByRole("menuitem").first()).toBeFocused();
+  await page.keyboard.press("End");
+  await expect(menu.getByRole("menuitem").last()).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(trigger).toBeFocused();
+});
+test("nested template confirmation cancels alone and restores modal focus", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Vorlagen bearbeiten", exact: true })
+    .click();
+  const manager = page.getByRole("dialog", {
+    name: "Vorlagen bearbeiten",
+    exact: true,
+  });
+  const remove = manager.getByRole("button", { name: /entfernen$/ }).first();
+  await remove.click();
+  const confirm = page.getByRole("dialog", {
+    name: "Löschen bestätigen",
+    exact: true,
+  });
+  await expect(confirm).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(confirm).toHaveCount(0);
+  await expect(manager).toBeVisible();
+  await expect(remove).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(manager).toHaveCount(0);
+});

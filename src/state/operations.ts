@@ -124,7 +124,17 @@ export function createOperations(
   getState?: () => AppState,
 ): Operations {
   const versions = new Map<string, number>();
-  const version = (id: string) => versions.get(id) ?? getState?.().items.get(id)?.updatedAt;
+  const version = (id: string) =>
+    versions.get(id) ?? getState?.().items.get(id)?.updatedAt;
+  const readStable = async <T>(read: () => Promise<T>): Promise<T> => {
+    for (;;) {
+      flushWrites();
+      await writeQueue;
+      const sequence = opSeq;
+      const data = await read();
+      if (sequence === opSeq) return data;
+    }
+  };
   const loadSpaces = async () => {
     dispatch({ type: "spacesLoadStarted" });
     try {
@@ -144,9 +154,10 @@ export function createOperations(
   const loadPage = async (pageId: string) => {
     dispatch({ type: "pageLoadStarted", pageId });
     try {
-      const data = await client.getPage(pageId);
-      for (const block of data.blocks) for (const item of block.items)
-        if (!getState?.().pending.size) versions.set(item.id, item.updatedAt);
+      const data = await readStable(() => client.getPage(pageId));
+      for (const block of data.blocks)
+        for (const item of block.items)
+          if (!getState?.().pending.size) versions.set(item.id, item.updatedAt);
       dispatch({ type: "pageLoaded", page: data.page, blocks: data.blocks });
       return data;
     } catch (err) {
@@ -157,7 +168,7 @@ export function createOperations(
   const loadOverview = async (today: string) => {
     dispatch({ type: "overviewLoadStarted" });
     try {
-      const response = await client.getOverview(today);
+      const response = await readStable(() => client.getOverview(today));
       dispatch({ type: "overviewLoaded", response });
     } catch (err) {
       dispatch({ type: "overviewLoadFailed", error: asClientError(err) });
@@ -167,7 +178,7 @@ export function createOperations(
   const loadCalendar = async (from: string, to: string) => {
     dispatch({ type: "calendarLoadStarted" });
     try {
-      const window = await client.getCalendar(from, to);
+      const window = await readStable(() => client.getCalendar(from, to));
       dispatch({
         type: "calendarLoaded",
         dueTasks: window.dueTasks,
@@ -212,31 +223,53 @@ export function createOperations(
 
   let writeQueue: Promise<unknown> = Promise.resolve();
 
-  const patches = new Map<string, { patch: ItemPatch; ops: OptimisticWrite[]; resolve: Array<(ok: boolean) => void>; timer: ReturnType<typeof setTimeout> }>();
+  const patches = new Map<
+    string,
+    {
+      patch: ItemPatch;
+      ops: OptimisticWrite[];
+      resolve: Array<(ok: boolean) => void>;
+      timer: ReturnType<typeof setTimeout>;
+    }
+  >();
   const flushWrites = () => {
     for (const [id, batch] of patches) {
-      clearTimeout(batch.timer); patches.delete(id);
+      clearTimeout(batch.timer);
+      patches.delete(id);
       const task = writeQueue.then(async () => {
         try {
           const expected = version(id);
-          const result = expected === undefined ? await client.patchItem(id, batch.patch) : await client.patchItem(id, batch.patch, expected);
+          const result =
+            expected === undefined
+              ? await client.patchItem(id, batch.patch)
+              : await client.patchItem(id, batch.patch, expected);
           versions.set(id, result.row.updatedAt);
-          if (readDraft(`item-${id}`)?.value === result.row.text) writeDraft(`item-${id}`, { value: "", mode: null, mentionId: null, refTarget: "" });
-          for (const op of batch.ops) dispatch(confirmedAction(op.opKey, result));
-          batch.resolve.forEach(resolve => resolve(true));
+          if (readDraft(`item-${id}`)?.value === result.row.text)
+            writeDraft(`item-${id}`, {
+              value: "",
+              mode: null,
+              mentionId: null,
+              refTarget: "",
+            });
+          for (const op of batch.ops)
+            dispatch(confirmedAction(op.opKey, result));
+          batch.resolve.forEach((resolve) => resolve(true));
         } catch (error) {
-          for (const op of batch.ops) dispatch({ type: "writeFailed", opKey: op.opKey, error: asClientError(error), now: Date.now() });
-          batch.resolve.forEach(resolve => resolve(false));
+          for (const op of batch.ops)
+            dispatch({
+              type: "writeFailed",
+              opKey: op.opKey,
+              error: asClientError(error),
+              now: Date.now(),
+            });
+          batch.resolve.forEach((resolve) => resolve(false));
         }
       });
       writeQueue = task;
     }
   };
 
-  const runWrite = (
-    op: OptimisticWrite,
-    send: () => Promise<unknown>,
-  ) => {
+  const runWrite = (op: OptimisticWrite, send: () => Promise<unknown>) => {
     flushWrites();
     if (op.entity === "item" && !versions.has(op.id)) {
       const current = getState?.().items.get(op.id);
@@ -248,12 +281,18 @@ export function createOperations(
         const result = await send();
         if (result && typeof result === "object" && "row" in result) {
           const row = (result as { row: ItemRow }).row;
-          if (row?.id && typeof row.updatedAt === "number") versions.set(row.id, row.updatedAt);
+          if (row?.id && typeof row.updatedAt === "number")
+            versions.set(row.id, row.updatedAt);
         }
         dispatch(confirmedAction(op.opKey, result));
         return true;
       } catch (err) {
-        dispatch({ type: "writeFailed", opKey: op.opKey, error: asClientError(err), now: Date.now() });
+        dispatch({
+          type: "writeFailed",
+          opKey: op.opKey,
+          error: asClientError(err),
+          now: Date.now(),
+        });
         return false;
       }
     });
@@ -266,8 +305,17 @@ export function createOperations(
     loadSpaces,
     loadCatalog: async () => {
       if (!client.getCatalog) return;
-      try { const data = await client.getCatalog(); dispatch({ type: "catalogLoaded", ...data }); }
-      catch (error) { dispatch({ type: "operationFailed", entity: "block", id: "catalog", error: asClientError(error) }); }
+      try {
+        const data = await readStable(() => client.getCatalog!());
+        dispatch({ type: "catalogLoaded", ...data });
+      } catch (error) {
+        dispatch({
+          type: "operationFailed",
+          entity: "block",
+          id: "catalog",
+          error: asClientError(error),
+        });
+      }
     },
     loadPage,
     loadOverview,
@@ -386,12 +434,27 @@ export function createOperations(
         () => client.putItem(input.id, toItemBody(input)),
       ),
     updateItem: (id, patch) => {
-      if (!versions.has(id)) { const current = getState?.().items.get(id); if (current) versions.set(id, current.updatedAt); }
-      const op: OptimisticWrite = { opKey: opKey("item", id, "patch"), entity: "item", id, change: "patch", patch };
+      if (!versions.has(id)) {
+        const current = getState?.().items.get(id);
+        if (current) versions.set(id, current.updatedAt);
+      }
+      const op: OptimisticWrite = {
+        opKey: opKey("item", id, "patch"),
+        entity: "item",
+        id,
+        change: "patch",
+        patch,
+      };
       dispatch({ type: "writeOptimistic", op, now: Date.now() });
-      const old = patches.get(id); if (old) clearTimeout(old.timer);
-      return new Promise<boolean>(resolve => {
-        patches.set(id, { patch: { ...old?.patch, ...patch }, ops: [...old?.ops ?? [], op], resolve: [...old?.resolve ?? [], resolve], timer: setTimeout(flushWrites, getState ? 180 : 0) });
+      const old = patches.get(id);
+      if (old) clearTimeout(old.timer);
+      return new Promise<boolean>((resolve) => {
+        patches.set(id, {
+          patch: { ...old?.patch, ...patch },
+          ops: [...(old?.ops ?? []), op],
+          resolve: [...(old?.resolve ?? []), resolve],
+          timer: setTimeout(flushWrites, getState ? 180 : 0),
+        });
       });
     },
     deleteItem: (id) =>
@@ -402,21 +465,46 @@ export function createOperations(
           id,
           change: "delete",
         },
-        () => client.delete("item", id),
+        () =>
+          version(id) === undefined
+            ? client.delete("item", id)
+            : client.delete("item", id, version(id)),
       ),
-    updateUndoRevision: (id) => { const updatedAt = versions.get(id); if (updatedAt !== undefined) dispatch({ type: "undoRevisionUpdated", id, updatedAt }); },
+    updateUndoRevision: (id) => {
+      const updatedAt = versions.get(id);
+      if (updatedAt !== undefined)
+        dispatch({ type: "undoRevisionUpdated", id, updatedAt });
+    },
     undoLast: () => {
       flushWrites();
       const task = writeQueue.then(async () => {
         const undo = getState?.().undoHistory.at(-1);
         if (!undo || !client.restoreItems) return false;
         try {
-          const result = await client.restoreItems(undo.rows.map(row => ({ id: row.id, createdAt: row.createdAt, updatedAt: row.updatedAt, data: toItemBody(row) })), undo.expectedUpdatedAt);
+          const result = await client.restoreItems(
+            undo.rows.map((row) => ({
+              id: row.id,
+              createdAt: row.createdAt,
+              updatedAt: row.updatedAt,
+              data: toItemBody(row),
+            })),
+            undo.expectedUpdatedAt,
+          );
           for (const row of result.rows) versions.set(row.id, row.updatedAt);
-          dispatch({ type: "itemsRestored", rows: result.rows }); return true;
-        } catch (error) { dispatch({ type: "operationFailed", entity: "item", id: undo.rows[0]!.id, error: asClientError(error) }); return false; }
+          dispatch({ type: "itemsRestored", rows: result.rows });
+          return true;
+        } catch (error) {
+          dispatch({
+            type: "operationFailed",
+            entity: "item",
+            id: undo.rows[0]!.id,
+            error: asClientError(error),
+          });
+          return false;
+        }
       });
-      writeQueue = task; return task;
+      writeQueue = task;
+      return task;
     },
     convertItem: (id, kind) => {
       flushWrites();
@@ -424,25 +512,64 @@ export function createOperations(
         const original = getState?.().items.get(id);
         if (!original || !client.convertItem) return false;
         try {
-          const result = await client.convertItem(id, kind, version(id) ?? original.updatedAt);
+          const result = await client.convertItem(
+            id,
+            kind,
+            version(id) ?? original.updatedAt,
+          );
           versions.set(id, result.row.updatedAt);
-          dispatch({ type: "recordUndo", undo: { rows: [original], expectedUpdatedAt: result.row.updatedAt, label: "Eintrag umwandeln" } });
-          dispatch({ type: "itemsMerged", row: result.row, deletedIds: [] }); return true;
-        } catch (error) { dispatch({ type: "operationFailed", entity: "item", id, error: asClientError(error) }); return false; }
-      }); writeQueue = task; return task;
+          dispatch({
+            type: "recordUndo",
+            undo: {
+              rows: [original],
+              expectedUpdatedAt: result.row.updatedAt,
+              label: "Eintrag umwandeln",
+            },
+          });
+          dispatch({ type: "itemsMerged", row: result.row, deletedIds: [] });
+          return true;
+        } catch (error) {
+          dispatch({
+            type: "operationFailed",
+            entity: "item",
+            id,
+            error: asClientError(error),
+          });
+          return false;
+        }
+      });
+      writeQueue = task;
+      return task;
     },
     mergeItems: (items) => {
       flushWrites();
       const task = writeQueue.then(async () => {
         try {
           if (!client.mergeItems) throw new Error("Merge API unavailable");
-          const result = await client.mergeItems(items.map(item => ({ id: item.id, updatedAt: version(item.id) ?? item.updatedAt })));
+          const result = await client.mergeItems(
+            items.map((item) => ({
+              id: item.id,
+              updatedAt: version(item.id) ?? item.updatedAt,
+            })),
+          );
           versions.set(result.row.id, result.row.updatedAt);
-          dispatch({ type: "recordUndo", undo: { rows: [...items], expectedUpdatedAt: result.row.updatedAt, label: "Notizen zusammenfassen" } });
+          dispatch({
+            type: "recordUndo",
+            undo: {
+              rows: [...items],
+              expectedUpdatedAt: result.row.updatedAt,
+              label: "Notizen zusammenfassen",
+            },
+          });
           dispatch({ type: "itemsMerged", ...result });
           return true;
         } catch (err) {
-          dispatch({ type: "operationFailed", entity: "item", id: items[0]!.id, error: asClientError(err) });
+          dispatch({
+            type: "operationFailed",
+            entity: "item",
+            id: items[0]!.id,
+            error: asClientError(err),
+          });
           return false;
         }
       });
@@ -459,7 +586,14 @@ export function createOperations(
           blockId,
           position,
         },
-        () => client.moveItem(id, { blockId, position }),
+        () =>
+          version(id) === undefined
+            ? client.moveItem(id, { blockId, position })
+            : client.moveItem(
+                id,
+                { blockId, position, append: true },
+                version(id),
+              ),
       ),
 
     createTemplate: (input) =>
@@ -513,8 +647,17 @@ function confirmedAction(
   result: unknown,
 ): Extract<Action, { type: "writeConfirmed" }> {
   const respaced = extractRespaced(result);
-  const row = result && typeof result === "object" && "row" in result ? (result as { row: ItemRow }).row : null;
-  if (row?.id) return { type: "writeConfirmed", opKey, respaced: respaced ?? undefined, row };
+  const row =
+    result && typeof result === "object" && "row" in result
+      ? (result as { row: ItemRow }).row
+      : null;
+  if (row?.id)
+    return {
+      type: "writeConfirmed",
+      opKey,
+      respaced: respaced ?? undefined,
+      row,
+    };
   return respaced === null
     ? { type: "writeConfirmed", opKey }
     : { type: "writeConfirmed", opKey, respaced };
