@@ -14,7 +14,9 @@ export function insertedCommand(
   const inserted = after.slice(start, start + length);
   if (
     !/^\/[a-z]*$/i.test(inserted) ||
-    (start > 0 && !/\s/.test(before[start - 1]!))
+    (inserted === "/"
+      ? !slashStartsCommand(before, start)
+      : start > 0 && !/\s/.test(before[start - 1]!))
   )
     return null;
   return { start, query: inserted.slice(1) };

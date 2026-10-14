@@ -67,6 +67,27 @@ export const GrowingTextarea = forwardRef<
   };
 
   useLayoutEffect(resize, [value]);
+  useLayoutEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    let width = el.getBoundingClientRect().width;
+    const observer = new ResizeObserver(() => {
+      const nextWidth = el.getBoundingClientRect().width;
+      if (nextWidth !== width) {
+        width = nextWidth;
+        resize();
+      }
+    });
+    observer.observe(el);
+    let active = true;
+    void document.fonts.ready.then(() => {
+      if (active) resize();
+    });
+    return () => {
+      active = false;
+      observer.disconnect();
+    };
+  }, []);
 
   return (
     <textarea

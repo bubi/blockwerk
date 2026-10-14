@@ -461,38 +461,44 @@ export function ItemRow({
           <span className={styles.refGone}>Ziel entfernt</span>
         ))}
 
-      {onOpenCommands && (
-        <button
-          type="button"
-          className={styles.edit}
-          onClick={() => onOpenCommands(item.id, null)}
-          aria-label="Zeilenbefehle öffnen"
-          title="Befehle · /"
-        >
-          /
-        </button>
-      )}
-      {onEdit && (
-        <button
-          type="button"
-          className={styles.edit}
-          onClick={() => onEdit(item.id)}
-          aria-label="Eintrag bearbeiten"
-        >
-          Bearbeiten
-        </button>
-      )}
-      {onDeleteRow && (
-        <button
-          type="button"
-          className={styles.kill}
-          onClick={() => onDeleteRow(item.id, prevId ?? null)}
-          aria-label="Zeile entfernen"
-          title="Zeile entfernen"
-        >
-          ×
-        </button>
-      )}
+      <div className={styles.actions}>
+        {onEdit && (
+          <button
+            type="button"
+            className={styles.edit}
+            onClick={() => onEdit(item.id)}
+            aria-label="Eintrag bearbeiten"
+          >
+            <svg
+              className={styles.editIcon}
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="m16 3 5 5-12 12-6 1 1-6Z" />
+              <path d="m14 5 5 5" />
+            </svg>
+            <span className={styles.editLabel}>Bearbeiten</span>
+          </button>
+        )}
+        {onDeleteRow && (
+          <button
+            type="button"
+            className={styles.kill}
+            onClick={() => onDeleteRow(item.id, prevId ?? null)}
+            aria-label="Zeile entfernen"
+            title="Zeile entfernen"
+          >
+            ×
+          </button>
+        )}
+      </div>
       {commandMenu}
     </li>
   );

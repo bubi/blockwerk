@@ -12,6 +12,7 @@ describe("inline commands", () => {
       start: 9,
       query: "merge",
     });
+    expect(insertedCommand("Text", "Text/")).toEqual({ start: 4, query: "" });
     expect(insertedCommand("", "/task")).toEqual({ start: 0, query: "task" });
     expect(insertedCommand("A B", "A /B")).toEqual({ start: 2, query: "" });
     expect(insertedCommand("Original", "/merge")).toBeNull();

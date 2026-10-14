@@ -358,20 +358,6 @@ function JourFixPane({
                   }
                 }}
               />
-              <button
-                type="button"
-                aria-label="Zeilenbefehle öffnen"
-                onClick={() =>
-                  setCommand({
-                    id: theme.id,
-                    query: "",
-                    start: theme.text.length,
-                    end: theme.text.length,
-                  })
-                }
-              >
-                /
-              </button>
               {command?.id === theme.id && (
                 <ItemCommandMenu
                   key={theme.id}

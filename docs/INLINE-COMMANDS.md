@@ -3,8 +3,8 @@
 Eine Zeile oder ihre Mehrfachauswahl muss nicht mehr zum Composer am Blockende
 verlassen werden. `/` im Zeilenmodus öffnet das Befehlsmenü direkt an der Zeile.
 Im Textfeld funktioniert das unabhängig von der Cursorposition; Cmd/Ctrl+/
-öffnet es unabhängig von der Cursorposition. Der sichtbare `/`-Knopf funktioniert
-auch auf Touchgeräten. URL-Trennzeichen und bereits begonnene Pfade bleiben normale Texteingaben.
+öffnet es unabhängig von der Cursorposition. Ein dauerhafter `/`-Knopf entfällt. Auf Touchgeräten öffnet die Slash-Eingabe
+im Textfeld das Menü; Texte und Aktionen teilen sich dadurch weniger Platz. URL-Trennzeichen und bereits begonnene Pfade bleiben normale Texteingaben.
 Eingefügte Pfade werden nicht als Befehl behandelt; einen neuen Schrägstrich
 kannst du im Menü mit „Als Text einfügen“ übernehmen.
 

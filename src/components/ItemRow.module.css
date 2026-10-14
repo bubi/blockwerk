@@ -83,7 +83,7 @@
 /* Überschriften (Notizen mit heading 1/2). */
 .heading {
   margin-top: var(--s3);
-  align-items: baseline;
+  align-items: flex-start;
 }
 
 .heading:first-child {
@@ -223,19 +223,31 @@
   }
 }
 
+.actions {
+  order: 3;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s1);
+  flex: none;
+}
 .edit {
-  order: 2;
   color: var(--text2);
-  min-height: 44px;
-  padding: var(--s1) var(--s2);
+  min-height: 24px;
+  padding: 0 var(--s2);
   font-size: 13px;
+  line-height: 24px;
+}
+.editIcon {
+  display: none;
 }
 .kill,
 .noteAdd {
-  width: 44px;
-  height: 44px;
-  min-height: 44px;
-  opacity: 1;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+}
+.kill {
+  opacity: 0.5;
 }
 .text:focus,
 .headingInput:focus {
@@ -243,10 +255,24 @@
   border-radius: var(--r-xs);
 }
 @media (max-width: 860px) {
-  .text {
-    flex-basis: calc(100% - 52px);
-  }
   .item {
     gap: var(--s2);
+  }
+  .edit,
+  .kill,
+  .noteAdd {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .edit {
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+  .editLabel {
+    display: none;
+  }
+  .editIcon {
+    display: block;
   }
 }

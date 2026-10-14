@@ -59,7 +59,8 @@ test("merge offers the adjacent pair without a prior range selection", async ({
   await planning(page);
   const { values, ids } = await notes(page);
   const first = page.locator(`[data-item-id="${ids[0]}"]`);
-  await first.getByRole("button", { name: "Zeilenbefehle öffnen" }).click();
+  await first.locator("textarea").focus();
+  await first.locator("textarea").press("/");
   const menu = page.getByRole("region", { name: "Befehle für aktuelle Zeile" });
   await menu.getByLabel("Zeilenbefehl", { exact: true }).fill("/merge");
   const option = menu.getByRole("option", { name: /\/merge/ });
@@ -88,11 +89,13 @@ test("commands convert in place, preserve text and can be cancelled or inserted 
   await page.keyboard.press("Enter");
   await expect(row.getByRole("checkbox")).toBeVisible();
   await expect(field).toHaveValue(values[0]!);
-  await row.getByRole("button", { name: "Zeilenbefehle öffnen" }).click();
+  await row.locator("textarea").focus();
+  await row.locator("textarea").press("/");
   await row.getByLabel("Zeilenbefehl", { exact: true }).fill("/heading");
   await row.getByLabel("Zeilenbefehl", { exact: true }).press("Enter");
   await expect(row).toHaveAttribute("data-heading", "1");
-  await row.getByRole("button", { name: "Zeilenbefehle öffnen" }).click();
+  await row.locator("textarea").focus();
+  await row.locator("textarea").press("/");
   await row.getByLabel("Zeilenbefehl", { exact: true }).fill("/note");
   await row.getByLabel("Zeilenbefehl", { exact: true }).press("Enter");
   await expect(row).not.toHaveAttribute("data-heading", "1");
@@ -139,7 +142,8 @@ test("a mobile row exposes commands and a reference conversion keeps identity", 
   await planning(page);
   const { values, ids } = await notes(page, 1);
   const row = page.locator(`[data-item-id="${ids[0]}"]`);
-  await row.getByRole("button", { name: "Zeilenbefehle öffnen" }).click();
+  await row.locator("textarea").focus();
+  await row.locator("textarea").press("/");
   await row.getByLabel("Zeilenbefehl", { exact: true }).fill("/ref");
   await row.getByLabel("Zeilenbefehl", { exact: true }).press("Enter");
   await row.getByLabel("Zielblock").selectOption("b2");
@@ -157,10 +161,13 @@ test("Jour Fix moves a note with the same identity and also exposes inline comma
   await planning(page);
   const { values, ids } = await notes(page, 1);
   const row = page.locator(`[data-item-id="${ids[0]}"]`);
-  await row.getByRole("button", { name: "Zeilenbefehle öffnen" }).click();
+  await row.locator("textarea").focus();
+  await row.locator("textarea").press("/");
   await row.getByLabel("Zeilenbefehl", { exact: true }).fill("/jfx");
   await row.getByLabel("Zeilenbefehl", { exact: true }).press("Enter");
-  await row.getByLabel("Jour-Fix-Ablage").selectOption({ label: "Lena Brandt" });
+  await row
+    .getByLabel("Jour-Fix-Ablage")
+    .selectOption({ label: "Lena Brandt" });
   await row.getByRole("button", { name: "In Jour Fix verschieben" }).click();
   await expect(row).toHaveCount(0);
   await page.getByRole("button", { name: /^Lena Brandt(?:\s+\d+)?$/ }).click();
