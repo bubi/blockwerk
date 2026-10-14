@@ -222,3 +222,31 @@
     opacity: 1;
   }
 }
+
+.edit {
+  order: 2;
+  color: var(--text2);
+  min-height: 44px;
+  padding: var(--s1) var(--s2);
+  font-size: 13px;
+}
+.kill,
+.noteAdd {
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  opacity: 1;
+}
+.text:focus,
+.headingInput:focus {
+  background: var(--side);
+  border-radius: var(--r-xs);
+}
+@media (max-width: 860px) {
+  .text {
+    flex-basis: calc(100% - 52px);
+  }
+  .item {
+    gap: var(--s2);
+  }
+}

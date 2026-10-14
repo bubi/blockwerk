@@ -487,7 +487,7 @@ describe("GET /api/search", () => {
           kind: "task",
           text: "Kapazitätsplan für Q3 aufstellen",
         },
-        block: { id: "s-b1", title: "Quartalsplanung Q3" },
+        block: { id: "s-b1", title: "Quartalsplanung Q3", date: "2026-07-31" },
         page: { id: "s-plan", title: "s-plan" },
         space: { id: "s-road", name: "s-road" },
       },

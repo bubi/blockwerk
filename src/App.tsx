@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import type { SpaceWithPages } from "../shared/api.ts";
 import type { SpaceKind } from "../shared/db.ts";
 import type {
@@ -34,6 +34,7 @@ import {
   newSpaceId,
   newTemplateId,
 } from "./domain/ids.ts";
+import { itemLink, readLink } from "./domain/links.ts";
 import { deriveShort } from "./domain/naming.ts";
 import { insertPositionBetween } from "./domain/position.ts";
 import {
@@ -80,6 +81,7 @@ export function App() {
   const [pageId, setPageId] = useState<PageSelection | null>(null);
   // The desktop stream column shows either the "Heute" start view or a
   // space's stream — the rail's "Heute" button toggles it (design-system 5).
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [captureOpen, setCaptureOpen] = useState(false);
   const [captureSpaceId, setCaptureSpaceId] = useState<string | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
@@ -93,7 +95,11 @@ export function App() {
     blockId: string;
     pageId: string;
     focusComposer?: boolean;
+    itemId?: string;
   } | null>(null);
+  const [linkRequest, setLinkRequest] = useState(() =>
+    readLink(window.location.hash),
+  );
   const [tplOpen, setTplOpen] = useState(false);
   const [bootRetries, setBootRetries] = useState(0);
   const [query, setQuery] = useState("");
@@ -139,19 +145,26 @@ export function App() {
   }, []);
 
   /** A mobile navigation: update the state and record it in the history. */
-  const commitNav = (next: Partial<MobileNavState>) => {
-    const nav: MobileNavState = {
-      mTab: next.mTab ?? mTab,
-      nLevel: next.nLevel ?? nLevel,
-      spaceId: next.spaceId !== undefined ? next.spaceId : spaceId,
-      pageId: next.pageId !== undefined ? next.pageId : pageId,
-    };
-    setMTab(nav.mTab);
-    setNLevel(nav.nLevel);
-    setSpaceId(nav.spaceId);
-    setPageId(nav.pageId);
-    window.history.pushState(nav, "");
-  };
+  const commitNav = useCallback(
+    (next: Partial<MobileNavState>, link?: string) => {
+      const nav: MobileNavState = {
+        mTab: next.mTab ?? mTab,
+        nLevel: next.nLevel ?? nLevel,
+        spaceId: next.spaceId !== undefined ? next.spaceId : spaceId,
+        pageId: next.pageId !== undefined ? next.pageId : pageId,
+      };
+      setMTab(nav.mTab);
+      setNLevel(nav.nLevel);
+      setSpaceId(nav.spaceId);
+      setPageId(nav.pageId);
+      window.history.pushState(
+        nav,
+        "",
+        link ?? `${window.location.pathname}${window.location.search}`,
+      );
+    },
+    [mTab, nLevel, spaceId, pageId],
+  );
 
   const spaces = selectSpaces(state);
   const templates = selectTemplates(state);
@@ -174,7 +187,9 @@ export function App() {
           ? "tasks"
           : (pages[0]?.id ?? "jourfix");
 
-  const virtualNotePageId = (space?.pages.find(entry => entry.title === "Notizen") ?? space?.pages[0])?.id ?? null;
+  const virtualNotePageId =
+    (space?.pages.find((entry) => entry.title === "Notizen") ?? space?.pages[0])
+      ?.id ?? null;
   const tasksMode = resolvedPageId === "tasks";
   const jourfixMode = resolvedPageId === "jourfix";
   const activePageId =
@@ -182,41 +197,105 @@ export function App() {
       ? resolvedPageId
       : null;
 
-  const createInSpace = async (fields: ComposerItemFields, target: SpaceWithPages, title: string) => {
-    const page = target.pages.find(entry => entry.title === "Notizen") ?? target.pages[0] ?? null;
+  const createInSpace = async (
+    fields: ComposerItemFields,
+    target: SpaceWithPages,
+    title: string,
+  ) => {
+    const page =
+      target.pages.find((entry) => entry.title === "Notizen") ??
+      target.pages[0] ??
+      null;
     const pageId = page?.id ?? `p-notes-${target.id}`;
-    if (!page && !await ops.createPage({ id: pageId, spaceId: target.id, title: "Notizen" })) return false;
+    if (
+      !page &&
+      !(await ops.createPage({
+        id: pageId,
+        spaceId: target.id,
+        title: "Notizen",
+      }))
+    )
+      return false;
     const detail = await ops.loadPage(pageId);
     if (!detail) return false;
-    const block = detail.blocks.find(entry => entry.title === title && (title === "Jour Fix" || entry.date === today));
-    const blockId = block?.id ?? (title === "Jour Fix" ? `b-jfx-${target.id}` : `b-capture-${target.id}-${today}`);
-    if (!block && !await ops.createBlock({ id: blockId, pageId, templateId: null, title, date: today })) return false;
-    const position = Math.max(0, ...(block?.items ?? []).map(item => item.position)) + 1000;
+    const stableBlockId =
+      title === "Jour Fix"
+        ? `b-jfx-${target.id}`
+        : `b-capture-${target.id}-${today}`;
+    const block =
+      detail.blocks.find((entry) => entry.id === stableBlockId) ??
+      detail.blocks.find(
+        (entry) =>
+          entry.title === title &&
+          (title === "Jour Fix" || entry.date === today),
+      );
+    const blockId = block?.id ?? stableBlockId;
+    if (
+      !block &&
+      !(await ops.createBlock({
+        id: blockId,
+        pageId,
+        templateId: null,
+        title,
+        date: today,
+      }))
+    )
+      return false;
+    const position =
+      Math.max(0, ...(block?.items ?? []).map((item) => item.position)) + 1000;
     return ops.createItem({ ...fields, id: newItemId(), blockId, position });
   };
 
   const createPersonTask = async (fields: ComposerItemFields) => {
     if (!isPerson || !space) return false;
-    return createInSpace(fields.kind === "task" ? { ...fields, assigneeSpaceId: fields.assigneeSpaceId ?? space.id } : fields, space, "Ohne Kontext");
+    return createInSpace(
+      fields.kind === "task"
+        ? { ...fields, assigneeSpaceId: fields.assigneeSpaceId ?? space.id }
+        : fields,
+      space,
+      "Ohne Kontext",
+    );
   };
   const jfxThemes = space !== null ? selectJourFixThemes(state, space.id) : [];
-  const createJourFixTheme = async (text: string, personSpaceId: string | null) => {
-    const target = spaces.find(entry => entry.id === personSpaceId) ?? space;
+  const createJourFixTheme = async (
+    text: string,
+    personSpaceId: string | null,
+  ) => {
+    const target = spaces.find((entry) => entry.id === personSpaceId) ?? space;
     if (!target || !text.trim()) return false;
-    return createInSpace({ kind: "note", text, heading: null }, target, "Jour Fix");
+    return createInSpace(
+      { kind: "note", text, heading: null },
+      target,
+      "Jour Fix",
+    );
   };
 
   // Moves a Jour-Fix theme into a meeting block (Feature 2): the item changes
   // its block and position — it is not copied, so it leaves the open list.
-  const moveTheme = (itemId: string, targetBlockId: string) => {
+  const moveTheme = async (itemId: string, targetBlockId: string) => {
+    const theme = state.items.get(itemId);
+    if (!theme) return false;
     const lastPosition = [...state.items.values()]
       .filter((entry) => entry.blockId === targetBlockId)
       .reduce((max, entry) => Math.max(max, entry.position), 0);
-    void ops.moveItem(
-      itemId,
-      targetBlockId,
-      insertPositionBetween(lastPosition || null, null),
-    );
+    if (
+      !(await ops.moveItem(
+        itemId,
+        targetBlockId,
+        insertPositionBetween(lastPosition || null, null),
+      ))
+    )
+      return false;
+    const originPosition = [...state.items.values()]
+      .filter((entry) => entry.blockId === theme.blockId)
+      .reduce((max, entry) => Math.max(max, entry.position), 0);
+    return ops.createItem({
+      id: newItemId(),
+      blockId: theme.blockId,
+      kind: "ref",
+      position: insertPositionBetween(originPosition || null, null),
+      refBlockId: targetBlockId,
+    });
   };
 
   const monthFrom = toISODate(new Date(month.year, month.month, 1));
@@ -250,14 +329,25 @@ export function App() {
 
   // Virtual views load the same durable note page, including Jour-Fix themes.
   useEffect(() => {
-    if (virtualNotePageId && (resolvedPageId === "jourfix" || resolvedPageId === "tasks")) void ops.loadPage(virtualNotePageId);
+    if (
+      virtualNotePageId &&
+      (resolvedPageId === "jourfix" || resolvedPageId === "tasks")
+    )
+      void ops.loadPage(virtualNotePageId);
   }, [virtualNotePageId, resolvedPageId, ops]);
 
   useEffect(() => {
     const flush = () => ops.flushWrites();
-    const guard = (event: BeforeUnloadEvent) => { ops.flushWrites(); if (state.pending.size > 0) event.preventDefault(); };
-    window.addEventListener("beforeunload", guard); document.addEventListener("visibilitychange", flush);
-    return () => { window.removeEventListener("beforeunload", guard); document.removeEventListener("visibilitychange", flush); };
+    const guard = (event: BeforeUnloadEvent) => {
+      ops.flushWrites();
+      if (state.pending.size > 0) event.preventDefault();
+    };
+    window.addEventListener("beforeunload", guard);
+    document.addEventListener("visibilitychange", flush);
+    return () => {
+      window.removeEventListener("beforeunload", guard);
+      document.removeEventListener("visibilitychange", flush);
+    };
   }, [state.pending.size, ops]);
 
   // Load the calendar window for the displayed month.
@@ -339,9 +429,23 @@ export function App() {
     if (!jump || resolvedPageId !== jump.pageId || pageViewStatus !== "loaded")
       return;
     const timer = window.setTimeout(() => {
-      const element = document.getElementById(`blk-${jump.blockId}`);
+      const element = jump.itemId
+        ? document.querySelector<HTMLElement>(
+            `[data-item-id="${CSS.escape(jump.itemId)}"]`,
+          )
+        : document.getElementById(`blk-${jump.blockId}`);
       if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
+        element.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+            .matches
+            ? "auto"
+            : "smooth",
+          block: "center",
+        });
+        if (jump.itemId) {
+          element.classList.add("search-target");
+          element.querySelector<HTMLTextAreaElement>("textarea")?.focus();
+        }
         if (jump.focusComposer)
           document.getElementById(`composer-${jump.blockId}`)?.focus();
       }
@@ -352,16 +456,68 @@ export function App() {
 
   useEffect(() => {
     const shortcuts = (event: KeyboardEvent) => {
-      const editing = event.target instanceof HTMLElement && !!event.target.closest("input, textarea, select, [contenteditable=true]");
-      if (event.altKey && event.key.toLowerCase() === "n") { event.preventDefault(); setCaptureOpen(true); }
+      if (document.querySelector('[aria-modal="true"]')) return;
+      const editing =
+        event.target instanceof HTMLElement &&
+        !!event.target.closest(
+          "input, textarea, select, [contenteditable=true]",
+        );
+      if (event.altKey && event.key.toLowerCase() === "n") {
+        event.preventDefault();
+        setCaptureOpen(true);
+      }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
-        document.querySelector<HTMLInputElement>('[aria-label="Durchsuchen"]')?.focus();
+        if (narrow) commitNav({ mTab: "suche" });
+        window.setTimeout(
+          () =>
+            document
+              .querySelector<HTMLInputElement>('[aria-label="Durchsuchen"]')
+              ?.focus(),
+          0,
+        );
       }
-      if (!editing && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey) { event.preventDefault(); void ops.undoLast(); }
+      if (
+        !editing &&
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "z" &&
+        !event.shiftKey
+      ) {
+        event.preventDefault();
+        void ops.undoLast();
+      }
     };
-    window.addEventListener("keydown", shortcuts); return () => window.removeEventListener("keydown", shortcuts);
-  }, [ops]);
+    window.addEventListener("keydown", shortcuts);
+    return () => window.removeEventListener("keydown", shortcuts);
+  }, [ops, narrow, commitNav]);
+
+  useEffect(() => {
+    const read = () => {
+      setLinkRequest(readLink(window.location.hash));
+    };
+    window.addEventListener("hashchange", read);
+    return () => window.removeEventListener("hashchange", read);
+  }, []);
+  useEffect(() => {
+    if (!linkRequest || state.spacesView.status !== "loaded") return;
+    const block = state.blocks.get(linkRequest.blockId);
+    const page = block ? state.pages.get(block.pageId) : null;
+    if (!block || !page) return;
+    const frame = window.requestAnimationFrame(() => {
+      setHome(false);
+      setSpaceId(page.spaceId);
+      setPageId(page.id);
+      setMTab("notizen");
+      setNLevel("stream");
+      setJump({
+        blockId: block.id,
+        pageId: page.id,
+        itemId: linkRequest.itemId,
+      });
+      setLinkRequest(null);
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [linkRequest, state.blocks, state.pages, state.spacesView.status]);
 
   // If the selected space disappears (deleted), move to another one — on
   // mobile back to the spaces list.
@@ -430,6 +586,7 @@ export function App() {
     const nextPageId: PageSelection =
       next.kind === "person" ? "tasks" : (next.pages[0]?.id ?? "jourfix");
     setJump(null);
+    history.replaceState(history.state, "", location.pathname + location.search);
     if (narrow) {
       commitNav({ nLevel: "pages", spaceId: id, pageId: nextPageId });
     } else {
@@ -441,6 +598,7 @@ export function App() {
 
   const selectPage = (id: PageSelection) => {
     setJump(null);
+    history.replaceState(history.state, "", location.pathname + location.search);
     if (narrow) {
       commitNav({ nLevel: "stream", pageId: id });
     } else {
@@ -450,6 +608,7 @@ export function App() {
   };
 
   const goHome = () => {
+    history.replaceState(history.state, "", location.pathname + location.search);
     setHome(true);
     setJump(null);
     setQuery("");
@@ -476,6 +635,7 @@ export function App() {
     // Select the new space synchronously, before any await — otherwise the
     // async continuation could revert a selection the user already changed.
     setJump(null);
+    history.replaceState(history.state, "", location.pathname + location.search);
     if (narrow) {
       commitNav({
         mTab: "notizen",
@@ -498,7 +658,7 @@ export function App() {
       short: deriveShort(name),
       email,
     });
-    if (!await space) return;
+    if (!(await space)) return;
     ops.createPage({ id: pageId, spaceId: id, title: "Notizen" });
   };
 
@@ -565,7 +725,7 @@ export function App() {
   const createTemplate = () => {
     ops.createTemplate({
       id: newTemplateId(),
-      label: "Neues Template",
+      label: "Neue Vorlage",
       hue: "ink",
       seed: [],
     });
@@ -598,11 +758,24 @@ export function App() {
   // A search hit or an overview row points into pages that are usually not
   // loaded yet, so the jump navigates by the row's own ids instead of
   // resolving through state.
-  const jumpToTarget = (blockId: string, pageId: string, spaceId: string) => {
-    setJump({ blockId, pageId });
+  const jumpToTarget = (
+    blockId: string,
+    pageId: string,
+    spaceId: string,
+    itemId?: string,
+  ) => {
+    setJump({ blockId, pageId, itemId });
+    window.history.replaceState(
+      window.history.state,
+      "",
+      itemLink(blockId, itemId),
+    );
     setQuery("");
     if (narrow) {
-      commitNav({ mTab: "notizen", nLevel: "stream", spaceId, pageId });
+      commitNav(
+        { mTab: "notizen", nLevel: "stream", spaceId, pageId },
+        itemLink(blockId, itemId),
+      );
     } else {
       setSpaceId(spaceId);
       setPageId(pageId);
@@ -645,37 +818,79 @@ export function App() {
       <Loading label="Suche läuft…" />
     );
 
+  const completed = [...state.items.values()]
+    .filter(
+      (item) =>
+        item.kind === "task" &&
+        item.done &&
+        (scope !== "mine" || item.assigneeSpaceId === meSpaceId),
+    )
+    .sort((a, b) => b.updatedAt - a.updatedAt);
   const renderToday = (showHead: boolean) => (
-    <Today
-      viewStatus={overviewView}
-      taskView={teamView}
-      today={today}
-      scope={scope}
-      meSpaceId={meSpaceId}
-      spacesById={spacesById}
-      doneWeek={doneWeek}
-      showHead={showHead}
-      onScopeChange={handleScopeChange}
-      onToggle={(id, done) => {
-        if (done) {
-          setDoneAt((previous) => {
-            const next = new Map(previous);
-            next.set(id, Date.now());
-            return next;
-          });
-        } else {
-          setDoneAt((previous) => {
-            const next = new Map(previous);
-            next.delete(id);
-            return next;
-          });
-        }
-        patchItem(id, { done });
-      }}
-      onJumpToBlock={jumpToTarget}
-      onEdit={setEditingItemId}
-      onRetry={() => void ops.loadOverview(today)}
-    />
+    <>
+      <Today
+        viewStatus={overviewView}
+        taskView={teamView}
+        today={today}
+        scope={scope}
+        meSpaceId={meSpaceId}
+        spacesById={spacesById}
+        doneWeek={doneWeek}
+        showHead={showHead}
+        onScopeChange={handleScopeChange}
+        onToggle={(id, done) => {
+          if (done) {
+            setDoneAt((previous) => {
+              const next = new Map(previous);
+              next.set(id, Date.now());
+              return next;
+            });
+          } else {
+            setDoneAt((previous) => {
+              const next = new Map(previous);
+              next.delete(id);
+              return next;
+            });
+          }
+          patchItem(id, { done });
+        }}
+        onJumpToBlock={jumpToTarget}
+        onEdit={setEditingItemId}
+        onRetry={() => void ops.loadOverview(today)}
+      />
+      <details className="completed-tasks">
+        <summary>Erledigte Aufgaben ({completed.length})</summary>
+        {completed.length === 0 ? (
+          <p>Keine erledigten Aufgaben in dieser Auswahl.</p>
+        ) : (
+          <ul>
+            {completed.map((item) => {
+              const block = state.blocks.get(item.blockId);
+              return (
+                <li key={item.id}>
+                  <a href={itemLink(item.blockId, item.id)}>
+                    {item.text || "Ohne Text"}
+                  </a>
+                  <span>{block?.title}</span>
+                  <button
+                    type="button"
+                    onClick={() => patchItem(item.id, { done: false })}
+                  >
+                    Wieder öffnen
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingItemId(item.id)}
+                  >
+                    Bearbeiten
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </details>
+    </>
   );
 
   // The block stream is the same on mobile and desktop (docs/adr/0012) — it
@@ -697,16 +912,31 @@ export function App() {
       blocksById={state.blocks}
       spaces={spaces}
       todayDate={todayDate}
-      pageView={selectedPageId === "jourfix" ? (virtualNotePageId ? selectPageView(state, virtualNotePageId) : { status: "loaded" }) : selectPageView(state, selectedPageId)}
+      pageView={
+        selectedPageId === "jourfix"
+          ? virtualNotePageId
+            ? selectPageView(state, virtualNotePageId)
+            : { status: "loaded" }
+          : selectPageView(state, selectedPageId)
+      }
       pulseBlockId={jump?.blockId ?? null}
       onPatchBlock={patchBlock}
       onPatchItem={patchItem}
       onEditItem={setEditingItemId}
+      references={[...state.items.values()].filter(
+        (item) => item.kind === "ref",
+      )}
       onCreateItem={createItem}
       onDeleteItem={deleteItem}
       onJumpToBlock={jumpToBlock}
       onJumpToOverviewRow={jumpToTarget}
-      onRetryPage={() => void ops.loadPage(selectedPageId === "jourfix" ? virtualNotePageId ?? "" : selectedPageId)}
+      onRetryPage={() =>
+        void ops.loadPage(
+          selectedPageId === "jourfix"
+            ? (virtualNotePageId ?? "")
+            : selectedPageId,
+        )
+      }
       onRetryOverview={() => void ops.loadOverview(today)}
       onCreateTask={createPersonTask}
       onCreateJourFix={createJourFixTheme}
@@ -718,17 +948,91 @@ export function App() {
     />
   );
 
-  const captureTarget = spaces.find(entry => entry.id === captureSpaceId) ?? spaces.find(entry => entry.id === meSpaceId) ?? spaces[0];
-  const tools = <WorkspaceTools pending={state.pending.size} failed={state.failedWrites.size} undoLabel={state.undoHistory.at(-1)?.label} onUndo={() => void ops.undoLast()} onCapture={() => setCaptureOpen(open => !open)} />;
-  const capture = captureOpen && <section className="quick-capture" aria-label="Schnell erfassen">
-    <div><h2>Schnell erfassen</h2><button type="button" onClick={() => setCaptureOpen(false)}>Schließen</button></div>
-    {captureTarget ? <><label>Ablage<select value={captureTarget.id} onChange={event => setCaptureSpaceId(event.target.value)}>{spaces.map(entry => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
-      <Composer key={captureTarget.id} blockId={`capture-${captureTarget.id}`} spaces={spaces} blocks={[...state.blocks.values()]} today={todayDate} showMergeCommand={false} onCreateJourFix={(text, person) => createInSpace({ kind: "note", text, heading: null }, spaces.find(entry => entry.id === person) ?? captureTarget, "Jour Fix")} onCreateItem={fields => createInSpace(fields.kind === "task" && !fields.assigneeSpaceId && captureTarget.kind === "person" ? { ...fields, assigneeSpaceId: captureTarget.id } : fields, captureTarget, "Ohne Kontext")} />
-    </> : <p>Lege zuerst einen Bereich an, um Inhalte zu erfassen.</p>}
-  </section>;
+  const captureTarget =
+    spaces.find((entry) => entry.id === captureSpaceId) ??
+    spaces.find((entry) => entry.id === meSpaceId) ??
+    spaces[0];
+  const tools = (
+    <WorkspaceTools
+      pending={state.pending.size}
+      failed={state.failedWrites.size}
+      undoLabel={state.undoHistory.at(-1)?.label}
+      onUndo={() => void ops.undoLast()}
+      onCapture={() => setCaptureOpen((open) => !open)}
+    />
+  );
+  const capture = captureOpen && (
+    <section className="quick-capture" aria-label="Schnell erfassen">
+      <div>
+        <h2>Schnell erfassen</h2>
+        <button type="button" onClick={() => setCaptureOpen(false)}>
+          Schließen
+        </button>
+      </div>
+      {captureTarget ? (
+        <>
+          <label>
+            Ablage
+            <select
+              value={captureTarget.id}
+              onChange={(event) => setCaptureSpaceId(event.target.value)}
+            >
+              {spaces.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {entry.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Composer
+            autoFocus
+            key={captureTarget.id}
+            blockId={`capture-${captureTarget.id}`}
+            spaces={spaces}
+            blocks={[...state.blocks.values()]}
+            today={todayDate}
+            showMergeCommand={false}
+            onCreateJourFix={(text, person) =>
+              createInSpace(
+                { kind: "note", text, heading: null },
+                spaces.find((entry) => entry.id === person) ?? captureTarget,
+                "Jour Fix",
+              )
+            }
+            onCreateItem={(fields) =>
+              createInSpace(
+                fields.kind === "task" &&
+                  !fields.assigneeSpaceId &&
+                  captureTarget.kind === "person"
+                  ? { ...fields, assigneeSpaceId: captureTarget.id }
+                  : fields,
+                captureTarget,
+                "Ohne Kontext",
+              )
+            }
+          />
+        </>
+      ) : (
+        <p>Lege zuerst einen Bereich an, um Inhalte zu erfassen.</p>
+      )}
+    </section>
+  );
 
-  const editor = editingItemId && state.items.get(editingItemId)
-    ? <ItemEditor key={editingItemId} item={state.items.get(editingItemId)!} spaces={spaces} onSave={async (id, patch, converted) => { const saved = await ops.updateItem(id, patch); if (saved && converted) ops.updateUndoRevision(id); return saved; }} onConvert={ops.convertItem} onClose={() => setEditingItemId(null)} /> : null;
+  const editor =
+    editingItemId && state.items.get(editingItemId) ? (
+      <ItemEditor
+        key={editingItemId}
+        item={state.items.get(editingItemId)!}
+        spaces={spaces}
+        onSave={async (id, patch, converted) => {
+          const saved = await ops.updateItem(id, patch);
+          if (saved && converted) ops.updateUndoRevision(id);
+          return saved;
+        }}
+        onConvert={ops.convertItem}
+        onClose={() => setEditingItemId(null)}
+      />
+    ) : null;
 
   // ============================================================
   // Mobile layout (< 860px): header, sheet, tab bar — no date column.
@@ -756,7 +1060,12 @@ export function App() {
         />
 
         {tools}
-        <main className={styles.msheet}>
+        <main
+          className={styles.msheet}
+          id={`panel-${mTab}`}
+          role="tabpanel"
+          aria-labelledby={`tab-${mTab}`}
+        >
           {capture}
           {mTab === "heute" && renderToday(true)}
 
@@ -862,8 +1171,18 @@ export function App() {
     <div className={styles.app}>
       <Header query={query} today={today} onQueryChange={handleQueryChange} />
       {tools}
+      <button
+        type="button"
+        className="calendar-toggle"
+        aria-expanded={calendarOpen}
+        onClick={() => setCalendarOpen((open) => !open)}
+      >
+        {calendarOpen ? "Datumspanel schließen" : "Termine und Fälligkeiten"}
+      </button>
 
-      <div className={styles.grid}>
+      <div
+        className={`${styles.grid} ${calendarOpen ? "" : styles.withoutDates}`}
+      >
         <aside className={`${styles.col} ${styles.rail}`}>
           {spacesView.status === "failed" ? (
             <LoadError
@@ -916,21 +1235,23 @@ export function App() {
           )}
         </main>
 
-        <aside className={`${styles.col} ${styles.dates}`}>
-          <Dates
-            month={month}
-            view={calendarView}
-            ledger={ledger}
-            today={today}
-            spacesById={spacesById}
-            onPrevMonth={() => shiftMonth(-1)}
-            onNextMonth={() => shiftMonth(1)}
-            onJumpToBlock={jumpToBlock}
-            onReschedule={(id, patch) => patchItem(id, patch)}
-            onToggleDone={(id, done) => patchItem(id, { done })}
-            onRetry={() => void ops.loadCalendar(monthFrom, monthTo)}
-          />
-        </aside>
+        {calendarOpen && (
+          <aside className={`${styles.col} ${styles.dates}`}>
+            <Dates
+              month={month}
+              view={calendarView}
+              ledger={ledger}
+              today={today}
+              spacesById={spacesById}
+              onPrevMonth={() => shiftMonth(-1)}
+              onNextMonth={() => shiftMonth(1)}
+              onJumpToBlock={jumpToBlock}
+              onReschedule={(id, patch) => patchItem(id, patch)}
+              onToggleDone={(id, done) => patchItem(id, { done })}
+              onRetry={() => void ops.loadCalendar(monthFrom, monthTo)}
+            />
+          </aside>
+        )}
       </div>
 
       <Notifications

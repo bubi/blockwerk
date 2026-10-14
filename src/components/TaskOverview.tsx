@@ -69,11 +69,33 @@ export function TaskOverview({
   return (
     <div className={styles.today}>
       {team && (
-        <div className={styles.scopebar} role="tablist" aria-label="Umfang">
+        <div
+          className={styles.scopebar}
+          role="tablist"
+          aria-label="Umfang"
+          onKeyDown={(event) => {
+            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+              return;
+            event.preventDefault();
+            const next =
+              event.key === "Home"
+                ? "team"
+                : event.key === "End"
+                  ? "mine"
+                  : scope === "team"
+                    ? "mine"
+                    : "team";
+            onScopeChange(next);
+            event.currentTarget
+              .querySelectorAll<HTMLButtonElement>("button")
+              [next === "team" ? 0 : 1]?.focus();
+          }}
+        >
           <button
             type="button"
             role="tab"
             aria-selected={scope === "team"}
+            tabIndex={scope === "team" ? 0 : -1}
             className={`label ${scope === "team" ? styles.scopeOn : undefined}`}
             onClick={() => onScopeChange("team")}
           >
@@ -83,43 +105,13 @@ export function TaskOverview({
             type="button"
             role="tab"
             aria-selected={scope === "mine"}
+            tabIndex={scope === "mine" ? 0 : -1}
             className={`label ${scope === "mine" ? styles.scopeOn : undefined}`}
             onClick={() => onScopeChange("mine")}
           >
             Nur meine
           </button>
         </div>
-      )}
-
-      {team && scope === "team" && view.workload.length > 0 && (
-        <section className={styles.sec}>
-          <h2 className="label">Auslastung</h2>
-          <ul className={styles.loadlist}>
-            {view.workload.map((entry) => (
-              <li key={entry.space.id}>
-                <span className="sbadge" aria-hidden="true">
-                  {entry.space.short}
-                </span>
-                <span className={styles.loadname}>{entry.space.name}</span>
-                <span className="label">{entry.open} offen</span>
-                {entry.late > 0 && (
-                  <span className="badge badge--warn">
-                    {entry.late} überfällig
-                  </span>
-                )}
-              </li>
-            ))}
-            {view.orphanOpen > 0 && (
-              <li className={styles.orphan}>
-                <span className="sbadge sbadge--topic" aria-hidden="true">
-                  ?
-                </span>
-                <span className={styles.loadname}>Ohne Zuständigkeit</span>
-                <span className="label">{view.orphanOpen} offen</span>
-              </li>
-            )}
-          </ul>
-        </section>
       )}
 
       {view.overdue.length > 0 && (
@@ -152,7 +144,7 @@ export function TaskOverview({
                       today={today}
                       onToggle={onToggle}
                       onJumpToBlock={onJumpToBlock}
-                    onEdit={onEdit}
+                      onEdit={onEdit}
                     />
                   ))}
                 </ul>
@@ -171,7 +163,7 @@ export function TaskOverview({
                   today={today}
                   onToggle={onToggle}
                   onJumpToBlock={onJumpToBlock}
-                    onEdit={onEdit}
+                  onEdit={onEdit}
                 />
               ))}
             </ul>
@@ -179,6 +171,12 @@ export function TaskOverview({
         </section>
       )}
 
+      {team && scope === "mine" && meSpaceId === null && (
+        <p className="empty">
+          Deine Anmeldung ist keinem Personenbereich zugeordnet. Hinterlege dort
+          dieselbe E-Mail-Adresse, um eigene Aufgaben zu sehen.
+        </p>
+      )}
       {nothing && (
         <p className="empty">
           {team
@@ -229,7 +227,7 @@ export function TaskOverview({
                 today={today}
                 onToggle={onToggle}
                 onJumpToBlock={onJumpToBlock}
-                    onEdit={onEdit}
+                onEdit={onEdit}
               />
             ))}
           </ul>
@@ -243,11 +241,13 @@ export function TaskOverview({
         team={team}
         meSpaceId={meSpaceId}
         spacesById={spacesById}
-        onToggleOpen={() => setFolds((current) => ({ ...current, later: !current.later }))}
+        onToggleOpen={() =>
+          setFolds((current) => ({ ...current, later: !current.later }))
+        }
         today={today}
         onToggle={onToggle}
         onJumpToBlock={onJumpToBlock}
-                    onEdit={onEdit}
+        onEdit={onEdit}
       />
       <FoldSection
         label="Ohne Datum"
@@ -256,12 +256,44 @@ export function TaskOverview({
         team={team}
         meSpaceId={meSpaceId}
         spacesById={spacesById}
-        onToggleOpen={() => setFolds((current) => ({ ...current, undated: !current.undated }))}
+        onToggleOpen={() =>
+          setFolds((current) => ({ ...current, undated: !current.undated }))
+        }
         today={today}
         onToggle={onToggle}
         onJumpToBlock={onJumpToBlock}
-                    onEdit={onEdit}
+        onEdit={onEdit}
       />
+      {team && scope === "team" && view.workload.length > 0 && (
+        <section className={styles.sec}>
+          <h2 className="label">Offene Aufgaben nach Person</h2>
+          <ul className={styles.loadlist}>
+            {view.workload.map((entry) => (
+              <li key={entry.space.id}>
+                <span className="sbadge" aria-hidden="true">
+                  {entry.space.short}
+                </span>
+                <span className={styles.loadname}>{entry.space.name}</span>
+                <span className="label">{entry.open} offen</span>
+                {entry.late > 0 && (
+                  <span className="badge badge--warn">
+                    {entry.late} überfällig
+                  </span>
+                )}
+              </li>
+            ))}
+            {view.orphanOpen > 0 && (
+              <li className={styles.orphan}>
+                <span className="sbadge sbadge--topic" aria-hidden="true">
+                  ?
+                </span>
+                <span className={styles.loadname}>Ohne Zuständigkeit</span>
+                <span className="label">{view.orphanOpen} offen</span>
+              </li>
+            )}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
@@ -318,7 +350,7 @@ function FoldSection({
               today={today}
               onToggle={onToggle}
               onJumpToBlock={onJumpToBlock}
-                    onEdit={onEdit}
+              onEdit={onEdit}
             />
           ))}
         </ul>
@@ -400,7 +432,15 @@ function TaskRow({
             )}
           </span>
         </button>
-        {onEdit && <button type="button" onClick={() => onEdit(row.item.id)} aria-label={`Aufgabe „${row.item.text}" bearbeiten`}>Bearbeiten</button>}
+        {onEdit && (
+          <button
+            type="button"
+            onClick={() => onEdit(row.item.id)}
+            aria-label={`Aufgabe „${row.item.text}" bearbeiten`}
+          >
+            Bearbeiten
+          </button>
+        )}
       </li>
       {row.notes.map((note) => (
         <li key={note.id} className={styles.childRow}>

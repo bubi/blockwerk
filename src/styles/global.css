@@ -10,66 +10,7 @@
  * Reset, Basis, Fokus und reduced-motion gelten global; Komponentenklassen
  * liegen in CSS Modules neben den Komponenten.
  */
-:root {
-  --white: #ffffff;
-  --bg: #fafafa;
-  --side: #f5f6f8;
-  --hover: #edeef0;
-  --line: #e4e6e9;
-  --line2: #eff0f2;
-
-  --text: #1d2125;
-  --text2: #6b7075;
-  --text3: #9ba0a6;
-
-  --green: #00a82d;
-  --green-dk: #00922a;
-  --green-soft: #e8f6ec;
-  --blue: #2f80ed;
-  --blue-soft: #e9f1fd;
-  --red: #e5484d;
-  --red-soft: #fdecec;
-  --purple: #7a5af8;
-  --orange: #e8883a;
-  --grey: #7a828a;
-
-  --check-line: #b6bcc3;
-  --badge-person: #8c93a0;
-  --badge-topic: #b0b6bf;
-  --card-hover: #cfd4d9;
-  --green-lit: #7fe0a0;
-
-  --hue: var(--grey);
-
-  --s1: 4px;
-  --s2: 8px;
-  --s3: 12px;
-  --s4: 16px;
-  --s5: 24px;
-  --s6: 32px;
-  --s7: 40px;
-
-  --r-xs: 6px;
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-
-  /* Deckelung: die gesamte Komposition und die Textspalte der Arbeitsfläche. */
-  --shell: 1720px;
-  --measure: 820px;
-
-  /* Marke: die enge Laufweite der Wortmarke (ein Token, nicht gestreut). */
-  --ls-wordmark: -0.022em;
-
-  --sans:
-    "Geist", "Source Sans 3", "Segoe UI", -apple-system, BlinkMacSystemFont,
-    Roboto, sans-serif;
-  --display: var(--sans);
-  /* Datenziffern (Kennzahlen, Tagesziffer, Bereichsplakette): eine echte
-     Monospace statt nur tabular-nums, damit große Zahlen Gewicht bekommen. */
-  --mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", Consolas,
-    monospace;
-}
+@import "../../design/tokens.css";
 
 *,
 *::before,
@@ -90,15 +31,6 @@ body {
 
 /* Feines Korn auf der Arbeitsfläche, gegen die Flachheit einer reinen
    Flächenfarbe. Fest positioniert, ohne Layout- oder Klickwirkung. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 
 #root {
   position: relative;
@@ -363,4 +295,200 @@ ul {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Shared workspace actions and form roles. */
+.workspace-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s2) var(--s5);
+  background: var(--white);
+  border-bottom: 1px solid var(--line);
+}
+.workspace-tools button,
+.keyboard-help summary,
+.calendar-toggle {
+  min-height: 44px;
+  padding: var(--s2) var(--s3);
+  border-radius: var(--r-sm);
+}
+.primary-action {
+  background: var(--green-dk);
+  color: var(--white);
+  font-weight: 600;
+}
+.save-status {
+  color: var(--text2);
+  font-size: 13px;
+}
+.save-status--failed {
+  color: var(--red);
+}
+.keyboard-help {
+  position: relative;
+  margin-left: auto;
+}
+.keyboard-help summary {
+  cursor: pointer;
+  color: var(--text2);
+}
+.keyboard-help > div {
+  position: absolute;
+  z-index: 65;
+  right: 0;
+  width: min(480px, calc(100vw - 32px));
+  max-height: 70dvh;
+  overflow: auto;
+  padding: var(--s4);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: 0 8px 24px rgba(29, 33, 37, 0.12);
+}
+.calendar-toggle {
+  align-self: flex-end;
+  margin: var(--s2) var(--s4) 0;
+  color: var(--text2);
+  border: 1px solid var(--line);
+  background: var(--white);
+}
+.quick-capture {
+  max-width: var(--measure);
+  margin: 0 auto var(--s5);
+  padding: var(--s4);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.quick-capture > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.quick-capture h2 {
+  margin: 0 0 var(--s3);
+  font-size: 18px;
+}
+.quick-capture label {
+  display: grid;
+  gap: var(--s1);
+  margin-bottom: var(--s3);
+}
+.quick-capture select,
+.editor-fields select,
+.editor-fields input:not([type="checkbox"]),
+.editor-fields textarea {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  color: var(--text);
+  background: var(--white);
+  padding: var(--s2) var(--s3);
+  font: inherit;
+}
+.editor-fields {
+  display: grid;
+  gap: var(--s3);
+}
+.editor-fields label {
+  display: grid;
+  gap: var(--s1);
+}
+.editor-fields textarea {
+  min-height: 104px;
+  resize: vertical;
+}
+.search-filters,
+.completed-tasks,
+.backlinks {
+  max-width: var(--measure);
+  margin: var(--s4) auto;
+}
+.search-filters summary,
+.completed-tasks summary,
+.backlinks summary {
+  cursor: pointer;
+  min-height: 44px;
+  padding: var(--s2);
+  color: var(--text2);
+}
+.completed-tasks ul {
+  list-style: none;
+  padding: 0;
+}
+.completed-tasks li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s3);
+  padding: var(--s3);
+  border-bottom: 1px solid var(--line);
+}
+.completed-tasks li > a {
+  flex: 1;
+  min-width: 160px;
+}
+.completed-tasks li > span {
+  color: var(--text3);
+  font-size: 13px;
+}
+.completed-tasks button {
+  min-height: 44px;
+  color: var(--green-dk);
+}
+.block-links {
+  margin-top: var(--s3);
+  font-size: 13px;
+  color: var(--text2);
+}
+a {
+  color: var(--green-dk);
+}
+mark {
+  background: var(--green-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+.search-target {
+  outline: 2px solid var(--green-dk);
+  outline-offset: 2px;
+  background: var(--green-soft);
+}
+.check,
+.check--done {
+  position: relative;
+  width: 28px;
+  height: 28px;
+}
+.check::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+:focus-visible {
+  outline-color: var(--green-dk);
+}
+@media (max-width: 860px) {
+  .workspace-tools {
+    gap: var(--s2);
+    padding: var(--s2) var(--s4);
+  }
+  .save-status {
+    flex-basis: 100%;
+    order: 3;
+  }
+  .keyboard-help {
+    margin-left: auto;
+  }
+}
+
+fieldset.editor-fields {
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
 }

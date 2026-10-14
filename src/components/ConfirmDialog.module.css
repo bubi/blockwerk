@@ -66,3 +66,16 @@
   background: var(--hover);
   color: var(--text);
 }
+
+.dialog {
+  max-width: 560px;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+.confirm,
+.cancel {
+  min-height: 44px;
+}
+.confirmSafe {
+  background: var(--green-dk);
+}

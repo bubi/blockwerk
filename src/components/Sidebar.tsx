@@ -32,7 +32,7 @@ interface SidebarProps {
   onDeletePage: (pageId: string) => void;
   onCreateSpace: (kind: SpaceRow["kind"], name: string, email: string) => void;
   onDeleteSpace: (spaceId: string) => void;
-  /** The rail footer's "Templates bearbeiten" (design-system 5). */
+  /** The rail footer's "Vorlagen bearbeiten" (design-system 5). */
   onManageTemplates: () => void;
 }
 
@@ -114,7 +114,7 @@ export function Sidebar({
           className={styles.railbtn}
           onClick={onManageTemplates}
         >
-          Templates bearbeiten
+          Vorlagen bearbeiten
         </button>
       </div>
     </nav>

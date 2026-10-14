@@ -27,7 +27,7 @@ export function Header({ query, today, onQueryChange }: HeaderProps) {
           className={styles.search}
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Blöcke, Tasks und Termine durchsuchen"
+          placeholder="Blöcke, Aufgaben und Termine durchsuchen"
           aria-label="Durchsuchen"
         />
         {query && (

@@ -76,8 +76,8 @@ test("the merge command is locked with a reason when a heading sits in the selec
   const b1 = page.locator("[data-block-id='b1']");
   const composer = b1.getByLabel("Neue Zeile");
 
-  // b1-n1 (note) is followed by b1-h2 (heading) in display order.
-  const note = b1.locator("[data-item-id='b1-n1']");
+  // Start from a known heading, independent of notes inserted by other specs.
+  const note = b1.locator("[data-item-id='b1-h2']");
   await note.locator("textarea").focus();
   await page.keyboard.press("Escape");
   await page.keyboard.press("Shift+ArrowDown");

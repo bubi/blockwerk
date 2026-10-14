@@ -20,7 +20,7 @@ export interface ComposerCommand {
 }
 
 export const COMPOSER_COMMANDS: readonly ComposerCommand[] = [
-  { key: "task", label: "Task", hint: "@Person und !datum werden erkannt" },
+  { key: "task", label: "Aufgabe", hint: "@Person und !datum werden erkannt" },
   { key: "event", label: "Termin", hint: "!datum und 14:00 werden erkannt" },
   {
     key: "heading",

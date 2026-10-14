@@ -90,10 +90,18 @@ export function ItemRow({
   const rowRef = useRef<HTMLLIElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const [savedDraft, setSavedDraft] = useState(() => readDraft(`item-${item.id}`)?.value ?? null);
+  const [savedDraft, setSavedDraft] = useState(
+    () => readDraft(`item-${item.id}`)?.value ?? null,
+  );
   const onPatch = (id: string, patch: ItemPatch) => {
     if (patch.text !== undefined) setSavedDraft(patch.text);
-    if (patch.text !== undefined) writeDraft(`item-${id}`, { value: patch.text, mode: null, mentionId: null, refTarget: "" });
+    if (patch.text !== undefined)
+      writeDraft(`item-${id}`, {
+        value: patch.text,
+        mode: null,
+        mentionId: null,
+        refTarget: "",
+      });
     savePatch(id, patch);
   };
   const isHeading = item.kind === "note" && item.heading !== null;
@@ -122,7 +130,11 @@ export function ItemRow({
   };
 
   const rowKeys = (event: React.KeyboardEvent<HTMLLIElement>) => {
-    if (event.nativeEvent.isComposing || (event.target !== rowRef.current && event.target !== inputRef.current)) return;
+    if (
+      event.nativeEvent.isComposing ||
+      (event.target !== rowRef.current && event.target !== inputRef.current)
+    )
+      return;
     const inField = event.target === inputRef.current;
 
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -189,7 +201,9 @@ export function ItemRow({
           }
           const insert = `\n${listDisplayMark(item.listMark)}`;
           const next =
-            item.text.slice(0, caret) + insert + item.text.slice(inputRef.current?.selectionEnd ?? caret);
+            item.text.slice(0, caret) +
+            insert +
+            item.text.slice(inputRef.current?.selectionEnd ?? caret);
           onPatch(item.id, { text: next });
           // Land the cursor after the fresh marker so the next bullet can be
           // typed right away.
@@ -201,7 +215,11 @@ export function ItemRow({
         return;
       }
       if (item.kind === "note") {
-        if (event.key === "Backspace" && (item.text.trim() === "" || (item.listMark !== null && /^(?:[*-]|•)\s*$/.test(item.text)))) {
+        if (
+          event.key === "Backspace" &&
+          (item.text.trim() === "" ||
+            (item.listMark !== null && /^(?:[*-]|•)\s*$/.test(item.text)))
+        ) {
           if (isHeading) {
             // First step: back to normal text, second Backspace deletes.
             event.preventDefault();
@@ -301,7 +319,19 @@ export function ItemRow({
       tabIndex={-1}
       onKeyDown={rowKeys}
     >
-      {savedDraft !== null && savedDraft !== item.text && readDraft(`item-${item.id}`)?.value === savedDraft && <button type="button" onClick={() => { onPatch(item.id, { text: savedDraft }); setSavedDraft(null); }}>Lokalen Entwurf wiederherstellen</button>}
+      {savedDraft !== null &&
+        savedDraft !== item.text &&
+        readDraft(`item-${item.id}`)?.value === savedDraft && (
+          <button
+            type="button"
+            onClick={() => {
+              onPatch(item.id, { text: savedDraft });
+              setSavedDraft(null);
+            }}
+          >
+            Lokalen Entwurf wiederherstellen
+          </button>
+        )}
       <GrowingTextarea
         ref={(el) => {
           inputRef.current = el;
@@ -383,7 +413,7 @@ export function ItemRow({
           <button
             type="button"
             className={styles.refLink}
-              onClick={() => onJumpToBlock(targetBlock.id)}
+            onClick={() => onJumpToBlock(targetBlock.id)}
             aria-label={`Zum Block „${targetBlock.title || "ohne Titel"}" springen`}
           >
             <span className={styles.refDate}>
@@ -395,7 +425,16 @@ export function ItemRow({
           <span className={styles.refGone}>Ziel entfernt</span>
         ))}
 
-      {onEdit && <button type="button" className={styles.edit} onClick={() => onEdit(item.id)} aria-label="Eintrag bearbeiten">Bearbeiten</button>}
+      {onEdit && (
+        <button
+          type="button"
+          className={styles.edit}
+          onClick={() => onEdit(item.id)}
+          aria-label="Eintrag bearbeiten"
+        >
+          Bearbeiten
+        </button>
+      )}
       {onDeleteRow && (
         <button
           type="button"

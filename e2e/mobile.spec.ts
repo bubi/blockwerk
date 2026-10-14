@@ -21,7 +21,9 @@ test("mobile shows the tab bar with the team overview and no date column", async
   await expect(page.getByRole("tab", { name: "Suche" })).toBeVisible();
 
   // "Heute" is the team overview.
-  await expect(page.getByRole("heading", { name: "Auslastung" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Offene Aufgaben nach Person" }),
+  ).toBeVisible();
 
   // The date column is gone on mobile.
   await expect(
@@ -81,7 +83,7 @@ test("Suche opens focused, finds a block, and jumps into the stream", async ({
 
   await page.keyboard.type("Q3");
   const itemHit = page.getByRole("button", {
-    name: /^Task Kapazitätsplan für Q3 aufstellen/,
+    name: /^Aufgabe Kapazitätsplan für Q3 aufstellen/,
   });
   await expect(itemHit).toBeVisible();
 

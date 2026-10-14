@@ -3,6 +3,9 @@ import styles from "./GrowingTextarea.module.css";
 
 interface GrowingTextareaProps {
   value: string;
+  autoFocus?: boolean;
+  disabled?: boolean;
+  readOnly?: boolean;
   onChange: (value: string) => void;
   className?: string;
   placeholder?: string;
@@ -34,6 +37,9 @@ export const GrowingTextarea = forwardRef<
 >(function GrowingTextarea(
   {
     value,
+    autoFocus,
+    disabled,
+    readOnly,
     onChange,
     className,
     placeholder,
@@ -70,6 +76,9 @@ export const GrowingTextarea = forwardRef<
         else if (ref) ref.current = el;
       }}
       rows={1}
+      autoFocus={autoFocus}
+      disabled={disabled}
+      readOnly={readOnly}
       maxLength={10_000}
       onBlur={onBlur}
       onSelect={onSelect}

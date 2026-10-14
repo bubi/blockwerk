@@ -86,7 +86,9 @@ test("deleting a person space keeps foreign tasks and only drops the assignment"
   // instead of picking a person.
   await composer.fill("Check @kim ");
   await page.keyboard.press("Enter");
-  await expect(hostBlock.locator('textarea:has-text("Check")')).toBeVisible();
+  await expect(
+    hostBlock.locator('[data-item-id] textarea:has-text("Check")'),
+  ).toBeVisible();
   await expect(hostBlock.getByText("KL", { exact: true })).toBeVisible();
 
   // Deleting Kim asks in a modal dialog that states the consequence.
@@ -102,7 +104,9 @@ test("deleting a person space keeps foreign tasks and only drops the assignment"
   await expect(spaceButton(page, "Kim Lee")).toHaveCount(0);
 
   // The foreign task stays — only its assignment is gone.
-  await expect(hostBlock.locator('textarea:has-text("Check")')).toBeVisible();
+  await expect(
+    hostBlock.locator('[data-item-id] textarea:has-text("Check")'),
+  ).toBeVisible();
   await expect(hostBlock.getByText("KL", { exact: true })).toHaveCount(0);
 
   // Clean up the host space (its block and the task go with it).
@@ -163,23 +167,23 @@ test("templates can be added, edited, and deleted", async ({ page }) => {
     .getByRole("button", { name: "Block anlegen" })
     .dispatchEvent("click");
   await expect(
-    page.getByRole("menuitem", { name: /Templates bearbeiten/ }),
+    page.getByRole("menuitem", { name: /Vorlagen bearbeiten/ }),
   ).toBeVisible();
   await page
-    .getByRole("menuitem", { name: /Templates bearbeiten/ })
+    .getByRole("menuitem", { name: /Vorlagen bearbeiten/ })
     .dispatchEvent("click");
-  const dialog = page.getByRole("dialog", { name: "Templates bearbeiten" });
+  const dialog = page.getByRole("dialog", { name: "Vorlagen bearbeiten" });
   await expect(dialog).toBeVisible();
 
   // Add a template and shape it: name, hue, seed lines ("#" makes a heading).
   await dialog
-    .getByRole("button", { name: "Template hinzufügen" })
+    .getByRole("button", { name: "Vorlage hinzufügen" })
     .dispatchEvent("click");
   const newCard = dialog
     .locator("[data-template-id]")
-    .filter({ has: page.locator("input[value='Neues Template']") });
+    .filter({ has: page.locator("input[value='Neue Vorlage']") });
   await expect(newCard).toHaveCount(1);
-  await newCard.getByLabel("Name des Templates").fill("Daily");
+  await newCard.getByLabel("Name der Vorlage").fill("Daily");
   const dailyCard = dialog
     .locator("[data-template-id]")
     .filter({ has: page.locator("input[value='Daily']") });
@@ -199,7 +203,7 @@ test("templates can be added, edited, and deleted", async ({ page }) => {
 
   // Back into the manager to delete it again — with a modal confirmation.
   await page
-    .getByRole("menuitem", { name: /Templates bearbeiten/ })
+    .getByRole("menuitem", { name: /Vorlagen bearbeiten/ })
     .dispatchEvent("click");
   await dailyCard
     .getByRole("button", { name: "Daily entfernen" })

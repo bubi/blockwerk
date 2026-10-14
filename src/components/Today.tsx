@@ -111,12 +111,11 @@ function DayHead({
       label: "Termine heute",
       tone: styles.time,
     },
-    { n: doneWeek, label: "erledigt, 7 Tage", tone: undefined },
+    { n: doneWeek, label: "in dieser Sitzung erledigt", tone: undefined },
   ];
 
   return (
     <section className={styles.hero}>
-      <p className={`${styles.eyebrow} label label--muted`}>Arbeitsstand</p>
       <h1 className={styles.herodate}>
         <span className={styles.heroday}>{WEEKDAYS_LONG[date.getDay()]}</span>
         <span className={styles.herofull}>

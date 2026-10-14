@@ -1,4 +1,11 @@
-import type { BlockRow, CalendarWindow, ItemRow, PageRow, SpaceRow, TemplateRow } from "./db.ts";
+import type {
+  BlockRow,
+  CalendarWindow,
+  ItemRow,
+  PageRow,
+  SpaceRow,
+  TemplateRow,
+} from "./db.ts";
 
 /**
  * The error contract for the whole API. Defined here so client and worker
@@ -80,7 +87,7 @@ export interface SearchBlockHit {
 /** An item hit in the search response, with the context a result row shows. */
 export interface SearchItemHit {
   item: Pick<ItemRow, "id" | "kind" | "text">;
-  block: Pick<BlockRow, "id" | "title">;
+  block: Pick<BlockRow, "id" | "title"> & Partial<Pick<BlockRow, "date">>;
   page: Pick<PageRow, "id" | "title">;
   space: Pick<SpaceRow, "id" | "name">;
 }
@@ -110,4 +117,8 @@ export interface ItemWriteResponse {
 /** The calendar route returns the same shape the domain projection builds. */
 export type CalendarResponse = CalendarWindow;
 
-export interface CatalogResponse { blocks: BlockRow[]; pages: PageRow[]; items: ItemRow[] }
+export interface CatalogResponse {
+  blocks: BlockRow[];
+  pages: PageRow[];
+  items: ItemRow[];
+}

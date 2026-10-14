@@ -10,7 +10,9 @@ test("switching spaces loads the right data", async ({ page }) => {
   await expect(page.locator("[data-block-id='b3']")).toHaveCount(0);
 
   // Kundenfeedback → Interviews: the interview block, none of the roadmap's.
-  await page.getByRole("button", { name: /^Kundenfeedback(?:\s+\d+)?$/ }).click();
+  await page
+    .getByRole("button", { name: /^Kundenfeedback(?:\s+\d+)?$/ })
+    .click();
   await expect(page.locator("[data-block-id='b3']")).toBeVisible();
   await expect(page.locator("[data-block-id='b2']")).toHaveCount(0);
   await expect(page.locator("[data-block-id='b1']")).toHaveCount(0);

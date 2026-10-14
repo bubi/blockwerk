@@ -36,7 +36,9 @@ test("the Heute view is the start view: every open task, sectioned and with the 
   await page.goto("/");
 
   // The start view, not a space: the team overview with its workload.
-  await expect(page.getByRole("heading", { name: "Auslastung" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Offene Aufgaben nach Person" }),
+  ).toBeVisible();
 
   // Later/undated tasks sit in folded sections on some dates — open them.
   await expandFoldedSections(page);
@@ -51,7 +53,7 @@ test("the Heute view is the start view: every open task, sectioned and with the 
   // The workload names every person space. (Earlier specs in the shared local
   // DB may have added tasks, so exact counts are not asserted.)
   const load = page.locator("section", {
-    has: page.getByRole("heading", { name: "Auslastung" }),
+    has: page.getByRole("heading", { name: "Offene Aufgaben nach Person" }),
   });
   await expect(load).toContainText("Amira Sy");
   await expect(load).toContainText("Lena Brandt");
@@ -62,7 +64,9 @@ test("overdue tasks are grouped by person and a row jumps to its source block", 
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Auslastung" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Offene Aufgaben nach Person" }),
+  ).toBeVisible();
 
   const overdue = OPEN_TASKS.filter((task) => task.due < TODAY);
   if (overdue.length > 0) {
@@ -84,7 +88,9 @@ test("the scope toggle persists and, with an identity, narrows to my tasks", asy
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Auslastung" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Offene Aufgaben nach Person" }),
+  ).toBeVisible();
 
   // The team view shows task checkboxes; make sure folded tasks are open.
   await expandFoldedSections(page);

@@ -25,15 +25,38 @@ export function TabBar({
   onTab: (tab: MobileTab) => void;
 }) {
   return (
-    <nav className={styles.tabbar} role="tablist" aria-label="Hauptbereiche">
+    <nav
+      className={styles.tabbar}
+      role="tablist"
+      aria-label="Hauptbereiche"
+      onKeyDown={(event) => {
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key))
+          return;
+        event.preventDefault();
+        const current = TABS.findIndex((entry) => entry.key === tab);
+        const index =
+          event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? 2
+              : (current + (event.key === "ArrowRight" ? 1 : -1) + 3) % 3;
+        onTab(TABS[index]!.key);
+        event.currentTarget
+          .querySelectorAll<HTMLButtonElement>("button")
+          [index]?.focus();
+      }}
+    >
       {TABS.map((entry) => {
         const active = tab === entry.key;
         return (
           <button
             key={entry.key}
+            id={`tab-${entry.key}`}
+            aria-controls={`panel-${entry.key}`}
             type="button"
             role="tab"
             aria-selected={active}
+            tabIndex={active ? 0 : -1}
             className={active ? styles.btnOn : styles.btn}
             onClick={() => onTab(entry.key)}
           >

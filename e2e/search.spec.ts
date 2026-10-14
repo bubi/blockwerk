@@ -11,13 +11,13 @@ test("search finds block titles and item text and jumps to the source block", as
     name: /^Block · Meeting Quartalsplanung Q3/,
   });
   const itemHit = page.getByRole("button", {
-    name: /^Task Kapazitätsplan für Q3 aufstellen/,
+    name: /^Aufgabe Kapazitätsplan für Q3 aufstellen/,
   });
   await expect(blockHit).toBeVisible();
   await expect(itemHit).toBeVisible();
 
   // Item hits carry their kind and the path back to the block.
-  await expect(itemHit).toContainText("Task");
+  await expect(itemHit).toContainText("Aufgabe");
   await expect(itemHit).toContainText(
     "Roadmap Q3 · Planung · Quartalsplanung Q3",
   );

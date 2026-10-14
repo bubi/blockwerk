@@ -40,10 +40,10 @@ export function TemplateManager({
         className={styles.sheet}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
-        aria-label="Templates bearbeiten"
+        aria-label="Vorlagen bearbeiten"
       >
         <header className={styles.sheethead}>
-          <h2>Templates</h2>
+          <h2>Vorlagen</h2>
           <button
             type="button"
             className={styles.sheetclose}
@@ -72,7 +72,7 @@ export function TemplateManager({
                   onChange={(event) =>
                     onUpdate(template.id, { label: event.target.value })
                   }
-                  aria-label="Name des Templates"
+                  aria-label="Name der Vorlage"
                 />
                 <select
                   className={styles.tplhue}
@@ -119,7 +119,7 @@ export function TemplateManager({
         </div>
 
         <button type="button" className="btn" onClick={onCreate}>
-          Template hinzufügen
+          Vorlage hinzufügen
         </button>
       </div>
 
@@ -128,7 +128,7 @@ export function TemplateManager({
           message={
             <>
               „{templates.find((entry) => entry.id === confirmId)?.label ?? ""}“
-              löschen? Blöcke, die es nutzen, fallen auf „Ohne Template“ zurück.
+              löschen? Blöcke, die es nutzen, fallen auf „Ohne Vorlage“ zurück.
             </>
           }
           onConfirm={() => {

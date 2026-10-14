@@ -21,27 +21,27 @@
 
   /* ---------- Schriftfarbe ---------- */
   --text: #1d2125; /* Fließtext, Titel */
-  --text2: #6b7075; /* Beitext, Etiketten, Metadaten */
-  --text3: #9ba0a6; /* Platzhalter, ruhende Symbole, leere Zustände */
+  --text2: #58616a; /* Beitext, Etiketten, Metadaten */
+  --text3: #68717a; /* Platzhalter, ruhende Symbole, leere Zustände */
 
   /* ---------- Bedeutungstragende Farbe ----------
      Grün ist die einzige Betonfarbe der Anwendung. Blau, Rot, Violett und
      Orange tragen ausschließlich Bedeutung und werden nie dekorativ gesetzt. */
   --green: #00a82d; /* Auswahl, Bestätigung, Hauptaktion */
-  --green-dk: #00922a; /* Grün auf heller Fläche, kontrastsicher */
+  --green-dk: #087c2d; /* Grün auf heller Fläche, kontrastsicher */
   --green-soft: #e8f6ec; /* Fläche eines aktiven oder eigenen Elements */
-  --blue: #2f80ed; /* Termine und Verweise */
+  --blue: #1f62bb; /* Termine und Verweise */
   --blue-soft: #e9f1fd;
-  --red: #e5484d; /* Überfällig, Löschen */
+  --red: #b92e3a; /* Überfällig, Löschen */
   --red-soft: #fdecec;
-  --purple: #7a5af8; /* nur als Blocktyp-Farbe */
-  --orange: #e8883a; /* nur als Blocktyp-Farbe */
-  --grey: #7a828a; /* nur als Blocktyp-Farbe */
+  --purple: #6a42c9; /* nur als Blocktyp-Farbe */
+  --orange: #99501c; /* nur als Blocktyp-Farbe */
+  --grey: #626b74; /* nur als Blocktyp-Farbe */
 
   /* ---------- Abgeleitete Grauwerte ----------
      Fünf Werte, die sich aus keiner der Stufen oben ergeben, weil sie
      gegen eine bestimmte Nachbarfarbe ausgemischt sind. */
-  --check-line: #b6bcc3; /* Rahmen des Kontrollkästchens */
+  --check-line: #7c8792; /* Rahmen des Kontrollkästchens */
   --badge-person: #8c93a0; /* Plakette einer Person */
   --badge-topic: #b0b6bf; /* Plakette eines Themas */
   --card-hover: #cfd4d9; /* Rahmen einer überfahrenen Eintragskarte */
@@ -81,6 +81,6 @@
   --display: var(--sans); /* eine Familie in allen Rollen, siehe Spec */
   /* Datenziffern (Kennzahlen, Tagesziffer, Bereichsplakette): echte
      Monospace statt nur tabular-nums. */
-  --mono: "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", Consolas,
-    monospace;
+  --mono:
+    "Geist Mono", ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
 }

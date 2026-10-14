@@ -15,7 +15,7 @@ interface NewBlockBarProps {
  * row controls: on touch (hover: none) it is always visible, because creating
  * a block is the main function and must never be hidden there. "Ohne
  * Template" creates a bare block (also the only option when the database has
- * no templates yet). The "Templates bearbeiten…" entry opens the manager.
+ * no templates yet). The "Vorlagen bearbeiten…" entry opens the manager.
  */
 export function NewBlockBar({
   templates,
@@ -35,14 +35,14 @@ export function NewBlockBar({
           aria-haspopup="menu"
           aria-expanded={open}
         >
-          +
+          Block anlegen
         </button>
       </div>
       {open && (
         <div
           className={styles.tmenu}
           role="menu"
-          aria-label="Template wählen"
+          aria-label="Vorlage wählen"
           onKeyDown={(event) => {
             if (event.key === "Escape") setOpen(false);
           }}
@@ -87,7 +87,7 @@ export function NewBlockBar({
               onManageTemplates();
             }}
           >
-            Templates bearbeiten…
+            Vorlagen bearbeiten…
           </button>
         </div>
       )}

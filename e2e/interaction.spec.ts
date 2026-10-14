@@ -16,7 +16,7 @@ test("composer: /task with @Person and !morgen creates a task, visible in the bl
   await page.keyboard.press("Enter");
   await expect(
     page.getByRole("button", { name: /Modus verwerfen/ }),
-  ).toContainText("Task");
+  ).toContainText("Aufgabe");
   await page.keyboard.type("Protokoll @tomas !morgen");
   await page.keyboard.press("Enter");
 
@@ -157,14 +157,15 @@ test("a change made through the composer survives a reload", async ({
   await page.keyboard.type("Rechner bestellen @lena !morgen");
   await page.keyboard.press("Enter");
   await expect(
-    page.locator('textarea:has-text("Rechner bestellen")'),
+    page.locator('[data-item-id] textarea:has-text("Rechner bestellen")'),
   ).toBeVisible();
 
+  await expect(composer).toHaveValue("");
   await page.goto("/");
   await page.getByRole("button", { name: /^Roadmap Q3(?:\s+\d+)?$/ }).click();
   await page.getByRole("button", { name: "Planung", exact: true }).click();
   await expect(
-    page.locator('textarea:has-text("Rechner bestellen")'),
+    page.locator('[data-item-id] textarea:has-text("Rechner bestellen")'),
   ).toBeVisible();
 });
 
@@ -217,10 +218,15 @@ test("a task can be checked off from its date-column card and stays visible", as
   await page.keyboard.press("Enter");
   await page.keyboard.type("Kalendertest !heute");
   await page.keyboard.press("Enter");
-  await expect(page.locator('textarea:has-text("Kalendertest")')).toBeVisible();
+  await expect(
+    page.locator('[data-item-id] textarea:has-text("Kalendertest")'),
+  ).toBeVisible();
 
   // The date column (the last aside) shows a card for the task; its checkbox
   // toggles done and the card stays — struck through, not removed.
+  await page
+    .getByRole("button", { name: "Termine und Fälligkeiten", exact: true })
+    .click();
   const dates = page.locator("aside").last();
   const card = dates
     .locator("[data-due-card]")

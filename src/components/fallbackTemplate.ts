@@ -3,7 +3,7 @@ import type { TemplateRow } from "../../shared/db.ts";
 /** Shown when a block has no template (template deleted or never assigned). */
 export const FALLBACK_TEMPLATE: TemplateRow = {
   id: "?",
-  label: "Ohne Template",
+  label: "Ohne Vorlage",
   hue: "ink",
   seed: [],
   createdAt: 0,

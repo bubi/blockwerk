@@ -8,6 +8,7 @@ import type {
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
 import type { ComposerItemFields } from "../domain/composer.ts";
 import { newItemId } from "../domain/ids.ts";
+import { itemLink } from "../domain/links.ts";
 import { canMergeNotes } from "../domain/merge.ts";
 import { insertPositionBetween } from "../domain/position.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
@@ -30,6 +31,7 @@ interface BlockCardProps {
   /** The current space's open Jour-Fix themes (Feature 2). */
   jfxThemes?: readonly ItemRowRow[];
   onPatchBlock: (id: string, patch: BlockPatch) => void;
+  references: readonly ItemRowRow[];
   onEditItem: (id: string) => void;
   onPatchItem: (id: string, patch: ItemPatch) => void;
   onCreateItem: (input: ItemCreateInput) => void | Promise<boolean>;
@@ -37,10 +39,16 @@ interface BlockCardProps {
   onDeleteBlock: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
   /** A "/jfx" theme goes to the target space's Jour-Fix block. */
-  onCreateJourFix?: (text: string, personSpaceId: string | null) => void | boolean | Promise<boolean>;
+  onCreateJourFix?: (
+    text: string,
+    personSpaceId: string | null,
+  ) => void | boolean | Promise<boolean>;
   /** Moves a Jour-Fix theme into this block (Feature 2). */
   onMergeItems: (items: readonly ItemRowRow[]) => Promise<boolean>;
-  onMoveTheme: (itemId: string, targetBlockId: string) => void;
+  onMoveTheme: (
+    itemId: string,
+    targetBlockId: string,
+  ) => void | boolean | Promise<boolean>;
 }
 
 /**
@@ -62,6 +70,7 @@ export function BlockCard({
   onPatchBlock,
   onPatchItem,
   onEditItem,
+  references,
   onCreateItem,
   onDeleteItem,
   onDeleteBlock,
@@ -157,10 +166,12 @@ export function BlockCard({
     });
   };
 
-  const takeOverThemes = () => {
-    for (const itemId of jfxSelected) onMoveTheme(itemId, block.id);
-    setJfxSelected(new Set());
-    setJfxOpen(false);
+  const takeOverThemes = async () => {
+    const failed = new Set<string>();
+    for (const itemId of jfxSelected)
+      if ((await onMoveTheme(itemId, block.id)) === false) failed.add(itemId);
+    setJfxSelected(failed);
+    setJfxOpen(failed.size > 0);
   };
 
   const focusInput = (itemId: string) => {
@@ -269,13 +280,25 @@ export function BlockCard({
 
   const deleteRow = (itemId: string, prevId: string | null) => {
     const order = block.sections.order;
-    const removed = new Set([itemId, ...block.items.filter(item => item.parentItemId === itemId).map(item => item.id)]);
+    const removed = new Set([
+      itemId,
+      ...block.items
+        .filter((item) => item.parentItemId === itemId)
+        .map((item) => item.id),
+    ]);
     const index = order.indexOf(itemId);
-    const before = order.slice(0, index).filter(id => !removed.has(id));
-    const focusId = (prevId && !removed.has(prevId) ? prevId : before.at(-1)) ?? order.slice(index + 1).find(id => !removed.has(id)) ?? null;
+    const before = order.slice(0, index).filter((id) => !removed.has(id));
+    const focusId =
+      (prevId && !removed.has(prevId) ? prevId : before.at(-1)) ??
+      order.slice(index + 1).find((id) => !removed.has(id)) ??
+      null;
     onDeleteItem(itemId);
     if (focusId !== null) focusInput(focusId);
-    else window.setTimeout(() => document.getElementById(`composer-${block.id}`)?.focus(), 0);
+    else
+      window.setTimeout(
+        () => document.getElementById(`composer-${block.id}`)?.focus(),
+        0,
+      );
   };
 
   const createComposerItem = (fields: ComposerItemFields) => {
@@ -331,6 +354,7 @@ export function BlockCard({
         <GrowingTextarea
           className={styles.title}
           value={block.title}
+          readOnly={block.title === "Jour Fix" || block.id.startsWith("b-jfx-")}
           onChange={(value) => onPatchBlock(block.id, { title: value })}
           ariaLabel="Blocktitel"
           placeholder="Titel"
@@ -351,7 +375,7 @@ export function BlockCard({
               item.refBlockId ? (blocksById.get(item.refBlockId) ?? null) : null
             }
             onPatch={onPatchItem}
-                onEdit={onEditItem}
+            onEdit={onEditItem}
             onJumpToBlock={onJumpToBlock}
             onInsertAfter={insertAfter}
             onDeleteRow={deleteRow}
@@ -397,7 +421,7 @@ export function BlockCard({
                   }
                   meSpaceId={meSpaceId}
                   onPatch={onPatchItem}
-                onEdit={onEditItem}
+                  onEdit={onEditItem}
                   onJumpToBlock={onJumpToBlock}
                   onInsertAfter={insertAfter}
                   onAddNote={addTaskNote}
@@ -416,7 +440,7 @@ export function BlockCard({
                     isChild
                     prevId={displayPrevId(note.id)}
                     onPatch={onPatchItem}
-                onEdit={onEditItem}
+                    onEdit={onEditItem}
                     onJumpToBlock={onJumpToBlock}
                     onInsertAfter={insertAfter}
                     onDeleteRow={deleteRow}
@@ -513,6 +537,30 @@ export function BlockCard({
         onCreateItem={createComposerItem}
       />
 
+      <div className="block-links">
+        <a href={itemLink(block.id)}>Direktlink zum Block</a>
+      </div>
+      {references.some(
+        (ref) => ref.refBlockId === block.id && ref.blockId !== block.id,
+      ) && (
+        <details className="backlinks">
+          <summary>Verweise auf diesen Block</summary>
+          <ul>
+            {references
+              .filter(
+                (ref) =>
+                  ref.refBlockId === block.id && ref.blockId !== block.id,
+              )
+              .map((ref) => (
+                <li key={ref.id}>
+                  <a href={itemLink(ref.blockId, ref.id)}>
+                    {blocksById.get(ref.blockId)?.title || "Ohne Titel"}
+                  </a>
+                </li>
+              ))}
+          </ul>
+        </details>
+      )}
       {confirmDelete && (
         <ConfirmDialog
           message={

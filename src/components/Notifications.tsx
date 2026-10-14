@@ -6,14 +6,22 @@ interface NotificationsProps {
   onDismiss: (id: string) => void;
 }
 
-export function Notifications({ notifications, onDismiss }: NotificationsProps) {
+export function Notifications({
+  notifications,
+  onDismiss,
+}: NotificationsProps) {
   if (notifications.length === 0) return null;
   return (
     <div className={styles.stack}>
       {notifications.map((notification) => (
         <div key={notification.id} className={styles.toast} role="alert">
           <p className={styles.message}>{message(notification)}</p>
-          <button type="button" className={styles.dismiss} onClick={() => onDismiss(notification.id)} aria-label="Meldung schließen">
+          <button
+            type="button"
+            className={styles.dismiss}
+            onClick={() => onDismiss(notification.id)}
+            aria-label="Meldung schließen"
+          >
             ×
           </button>
         </div>

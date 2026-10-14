@@ -88,3 +88,15 @@
     display: none;
   }
 }
+
+.withoutDates {
+  grid-template-columns: 248px minmax(0, 1fr);
+}
+.msheet {
+  padding-bottom: calc(104px + env(safe-area-inset-bottom));
+}
+@media (max-width: 860px) {
+  .withoutDates {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

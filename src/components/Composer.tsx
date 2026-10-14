@@ -31,9 +31,15 @@ interface ComposerProps {
   showMergeCommand?: boolean;
   /** A "/jfx" theme: create it in the Jour-Fix block of the mentioned person
    * (or the current space) instead of this block (Feature 2, docs/adr/0017). */
-  onCreateJourFix?: (text: string, personSpaceId: string | null) => void | boolean | Promise<boolean>;
+  onCreateJourFix?: (
+    text: string,
+    personSpaceId: string | null,
+  ) => void | boolean | Promise<boolean>;
+  autoFocus?: boolean;
   initialMode?: ComposerCommandKey;
-  onCreateItem: (fields: ComposerItemFields) => void | boolean | Promise<boolean>;
+  onCreateItem: (
+    fields: ComposerItemFields,
+  ) => void | boolean | Promise<boolean>;
 }
 
 /**
@@ -65,16 +71,25 @@ export function Composer({
   onCreateJourFix,
   onCreateItem,
   initialMode,
+  autoFocus,
 }: ComposerProps) {
   const [value, setValue] = useState(() => readDraft(blockId)?.value ?? "");
-  const [mode, setMode] = useState<ComposerCommandKey | null>(() => readDraft(blockId)?.mode ?? initialMode ?? null);
+  const [mode, setMode] = useState<ComposerCommandKey | null>(
+    () => readDraft(blockId)?.mode ?? initialMode ?? null,
+  );
   const [selected, setSelected] = useState(0);
-  const [refTarget, setRefTarget] = useState(() => readDraft(blockId)?.refTarget ?? "");
+  const [refTarget, setRefTarget] = useState(
+    () => readDraft(blockId)?.refTarget ?? "",
+  );
   const [caret, setCaret] = useState(0);
   const [mentionIndex, setMentionIndex] = useState(0);
-  const [mentionId, setMentionId] = useState<string | null>(() => readDraft(blockId)?.mentionId ?? null);
+  const [mentionId, setMentionId] = useState<string | null>(
+    () => readDraft(blockId)?.mentionId ?? null,
+  );
   const [saving, setSaving] = useState(false);
-  useEffect(() => { writeDraft(blockId, { value, mode, mentionId, refTarget }); }, [blockId, value, mode, mentionId, refTarget]);
+  useEffect(() => {
+    writeDraft(blockId, { value, mode, mentionId, refTarget });
+  }, [blockId, value, mode, mentionId, refTarget]);
   const [mentionSuppressed, setMentionSuppressed] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -88,7 +103,12 @@ export function Composer({
    */
   useLayoutEffect(() => {
     const el = inputRef.current;
-    if (el && el.selectionStart === el.selectionEnd && el.selectionStart !== caret) el.setSelectionRange(caret, caret);
+    if (
+      el &&
+      el.selectionStart === el.selectionEnd &&
+      el.selectionStart !== caret
+    )
+      el.setSelectionRange(caret, caret);
   });
 
   const menu = matchComposerCommands(
@@ -156,17 +176,39 @@ export function Composer({
   const commit = async () => {
     if (saving) return;
     const tokens = parseTokens(value, spaces, today);
-    const fields = composeItem({ mode: mode === "jfx" ? "note" : mode ?? "note", raw: value, refBlockId: refTarget || null, spaces, today, mentionId });
+    const fields = composeItem({
+      mode: mode === "jfx" ? "note" : (mode ?? "note"),
+      raw: value,
+      refBlockId: refTarget || null,
+      spaces,
+      today,
+      mentionId,
+    });
     if (!fields) return;
     setSaving(true);
     try {
-      const result = mode === "jfx"
-        ? await onCreateJourFix?.(tokens.text, mentionId ?? tokens.assigneeId)
-        : await onCreateItem(fields);
+      const result =
+        mode === "jfx"
+          ? await onCreateJourFix?.(tokens.text, mentionId ?? tokens.assigneeId)
+          : await onCreateItem(fields);
       if (result === false) return;
-      setValue(""); setCaret(0); setMentionId(null); setMentionSuppressed(false); setRefTarget("");
+      const stored = readDraft(blockId);
+      if (stored?.value === value && stored.refTarget === refTarget)
+        writeDraft(blockId, {
+          value: "",
+          mode: null,
+          mentionId: null,
+          refTarget: "",
+        });
+      setValue("");
+      setCaret(0);
+      setMentionId(null);
+      setMentionSuppressed(false);
+      setRefTarget("");
       if (mode === "jfx" || mode === "ref") setMode(initialMode ?? null);
-    } finally { setSaving(false); }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onChange = (value: string) => {
@@ -287,6 +329,8 @@ export function Composer({
           </select>
         ) : (
           <GrowingTextarea
+            autoFocus={autoFocus}
+            disabled={saving}
             ref={inputRef}
             id={`composer-${blockId}`}
             className={styles.input}
@@ -317,7 +361,12 @@ export function Composer({
           />
         )}
 
-        <button type="button" className={`${styles.go} label`} onClick={() => void commit()} disabled={saving}>
+        <button
+          type="button"
+          className={`${styles.go} label`}
+          onClick={() => void commit()}
+          disabled={saving}
+        >
           {saving ? "Wird gespeichert…" : "Hinzufügen"}
         </button>
       </div>

@@ -187,7 +187,9 @@ export function selectJourFixThemes(
   );
   if (block === undefined) return [];
   return orderBlockItems(
-    [...state.items.values()].filter((entry) => entry.blockId === block.id),
+    [...state.items.values()].filter(
+      (entry) => entry.blockId === block.id && entry.kind === "note",
+    ),
   );
 }
 

@@ -89,3 +89,53 @@
     font-size: 28px;
   }
 }
+
+/* Keep today's work above the fold; summaries remain secondary. */
+.hero {
+  margin-bottom: var(--s4);
+}
+.herodate {
+  margin-bottom: var(--s3);
+  gap: var(--s3);
+}
+.heroday {
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+.herostats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s3);
+}
+.stat {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--s2);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+.statnum {
+  font-size: 18px;
+}
+.stat :global(.label) {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 13px;
+}
+@media (max-width: 860px) {
+  .heroday {
+    font-size: 24px;
+  }
+  .statnum {
+    font-size: 16px;
+  }
+  .hero {
+    margin-bottom: var(--s3);
+  }
+  .herostats {
+    gap: var(--s2) var(--s3);
+  }
+}

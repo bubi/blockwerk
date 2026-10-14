@@ -86,3 +86,19 @@
   font-size: 14px;
   color: var(--text2);
 }
+
+.plus {
+  width: auto;
+  min-height: 44px;
+  padding: var(--s2) var(--s4);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--green-dk);
+}
+
+.plus {
+  border-radius: var(--r-sm);
+  height: auto;
+  background: var(--white);
+  border: 1px solid var(--line);
+}

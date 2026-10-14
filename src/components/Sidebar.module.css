@@ -306,3 +306,18 @@
   background: var(--hover);
   color: var(--text);
 }
+
+.me {
+  flex: none;
+  white-space: nowrap;
+}
+.skill {
+  width: 32px;
+  min-height: 44px;
+  opacity: 1;
+}
+@media (max-width: 860px) {
+  .skill {
+    width: 44px;
+  }
+}
