@@ -35,6 +35,7 @@ export function Today({
   onScopeChange,
   onToggle,
   onJumpToBlock,
+  onEdit,
   onRetry,
 }: {
   viewStatus: ViewStatus;
@@ -49,6 +50,7 @@ export function Today({
   showHead?: boolean;
   onScopeChange: (scope: TodayScope) => void;
   onToggle: (itemId: string, done: boolean) => void;
+  onEdit?: (id: string) => void;
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
   onRetry: () => void;
 }) {
@@ -74,6 +76,7 @@ export function Today({
           onScopeChange={onScopeChange}
           onToggle={onToggle}
           onJumpToBlock={onJumpToBlock}
+          onEdit={onEdit}
         />
       ) : null}
     </div>

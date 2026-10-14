@@ -13,11 +13,11 @@ describe("write and reload safety", () => {
     state = reduce(state, { type: "writeConfirmed", opKey: "new" }); state = reduce(state, fail("old"));
     expect(state.items.get("i")?.text).toBe("AB");
   });
-  it("rebases subsequent failures to the last durable value", () => {
+  it("keeps the latest text as a visible unsaved draft after failures", () => {
     let state = initialState(); state.items.set("i", item({ id: "i", kind: "note", text: "original" }));
     state = reduce(state, edit("old", "A")); state = reduce(state, edit("new", "AB"));
     state = reduce(state, fail("old")); state = reduce(state, fail("new"));
-    expect(state.items.get("i")?.text).toBe("original");
+    expect(state.items.get("i")?.text).toBe("AB");
   });
   it("removes remotely deleted items when their block still exists", () => {
     const state = initialState(); state.items.set("i", item({ id: "i", kind: "note", blockId: "b" }));

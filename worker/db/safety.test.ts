@@ -34,3 +34,25 @@ describe("durable write safety", () => {
     expect((await getItem(db, first.id))?.text).toBe("Saved");
   });
 });
+
+import { restoreItems, convertItem } from "../item-actions.ts";
+import { deleteItem } from "./items.ts";
+
+describe("targeted undo and conversion", () => {
+  it("restores deleted content with the same ID and creation timestamp", async () => {
+    const { db, first } = await setup("undo"); await deleteItem(db, first.id);
+    const { id, createdAt, updatedAt, ...data } = first;
+    const restored = await restoreItems(db, { items: [{ id, createdAt, updatedAt, data }] }, 20);
+    expect(restored.rows[0]?.id).toBe(id); expect(restored.rows[0]?.createdAt).toBe(createdAt);
+    expect((await getItem(db, id))?.text).toBe(first.text);
+  });
+  it("converts the same identity and reverses the conversion without overwriting later work", async () => {
+    const { db, first } = await setup("convert");
+    const converted = await convertItem(db, first.id, { kind: "task", updatedAt: first.updatedAt }, 10);
+    expect(converted.row?.id).toBe(first.id); expect(converted.row?.text).toBe(first.text);
+    const { id, createdAt, updatedAt, ...data } = first;
+    await restoreItems(db, { items: [{ id, createdAt, updatedAt, data }], expectedUpdatedAt: converted.row!.updatedAt }, 20);
+    expect((await getItem(db, id))?.kind).toBe("note");
+    await expect(restoreItems(db, { items: [{ id, createdAt, updatedAt, data }], expectedUpdatedAt: converted.row!.updatedAt }, 30)).rejects.toMatchObject({ status: 409 });
+  });
+});

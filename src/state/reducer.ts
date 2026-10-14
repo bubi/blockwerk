@@ -20,6 +20,7 @@ import type {
   PendingOperation,
   UndoPlan,
   ViewStatus,
+  UserUndo,
 } from "./state.ts";
 
 export type Dispatch = (action: Action) => void;
@@ -52,6 +53,10 @@ export type Action =
   | { type: "writeOptimistic"; op: OptimisticWrite; now: number }
   | { type: "writeConfirmed"; opKey: string; respaced?: Record<string, number>; row?: ItemRow }
   | { type: "writeFailed"; opKey: string; error: ClientError; now: number }
+  | { type: "undoRevisionUpdated"; id: string; updatedAt: number }
+  | { type: "recordUndo"; undo: UserUndo }
+  | { type: "itemsRestored"; rows: ItemRow[] }
+  | { type: "catalogLoaded"; blocks: BlockRow[]; pages: PageRow[]; items: ItemRow[] }
   | { type: "itemsMerged"; row: ItemRow; deletedIds: string[] }
   | { type: "operationFailed"; entity: EntityName; id: string; error: ClientError }
   | { type: "dismissNotification"; id: string };
@@ -149,6 +154,14 @@ export function reduce(state: AppState, action: Action): AppState {
       };
     case "writeOptimistic":
       return applyWrite(state, action.op, action.now);
+    case "catalogLoaded": return overlayPending({ ...state, blocks: mergeRows(state.blocks, action.blocks), pages: mergeRows(state.pages, action.pages), items: mergeRows(state.items, action.items) });
+    case "undoRevisionUpdated": {
+      const last = state.undoHistory.at(-1);
+      if (!last || last.label !== "Eintrag umwandeln" || last.rows[0]?.id !== action.id) return state;
+      return { ...state, undoHistory: [...state.undoHistory.slice(0, -1), { ...last, expectedUpdatedAt: action.updatedAt }] };
+    }
+    case "recordUndo": return { ...state, undoHistory: [...state.undoHistory.slice(-9), action.undo] };
+    case "itemsRestored": return { ...state, items: mergeRows(state.items, action.rows), undoHistory: state.undoHistory.slice(0, -1) };
     case "itemsMerged": {
       const items = new Map(state.items);
       for (const id of action.deletedIds) items.delete(id);
@@ -533,7 +546,14 @@ function confirmWrite(
   row?: ItemRow,
 ): AppState {
   const pending = new Map(state.pending);
+  const original = pending.get(opKey);
+  if (original?.entity === "item" && original.change === "delete") state = { ...state, undoHistory: [...state.undoHistory.slice(-9), { rows: original.undo.restore.filter(entry => entry.entity === "item").map(entry => entry.row as ItemRow), label: "Zeile entfernen" }] };
   if (!pending.delete(opKey)) return state;
+  const failedWrites = new Map(state.failedWrites);
+  const key = original ? `${original.entity}:${original.id}` : "";
+  const failed = failedWrites.get(key);
+  if (original && (!failed || original.write.change !== "patch" || (failed.change === "patch" && Object.keys(failed.patch).every(field => field in (original.write as { patch: object }).patch)))) failedWrites.delete(key);
+  state = { ...state, failedWrites };
   if (row) {
     let baseline = row;
     for (const [key, entry] of pending) {
@@ -569,9 +589,14 @@ function failWrite(
   pending.delete(opKey);
   // A late failure must never erase a later optimistic or confirmed edit.
   const latest = state.latestWrites.get(`${op.entity}:${op.id}`) === opKey;
+  const keepDraft = op.write.change === "patch" && "text" in op.write.patch;
   if (latest) {
     for (const entry of op.undo.remove) next = removeRow(next, entry.entity, entry.id);
-    for (const entry of op.undo.restore) next = setRow(next, entry.entity, entry.row);
+    for (const entry of op.undo.restore) {
+      const current = getRow(next, entry.entity, entry.id);
+      const row = keepDraft && current && entry.id === op.id && "text" in current ? { ...entry.row, text: current.text } as EntityRow : entry.row;
+      next = setRow(next, entry.entity, row);
+    }
   }
   // Rebase later rollback snapshots so a second failure cannot resurrect
   // the failed edit. Each pending patch keeps only its own contribution.
@@ -595,6 +620,7 @@ function failWrite(
     ...next,
     pending,
     notifications: [...next.notifications, notification],
+    failedWrites: new Map(state.failedWrites).set(`${op.entity}:${op.id}`, op.write),
   };
 }
 

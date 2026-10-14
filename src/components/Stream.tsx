@@ -42,8 +42,9 @@ interface StreamProps {
   pageView: ViewStatus;
   pulseBlockId: string | null;
   onPatchBlock: (id: string, patch: BlockPatch) => void;
+  onEditItem: (id: string) => void;
   onPatchItem: (id: string, patch: ItemPatch) => void;
-  onCreateItem: (input: ItemCreateInput) => void;
+  onCreateItem: (input: ItemCreateInput) => void | Promise<boolean>;
   onDeleteItem: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
   onJumpToOverviewRow: (
@@ -54,9 +55,9 @@ interface StreamProps {
   onRetryPage: () => void;
   onRetryOverview: () => void;
   /** A task created in the person's "Aufgaben" view (Feature 3). */
-  onCreateTask: (fields: ComposerItemFields) => void;
+  onCreateTask: (fields: ComposerItemFields) => void | boolean | Promise<boolean>;
   /** A "/jfx" theme goes to the target space's Jour-Fix block (Feature 2). */
-  onCreateJourFix: (text: string, personSpaceId: string | null) => void;
+  onCreateJourFix: (text: string, personSpaceId: string | null) => void | boolean | Promise<boolean>;
   /** Moves a Jour-Fix theme into the given block (Feature 2). */
   onMergeItems: (items: readonly ItemRow[]) => Promise<boolean>;
   onMoveTheme: (itemId: string, targetBlockId: string) => void;
@@ -87,6 +88,7 @@ export function Stream(props: StreamProps) {
     pulseBlockId,
     onPatchBlock,
     onPatchItem,
+    onEditItem,
     onCreateItem,
     onDeleteItem,
     onJumpToBlock,
@@ -142,12 +144,14 @@ export function Stream(props: StreamProps) {
           spaces={spaces}
           blocks={[...blocksById.values()]}
           onCreateTask={onCreateTask}
+          onEditItem={onEditItem}
           onToggle={(itemId, done) => onPatchItem(itemId, { done })}
           onJumpToBlock={onJumpToOverviewRow}
           onRetry={onRetryOverview}
         />
       ) : pane === "jourfix" ? (
-        <JourFixPane themes={jfxThemes} />
+        <JourFixPane themes={jfxThemes} space={space} spaces={spaces} blocks={[...blocksById.values()]} today={todayDate} onCreate={onCreateJourFix} onPatch={onPatchItem}
+                onEdit={onEditItem} onDelete={onDeleteItem} view={pageView} onRetry={onRetryPage} />
       ) : (
         <PagePane
           pageView={pageView}
@@ -163,6 +167,7 @@ export function Stream(props: StreamProps) {
           jfxThemes={jfxThemes}
           onPatchBlock={onPatchBlock}
           onPatchItem={onPatchItem}
+              onEditItem={onEditItem}
           onCreateItem={onCreateItem}
           onDeleteItem={onDeleteItem}
           onJumpToBlock={onJumpToBlock}
@@ -181,23 +186,22 @@ export function Stream(props: StreamProps) {
 
 /** The "Jour Fix" entry (Feature 2, docs/adr/0017): the open themes of the
  * space's Jour-Fix block, or a calm hint while none exist yet. */
-function JourFixPane({ themes }: { themes: ItemRow[] }) {
-  if (themes.length === 0) {
-    return (
-      <div className={styles.jourfix}>
-        <p>Jour Fix — noch nichts hinterlegt. Tippe im Composer „/jfx“.</p>
-      </div>
-    );
-  }
-  return (
-    <div className={styles.jourfix}>
-      <ul className={styles.jfxlist}>
-        {themes.map((theme) => (
-          <li key={theme.id}>{theme.text || "Thema"}</li>
-        ))}
-      </ul>
-    </div>
-  );
+function JourFixPane({ themes, space, spaces, blocks, today, onCreate, onPatch, onDelete, view, onRetry, onEdit }: {
+  themes: ItemRow[]; space: SpaceWithPages;
+  spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[]; blocks: readonly BlockRow[]; today: Date;
+  onCreate: (text: string, person: string | null) => void | boolean | Promise<boolean>;
+  onPatch: (id: string, patch: ItemPatch) => void; onDelete: (id: string) => void;
+  view: ViewStatus; onRetry: () => void; onEdit: (id: string) => void;
+}) {
+  return <div className={styles.jourfix}>
+    <p>Themen für das nächste Gespräch sammeln. Beim Übernehmen bleibt dieselbe Notiz erhalten.</p>
+    <Composer key={space.id} blockId={`jfx-${space.id}`} initialMode="jfx" spaces={spaces} blocks={blocks} today={today} showMergeCommand={false} onCreateJourFix={onCreate} onCreateItem={fields => onCreate(fields.text, space.id)} />
+    {view.status === "loading" || view.status === "idle" ? <Loading label="Jour Fix wird geladen…" /> : view.status === "failed" ? <LoadError message={formatError(view.error)} onRetry={onRetry} /> : themes.length === 0 ? <p className="empty">Noch keine offenen Themen. Hier kannst du das erste hinzufügen.</p> : <ul className={styles.jfxlist}>{themes.map(theme => <li key={theme.id}>
+      <input aria-label="Jour-Fix-Thema" value={theme.text} maxLength={10_000} onChange={event => onPatch(theme.id, { text: event.target.value })} />
+      <button type="button" onClick={() => onEdit(theme.id)}>Bearbeiten</button>
+      <button type="button" onClick={() => onDelete(theme.id)} aria-label="Thema entfernen">Entfernen</button>
+    </li>)}</ul>}
+  </div>;
 }
 
 function PagePane({
@@ -214,6 +218,7 @@ function PagePane({
   jfxThemes,
   onPatchBlock,
   onPatchItem,
+  onEditItem,
   onCreateItem,
   onDeleteItem,
   onJumpToBlock,
@@ -237,15 +242,16 @@ function PagePane({
   today: Date;
   jfxThemes: ItemRow[];
   onPatchBlock: (id: string, patch: BlockPatch) => void;
+  onEditItem: (id: string) => void;
   onPatchItem: (id: string, patch: ItemPatch) => void;
-  onCreateItem: (input: ItemCreateInput) => void;
+  onCreateItem: (input: ItemCreateInput) => void | Promise<boolean>;
   onDeleteItem: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
   onRetry: () => void;
   onCreateBlock: (templateId: string | null) => void;
   onDeleteBlock: (id: string) => void;
   onManageTemplates: () => void;
-  onCreateJourFix: (text: string, personSpaceId: string | null) => void;
+  onCreateJourFix: (text: string, personSpaceId: string | null) => void | boolean | Promise<boolean>;
   onMergeItems: (items: readonly ItemRow[]) => Promise<boolean>;
   onMoveTheme: (itemId: string, targetBlockId: string) => void;
 }) {
@@ -284,6 +290,7 @@ function PagePane({
               jfxThemes={jfxThemes}
               onPatchBlock={onPatchBlock}
               onPatchItem={onPatchItem}
+              onEditItem={onEditItem}
               onCreateItem={onCreateItem}
               onDeleteItem={onDeleteItem}
               onDeleteBlock={onDeleteBlock}
@@ -310,6 +317,7 @@ function PersonPane({
   spaces,
   blocks,
   onCreateTask,
+  onEditItem,
   onToggle,
   onJumpToBlock,
   onRetry,
@@ -323,7 +331,8 @@ function PersonPane({
   spacesById: ReadonlyMap<string, SpaceRow>;
   spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
   blocks: readonly BlockRow[];
-  onCreateTask: (fields: ComposerItemFields) => void;
+  onCreateTask: (fields: ComposerItemFields) => void | boolean | Promise<boolean>;
+  onEditItem: (id: string) => void;
   onToggle: (itemId: string, done: boolean) => void;
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
   onRetry: () => void;
@@ -340,7 +349,8 @@ function PersonPane({
       {/* The block id only names the composer's DOM ids — the target block is
           resolved lazily at create time (Feature 3, docs/adr/0016). */}
       <Composer
-        blockId={space.id}
+        blockId={`person-${space.id}`}
+        initialMode="task"
         spaces={spaces}
         blocks={blocks}
         today={todayDate}
@@ -355,6 +365,7 @@ function PersonPane({
         meSpaceId={meSpaceId}
         spacesById={spacesById}
         onToggle={onToggle}
+        onEdit={onEditItem}
         onJumpToBlock={onJumpToBlock}
       />
     </div>

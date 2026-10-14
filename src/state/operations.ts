@@ -1,3 +1,5 @@
+import { readDraft, writeDraft } from "../domain/drafts.ts";
+import type { PageResponse } from "../../shared/api.ts";
 import type {
   BlockRow,
   ItemKind,
@@ -26,7 +28,8 @@ import type { AppState, OptimisticWrite } from "./state.ts";
 
 export interface Operations {
   loadSpaces(): Promise<void>;
-  loadPage(pageId: string): Promise<void>;
+  loadCatalog(): Promise<void>;
+  loadPage(pageId: string): Promise<PageResponse | undefined>;
   loadCalendar(from: string, to: string): Promise<void>;
   /** Loads the task overview (all open tasks + next days' events). */
   loadOverview(today: string): Promise<void>;
@@ -57,6 +60,11 @@ export interface Operations {
   createTemplate(input: TemplateCreateInput): Promise<boolean>;
   updateTemplate(id: string, patch: TemplatePatch): Promise<boolean>;
   deleteTemplate(id: string): Promise<boolean>;
+
+  flushWrites(): void;
+  undoLast(): Promise<boolean>;
+  updateUndoRevision(id: string): void;
+  convertItem(id: string, kind: "note" | "task" | "event"): Promise<boolean>;
 
   /** Dismisses a visible error notification. */
   dismissNotification(id: string): void;
@@ -140,6 +148,7 @@ export function createOperations(
       for (const block of data.blocks) for (const item of block.items)
         if (!getState?.().pending.size) versions.set(item.id, item.updatedAt);
       dispatch({ type: "pageLoaded", page: data.page, blocks: data.blocks });
+      return data;
     } catch (err) {
       dispatch({ type: "pageLoadFailed", pageId, error: asClientError(err) });
     }
@@ -203,10 +212,32 @@ export function createOperations(
 
   let writeQueue: Promise<unknown> = Promise.resolve();
 
+  const patches = new Map<string, { patch: ItemPatch; ops: OptimisticWrite[]; resolve: Array<(ok: boolean) => void>; timer: ReturnType<typeof setTimeout> }>();
+  const flushWrites = () => {
+    for (const [id, batch] of patches) {
+      clearTimeout(batch.timer); patches.delete(id);
+      const task = writeQueue.then(async () => {
+        try {
+          const expected = version(id);
+          const result = expected === undefined ? await client.patchItem(id, batch.patch) : await client.patchItem(id, batch.patch, expected);
+          versions.set(id, result.row.updatedAt);
+          if (readDraft(`item-${id}`)?.value === result.row.text) writeDraft(`item-${id}`, { value: "", mode: null, mentionId: null, refTarget: "" });
+          for (const op of batch.ops) dispatch(confirmedAction(op.opKey, result));
+          batch.resolve.forEach(resolve => resolve(true));
+        } catch (error) {
+          for (const op of batch.ops) dispatch({ type: "writeFailed", opKey: op.opKey, error: asClientError(error), now: Date.now() });
+          batch.resolve.forEach(resolve => resolve(false));
+        }
+      });
+      writeQueue = task;
+    }
+  };
+
   const runWrite = (
     op: OptimisticWrite,
     send: () => Promise<unknown>,
   ) => {
+    flushWrites();
     if (op.entity === "item" && !versions.has(op.id)) {
       const current = getState?.().items.get(op.id);
       if (current) versions.set(op.id, current.updatedAt);
@@ -231,7 +262,13 @@ export function createOperations(
   };
 
   return {
+    flushWrites,
     loadSpaces,
+    loadCatalog: async () => {
+      if (!client.getCatalog) return;
+      try { const data = await client.getCatalog(); dispatch({ type: "catalogLoaded", ...data }); }
+      catch (error) { dispatch({ type: "operationFailed", entity: "block", id: "catalog", error: asClientError(error) }); }
+    },
     loadPage,
     loadOverview,
     loadCalendar,
@@ -348,17 +385,15 @@ export function createOperations(
         },
         () => client.putItem(input.id, toItemBody(input)),
       ),
-    updateItem: (id, patch) =>
-      runWrite(
-        {
-          opKey: opKey("item", id, "patch"),
-          entity: "item",
-          id,
-          change: "patch",
-          patch,
-        },
-        () => { const expected = version(id); return expected === undefined ? client.patchItem(id, patch) : client.patchItem(id, patch, expected); },
-      ),
+    updateItem: (id, patch) => {
+      if (!versions.has(id)) { const current = getState?.().items.get(id); if (current) versions.set(id, current.updatedAt); }
+      const op: OptimisticWrite = { opKey: opKey("item", id, "patch"), entity: "item", id, change: "patch", patch };
+      dispatch({ type: "writeOptimistic", op, now: Date.now() });
+      const old = patches.get(id); if (old) clearTimeout(old.timer);
+      return new Promise<boolean>(resolve => {
+        patches.set(id, { patch: { ...old?.patch, ...patch }, ops: [...old?.ops ?? [], op], resolve: [...old?.resolve ?? [], resolve], timer: setTimeout(flushWrites, getState ? 180 : 0) });
+      });
+    },
     deleteItem: (id) =>
       runWrite(
         {
@@ -369,12 +404,41 @@ export function createOperations(
         },
         () => client.delete("item", id),
       ),
+    updateUndoRevision: (id) => { const updatedAt = versions.get(id); if (updatedAt !== undefined) dispatch({ type: "undoRevisionUpdated", id, updatedAt }); },
+    undoLast: () => {
+      flushWrites();
+      const task = writeQueue.then(async () => {
+        const undo = getState?.().undoHistory.at(-1);
+        if (!undo || !client.restoreItems) return false;
+        try {
+          const result = await client.restoreItems(undo.rows.map(row => ({ id: row.id, createdAt: row.createdAt, updatedAt: row.updatedAt, data: toItemBody(row) })), undo.expectedUpdatedAt);
+          for (const row of result.rows) versions.set(row.id, row.updatedAt);
+          dispatch({ type: "itemsRestored", rows: result.rows }); return true;
+        } catch (error) { dispatch({ type: "operationFailed", entity: "item", id: undo.rows[0]!.id, error: asClientError(error) }); return false; }
+      });
+      writeQueue = task; return task;
+    },
+    convertItem: (id, kind) => {
+      flushWrites();
+      const task = writeQueue.then(async () => {
+        const original = getState?.().items.get(id);
+        if (!original || !client.convertItem) return false;
+        try {
+          const result = await client.convertItem(id, kind, version(id) ?? original.updatedAt);
+          versions.set(id, result.row.updatedAt);
+          dispatch({ type: "recordUndo", undo: { rows: [original], expectedUpdatedAt: result.row.updatedAt, label: "Eintrag umwandeln" } });
+          dispatch({ type: "itemsMerged", row: result.row, deletedIds: [] }); return true;
+        } catch (error) { dispatch({ type: "operationFailed", entity: "item", id, error: asClientError(error) }); return false; }
+      }); writeQueue = task; return task;
+    },
     mergeItems: (items) => {
+      flushWrites();
       const task = writeQueue.then(async () => {
         try {
           if (!client.mergeItems) throw new Error("Merge API unavailable");
           const result = await client.mergeItems(items.map(item => ({ id: item.id, updatedAt: version(item.id) ?? item.updatedAt })));
           versions.set(result.row.id, result.row.updatedAt);
+          dispatch({ type: "recordUndo", undo: { rows: [...items], expectedUpdatedAt: result.row.updatedAt, label: "Notizen zusammenfassen" } });
           dispatch({ type: "itemsMerged", ...result });
           return true;
         } catch (err) {

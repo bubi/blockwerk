@@ -89,7 +89,11 @@ export interface SearchView {
   view: ViewStatus;
 }
 
+export interface UserUndo { rows: ItemRow[]; expectedUpdatedAt?: number; label: string }
+
 export interface AppState {
+  undoHistory: UserUndo[];
+  failedWrites: Map<string, OptimisticWrite>;
   spaces: Map<string, SpaceRow>;
   pages: Map<string, PageRow>;
   blocks: Map<string, BlockRow>;
@@ -114,6 +118,8 @@ export interface AppState {
 
 export function initialState(): AppState {
   return {
+    undoHistory: [],
+    failedWrites: new Map(),
     spaces: new Map(),
     pages: new Map(),
     blocks: new Map(),

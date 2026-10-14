@@ -6,6 +6,9 @@ import type {
   ItemPatch,
   TemplatePatch,
 } from "../shared/schemas.ts";
+import { WorkspaceTools } from "./components/WorkspaceTools.tsx";
+import { Composer } from "./components/Composer.tsx";
+import { ItemEditor } from "./components/ItemEditor.tsx";
 import { Dates } from "./components/Dates.tsx";
 import { Header } from "./components/Header.tsx";
 import { MobileHeader } from "./components/MobileHeader.tsx";
@@ -77,6 +80,9 @@ export function App() {
   const [pageId, setPageId] = useState<PageSelection | null>(null);
   // The desktop stream column shows either the "Heute" start view or a
   // space's stream — the rail's "Heute" button toggles it (design-system 5).
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const [captureSpaceId, setCaptureSpaceId] = useState<string | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [home, setHome] = useState(true);
   const { today, todayDate } = useToday();
   const [month, setMonth] = useState({
@@ -168,6 +174,7 @@ export function App() {
           ? "tasks"
           : (pages[0]?.id ?? "jourfix");
 
+  const virtualNotePageId = (space?.pages.find(entry => entry.title === "Notizen") ?? space?.pages[0])?.id ?? null;
   const tasksMode = resolvedPageId === "tasks";
   const jourfixMode = resolvedPageId === "jourfix";
   const activePageId =
@@ -175,118 +182,28 @@ export function App() {
       ? resolvedPageId
       : null;
 
-  const createPersonTask = (fields: ComposerItemFields) => {
-    if (!isPerson || space === null) return;
-    // The "Ohne Kontext" target block is created lazily on the first task of
-    // the day — merely opening the "Aufgaben" view creates nothing (Feature 3,
-    // docs/adr/0016). Page and block go in the same optimistic burst.
-    const page =
-      space.pages.find((entry) => entry.title === "Notizen") ??
-      space.pages[0] ??
-      null;
-    const pageId = page?.id ?? newPageId();
-    const block = page
-      ? ([...state.blocks.values()].find(
-          (entry) =>
-            entry.pageId === page.id &&
-            entry.title === "Ohne Kontext" &&
-            entry.date === today,
-        ) ?? null)
-      : null;
-    const blockId = block?.id ?? newBlockId();
-    if (page === null)
-      ops.createPage({ id: pageId, spaceId: space.id, title: "Notizen" });
-    if (block === null)
-      ops.createBlock({
-        id: blockId,
-        pageId,
-        templateId: null,
-        title: "Ohne Kontext",
-        date: today,
-      });
-    const lastPosition = [...state.items.values()]
-      .filter((entry) => entry.blockId === blockId)
-      .reduce((max, entry) => Math.max(max, entry.position), 0);
-    const base = {
-      id: newItemId(),
-      blockId,
-      position: insertPositionBetween(lastPosition || null, null),
-      text: fields.text,
-      heading: fields.kind === "note" ? fields.heading : null,
-    };
-    switch (fields.kind) {
-      case "task":
-        // Without an explicit @Person the task belongs to the person whose
-        // "Aufgaben" view created it — otherwise it would not show there.
-        ops.createItem({
-          ...base,
-          kind: "task",
-          done: fields.done,
-          dueDate: fields.dueDate,
-          assigneeSpaceId: fields.assigneeSpaceId ?? space.id,
-        });
-        break;
-      case "note":
-        ops.createItem({ ...base, kind: "note" });
-        break;
-      case "event":
-        ops.createItem({
-          ...base,
-          kind: "event",
-          eventDate: fields.eventDate,
-          eventTime: fields.eventTime,
-        });
-        break;
-      case "ref":
-        ops.createItem({ ...base, kind: "ref", refBlockId: fields.refBlockId });
-        break;
-    }
+  const createInSpace = async (fields: ComposerItemFields, target: SpaceWithPages, title: string) => {
+    const page = target.pages.find(entry => entry.title === "Notizen") ?? target.pages[0] ?? null;
+    const pageId = page?.id ?? `p-notes-${target.id}`;
+    if (!page && !await ops.createPage({ id: pageId, spaceId: target.id, title: "Notizen" })) return false;
+    const detail = await ops.loadPage(pageId);
+    if (!detail) return false;
+    const block = detail.blocks.find(entry => entry.title === title && (title === "Jour Fix" || entry.date === today));
+    const blockId = block?.id ?? (title === "Jour Fix" ? `b-jfx-${target.id}` : `b-capture-${target.id}-${today}`);
+    if (!block && !await ops.createBlock({ id: blockId, pageId, templateId: null, title, date: today })) return false;
+    const position = Math.max(0, ...(block?.items ?? []).map(item => item.position)) + 1000;
+    return ops.createItem({ ...fields, id: newItemId(), blockId, position });
   };
 
+  const createPersonTask = async (fields: ComposerItemFields) => {
+    if (!isPerson || !space) return false;
+    return createInSpace(fields.kind === "task" ? { ...fields, assigneeSpaceId: fields.assigneeSpaceId ?? space.id } : fields, space, "Ohne Kontext");
+  };
   const jfxThemes = space !== null ? selectJourFixThemes(state, space.id) : [];
-
-  // A "/jfx" theme (Feature 2, docs/adr/0017): the note lands in the
-  // Jour-Fix block of the mentioned person, else of the current space. Page
-  // and block are created lazily on the first theme, like Feature 3's
-  // "Ohne Kontext" block.
-  const createJourFixTheme = (text: string, personSpaceId: string | null) => {
-    const target =
-      personSpaceId !== null
-        ? (spaces.find((entry) => entry.id === personSpaceId) ?? space)
-        : space;
-    if (target === null || text === "") return;
-    const page =
-      target.pages.find((entry) => entry.title === "Notizen") ??
-      target.pages[0] ??
-      null;
-    const pageId = page?.id ?? newPageId();
-    const block = page
-      ? ([...state.blocks.values()].find(
-          (entry) => entry.pageId === page.id && entry.title === "Jour Fix",
-        ) ?? null)
-      : null;
-    const blockId = block?.id ?? newBlockId();
-    if (page === null)
-      ops.createPage({ id: pageId, spaceId: target.id, title: "Notizen" });
-    if (block === null)
-      ops.createBlock({
-        id: blockId,
-        pageId,
-        templateId: null,
-        title: "Jour Fix",
-        date: today,
-      });
-    const lastPosition = [...state.items.values()]
-      .filter((entry) => entry.blockId === blockId)
-      .reduce((max, entry) => Math.max(max, entry.position), 0);
-    ops.createItem({
-      id: newItemId(),
-      blockId,
-      kind: "note",
-      position: insertPositionBetween(lastPosition || null, null),
-      text,
-      heading: null,
-    });
+  const createJourFixTheme = async (text: string, personSpaceId: string | null) => {
+    const target = spaces.find(entry => entry.id === personSpaceId) ?? space;
+    if (!target || !text.trim()) return false;
+    return createInSpace({ kind: "note", text, heading: null }, target, "Jour Fix");
   };
 
   // Moves a Jour-Fix theme into a meeting block (Feature 2): the item changes
@@ -308,6 +225,7 @@ export function App() {
   // Load the spaces index once.
   useEffect(() => {
     void ops.loadSpaces();
+    void ops.loadCatalog();
   }, [ops]);
 
   // The task overview is the start view and backs the person view — loaded
@@ -329,6 +247,18 @@ export function App() {
     if (home) return;
     if (activePageId !== null) void ops.loadPage(activePageId);
   }, [home, activePageId, nLevel, narrow, ops]);
+
+  // Virtual views load the same durable note page, including Jour-Fix themes.
+  useEffect(() => {
+    if (virtualNotePageId && (resolvedPageId === "jourfix" || resolvedPageId === "tasks")) void ops.loadPage(virtualNotePageId);
+  }, [virtualNotePageId, resolvedPageId, ops]);
+
+  useEffect(() => {
+    const flush = () => ops.flushWrites();
+    const guard = (event: BeforeUnloadEvent) => { ops.flushWrites(); if (state.pending.size > 0) event.preventDefault(); };
+    window.addEventListener("beforeunload", guard); document.addEventListener("visibilitychange", flush);
+    return () => { window.removeEventListener("beforeunload", guard); document.removeEventListener("visibilitychange", flush); };
+  }, [state.pending.size, ops]);
 
   // Load the calendar window for the displayed month.
   useEffect(() => {
@@ -419,6 +349,19 @@ export function App() {
     }, 60);
     return () => window.clearTimeout(timer);
   }, [jump, resolvedPageId, pageViewStatus]);
+
+  useEffect(() => {
+    const shortcuts = (event: KeyboardEvent) => {
+      const editing = event.target instanceof HTMLElement && !!event.target.closest("input, textarea, select, [contenteditable=true]");
+      if (event.altKey && event.key.toLowerCase() === "n") { event.preventDefault(); setCaptureOpen(true); }
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        document.querySelector<HTMLInputElement>('[aria-label="Durchsuchen"]')?.focus();
+      }
+      if (!editing && (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey) { event.preventDefault(); void ops.undoLast(); }
+    };
+    window.addEventListener("keydown", shortcuts); return () => window.removeEventListener("keydown", shortcuts);
+  }, [ops]);
 
   // If the selected space disappears (deleted), move to another one — on
   // mobile back to the spaces list.
@@ -516,7 +459,7 @@ export function App() {
     void ops.updateBlock(id, patch);
   const patchItem = (id: string, patch: ItemPatch) =>
     void ops.updateItem(id, patch);
-  const createItem = (input: ItemCreateInput) => void ops.createItem(input);
+  const createItem = (input: ItemCreateInput) => ops.createItem(input);
   const deleteItem = (id: string) => void ops.deleteItem(id);
 
   const createSpace = async (
@@ -555,7 +498,7 @@ export function App() {
       short: deriveShort(name),
       email,
     });
-    await space;
+    if (!await space) return;
     ops.createPage({ id: pageId, spaceId: id, title: "Notizen" });
   };
 
@@ -597,13 +540,14 @@ export function App() {
     const blockId = newBlockId();
     // The seed items reference the block, so their PUTs must not race the
     // block's create — the block is confirmed first, then the items.
-    await ops.createBlock({
+    const created = await ops.createBlock({
       id: blockId,
       pageId: activePageId,
       templateId,
       title: `Neuer ${template?.label ?? "Block"}`,
       date: toISODate(new Date()),
     });
+    if (!created) return;
     for (const [index, line] of (template?.seed ?? []).entries()) {
       const detected = detectHeading(line);
       ops.createItem({
@@ -729,6 +673,7 @@ export function App() {
         patchItem(id, { done });
       }}
       onJumpToBlock={jumpToTarget}
+      onEdit={setEditingItemId}
       onRetry={() => void ops.loadOverview(today)}
     />
   );
@@ -752,15 +697,16 @@ export function App() {
       blocksById={state.blocks}
       spaces={spaces}
       todayDate={todayDate}
-      pageView={selectPageView(state, selectedPageId)}
+      pageView={selectedPageId === "jourfix" ? (virtualNotePageId ? selectPageView(state, virtualNotePageId) : { status: "loaded" }) : selectPageView(state, selectedPageId)}
       pulseBlockId={jump?.blockId ?? null}
       onPatchBlock={patchBlock}
       onPatchItem={patchItem}
+      onEditItem={setEditingItemId}
       onCreateItem={createItem}
       onDeleteItem={deleteItem}
       onJumpToBlock={jumpToBlock}
       onJumpToOverviewRow={jumpToTarget}
-      onRetryPage={() => void ops.loadPage(selectedPageId)}
+      onRetryPage={() => void ops.loadPage(selectedPageId === "jourfix" ? virtualNotePageId ?? "" : selectedPageId)}
       onRetryOverview={() => void ops.loadOverview(today)}
       onCreateTask={createPersonTask}
       onCreateJourFix={createJourFixTheme}
@@ -771,6 +717,18 @@ export function App() {
       onManageTemplates={() => setTplOpen(true)}
     />
   );
+
+  const captureTarget = spaces.find(entry => entry.id === captureSpaceId) ?? spaces.find(entry => entry.id === meSpaceId) ?? spaces[0];
+  const tools = <WorkspaceTools pending={state.pending.size} failed={state.failedWrites.size} undoLabel={state.undoHistory.at(-1)?.label} onUndo={() => void ops.undoLast()} onCapture={() => setCaptureOpen(open => !open)} />;
+  const capture = captureOpen && <section className="quick-capture" aria-label="Schnell erfassen">
+    <div><h2>Schnell erfassen</h2><button type="button" onClick={() => setCaptureOpen(false)}>Schließen</button></div>
+    {captureTarget ? <><label>Ablage<select value={captureTarget.id} onChange={event => setCaptureSpaceId(event.target.value)}>{spaces.map(entry => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label>
+      <Composer key={captureTarget.id} blockId={`capture-${captureTarget.id}`} spaces={spaces} blocks={[...state.blocks.values()]} today={todayDate} showMergeCommand={false} onCreateJourFix={(text, person) => createInSpace({ kind: "note", text, heading: null }, spaces.find(entry => entry.id === person) ?? captureTarget, "Jour Fix")} onCreateItem={fields => createInSpace(fields.kind === "task" && !fields.assigneeSpaceId && captureTarget.kind === "person" ? { ...fields, assigneeSpaceId: captureTarget.id } : fields, captureTarget, "Ohne Kontext")} />
+    </> : <p>Lege zuerst einen Bereich an, um Inhalte zu erfassen.</p>}
+  </section>;
+
+  const editor = editingItemId && state.items.get(editingItemId)
+    ? <ItemEditor key={editingItemId} item={state.items.get(editingItemId)!} spaces={spaces} onSave={async (id, patch, converted) => { const saved = await ops.updateItem(id, patch); if (saved && converted) ops.updateUndoRevision(id); return saved; }} onConvert={ops.convertItem} onClose={() => setEditingItemId(null)} /> : null;
 
   // ============================================================
   // Mobile layout (< 860px): header, sheet, tab bar — no date column.
@@ -797,7 +755,9 @@ export function App() {
           onBack={mobileBack}
         />
 
+        {tools}
         <main className={styles.msheet}>
+          {capture}
           {mTab === "heute" && renderToday(true)}
 
           {mTab === "notizen" &&
@@ -880,6 +840,7 @@ export function App() {
           onDismiss={(id) => ops.dismissNotification(id)}
         />
 
+        {editor}
         {tplOpen && (
           <TemplateManager
             templates={templates}
@@ -900,6 +861,7 @@ export function App() {
   return (
     <div className={styles.app}>
       <Header query={query} today={today} onQueryChange={handleQueryChange} />
+      {tools}
 
       <div className={styles.grid}>
         <aside className={`${styles.col} ${styles.rail}`}>
@@ -932,6 +894,7 @@ export function App() {
         </aside>
 
         <main className={`${styles.col} ${styles.stream}`}>
+          {capture}
           {searchActive ? (
             renderSearchResults()
           ) : home ? (
@@ -975,6 +938,7 @@ export function App() {
         onDismiss={(id) => ops.dismissNotification(id)}
       />
 
+      {editor}
       {tplOpen && (
         <TemplateManager
           templates={templates}

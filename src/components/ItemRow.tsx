@@ -8,6 +8,7 @@ import {
   listDisplayMark,
 } from "../domain/headings.ts";
 import { GrowingTextarea } from "./GrowingTextarea.tsx";
+import { readDraft, writeDraft } from "../domain/drafts.ts";
 import styles from "./ItemRow.module.css";
 
 interface ItemRowProps {
@@ -23,6 +24,7 @@ interface ItemRowProps {
   targetBlock?: Pick<BlockRow, "id" | "title" | "date"> | null;
   /** The row before this one in display order — where focus returns after a delete. */
   prevId?: string | null;
+  onEdit?: (id: string) => void;
   onPatch: (id: string, patch: ItemPatch) => void;
   onJumpToBlock: (blockId: string) => void;
   /** Enter in a note's field inserts a new note directly below it. */
@@ -72,7 +74,8 @@ export function ItemRow({
   meSpaceId,
   targetBlock,
   prevId,
-  onPatch,
+  onEdit,
+  onPatch: savePatch,
   onJumpToBlock,
   onInsertAfter,
   onAddNote,
@@ -87,6 +90,12 @@ export function ItemRow({
   const rowRef = useRef<HTMLLIElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const [savedDraft, setSavedDraft] = useState(() => readDraft(`item-${item.id}`)?.value ?? null);
+  const onPatch = (id: string, patch: ItemPatch) => {
+    if (patch.text !== undefined) setSavedDraft(patch.text);
+    if (patch.text !== undefined) writeDraft(`item-${id}`, { value: patch.text, mode: null, mentionId: null, refTarget: "" });
+    savePatch(id, patch);
+  };
   const isHeading = item.kind === "note" && item.heading !== null;
 
   // Where the caret should land after the next render — used by the list
@@ -292,6 +301,7 @@ export function ItemRow({
       tabIndex={-1}
       onKeyDown={rowKeys}
     >
+      {savedDraft !== null && savedDraft !== item.text && readDraft(`item-${item.id}`)?.value === savedDraft && <button type="button" onClick={() => { onPatch(item.id, { text: savedDraft }); setSavedDraft(null); }}>Lokalen Entwurf wiederherstellen</button>}
       <GrowingTextarea
         ref={(el) => {
           inputRef.current = el;
@@ -385,6 +395,7 @@ export function ItemRow({
           <span className={styles.refGone}>Ziel entfernt</span>
         ))}
 
+      {onEdit && <button type="button" className={styles.edit} onClick={() => onEdit(item.id)} aria-label="Eintrag bearbeiten">Bearbeiten</button>}
       {onDeleteRow && (
         <button
           type="button"

@@ -109,3 +109,5 @@ export interface ItemWriteResponse {
 
 /** The calendar route returns the same shape the domain projection builds. */
 export type CalendarResponse = CalendarWindow;
+
+export interface CatalogResponse { blocks: BlockRow[]; pages: PageRow[]; items: ItemRow[] }

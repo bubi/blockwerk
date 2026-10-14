@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useEffect, useRef, useState } from "react";
 import type { BlockRow, SpaceRow } from "../../shared/db.ts";
 import {
   commandHint,
@@ -8,6 +8,7 @@ import {
   type ComposerCommandKey,
   type ComposerItemFields,
 } from "../domain/composer.ts";
+import { readDraft, writeDraft } from "../domain/drafts.ts";
 import { formatShort } from "../domain/dates.ts";
 import { deriveShort } from "../domain/naming.ts";
 import { parseTokens } from "../domain/tokens.ts";
@@ -30,8 +31,9 @@ interface ComposerProps {
   showMergeCommand?: boolean;
   /** A "/jfx" theme: create it in the Jour-Fix block of the mentioned person
    * (or the current space) instead of this block (Feature 2, docs/adr/0017). */
-  onCreateJourFix?: (text: string, personSpaceId: string | null) => void;
-  onCreateItem: (fields: ComposerItemFields) => void;
+  onCreateJourFix?: (text: string, personSpaceId: string | null) => void | boolean | Promise<boolean>;
+  initialMode?: ComposerCommandKey;
+  onCreateItem: (fields: ComposerItemFields) => void | boolean | Promise<boolean>;
 }
 
 /**
@@ -62,14 +64,17 @@ export function Composer({
   showMergeCommand = true,
   onCreateJourFix,
   onCreateItem,
+  initialMode,
 }: ComposerProps) {
-  const [value, setValue] = useState("");
-  const [mode, setMode] = useState<ComposerCommandKey | null>(null);
+  const [value, setValue] = useState(() => readDraft(blockId)?.value ?? "");
+  const [mode, setMode] = useState<ComposerCommandKey | null>(() => readDraft(blockId)?.mode ?? initialMode ?? null);
   const [selected, setSelected] = useState(0);
-  const [refTarget, setRefTarget] = useState("");
+  const [refTarget, setRefTarget] = useState(() => readDraft(blockId)?.refTarget ?? "");
   const [caret, setCaret] = useState(0);
   const [mentionIndex, setMentionIndex] = useState(0);
-  const [mentionId, setMentionId] = useState<string | null>(null);
+  const [mentionId, setMentionId] = useState<string | null>(() => readDraft(blockId)?.mentionId ?? null);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { writeDraft(blockId, { value, mode, mentionId, refTarget }); }, [blockId, value, mode, mentionId, refTarget]);
   const [mentionSuppressed, setMentionSuppressed] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -83,7 +88,7 @@ export function Composer({
    */
   useLayoutEffect(() => {
     const el = inputRef.current;
-    if (el && el.selectionStart !== caret) el.setSelectionRange(caret, caret);
+    if (el && el.selectionStart === el.selectionEnd && el.selectionStart !== caret) el.setSelectionRange(caret, caret);
   });
 
   const menu = matchComposerCommands(
@@ -143,46 +148,25 @@ export function Composer({
     setValue(next);
     setCaret(pos);
     setMentionId(person.id);
+    setMentionSuppressed(true);
     setMentionIndex(0);
     inputRef.current?.focus();
   };
 
-  const commit = () => {
-    if (mode === "jfx") {
-      // A Jour-Fix theme goes to the target space's Jour-Fix block, not this
-      // one (Feature 2, docs/adr/0017). The mentioned person wins; without a
-      // mention the current space is the target.
-      const tokens = parseTokens(value, spaces, today);
-      if (!tokens.text) return;
-      onCreateJourFix?.(tokens.text, mentionId ?? tokens.assigneeId);
-      setValue("");
-      setCaret(0);
-      setMentionId(null);
-      setMentionSuppressed(false);
-      setMode(null);
-      return;
-    }
-    if (mode === "ref") {
-      if (!refTarget) return;
-      onCreateItem({ kind: "ref", text: "", refBlockId: refTarget });
-      setRefTarget("");
-      setMode(null);
-      return;
-    }
-    const fields = composeItem({
-      mode: mode ?? "note",
-      raw: value,
-      refBlockId: null,
-      spaces,
-      today,
-      mentionId,
-    });
+  const commit = async () => {
+    if (saving) return;
+    const tokens = parseTokens(value, spaces, today);
+    const fields = composeItem({ mode: mode === "jfx" ? "note" : mode ?? "note", raw: value, refBlockId: refTarget || null, spaces, today, mentionId });
     if (!fields) return;
-    onCreateItem(fields);
-    setValue("");
-    setCaret(0);
-    setMentionId(null);
-    setMentionSuppressed(false);
+    setSaving(true);
+    try {
+      const result = mode === "jfx"
+        ? await onCreateJourFix?.(tokens.text, mentionId ?? tokens.assigneeId)
+        : await onCreateItem(fields);
+      if (result === false) return;
+      setValue(""); setCaret(0); setMentionId(null); setMentionSuppressed(false); setRefTarget("");
+      if (mode === "jfx" || mode === "ref") setMode(initialMode ?? null);
+    } finally { setSaving(false); }
   };
 
   const onChange = (value: string) => {
@@ -198,6 +182,7 @@ export function Composer({
   };
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.nativeEvent.isComposing) return;
     if (mentionOpen) {
       if (event.key === "ArrowDown") {
         event.preventDefault();
@@ -309,6 +294,7 @@ export function Composer({
             onChange={onChange}
             onKeyDown={onKeyDown}
             onKeyUp={syncCaret}
+            onSelect={syncCaret}
             onClick={syncCaret}
             placeholder={
               mode
@@ -331,8 +317,8 @@ export function Composer({
           />
         )}
 
-        <button type="button" className={`${styles.go} label`} onClick={commit}>
-          Hinzufügen
+        <button type="button" className={`${styles.go} label`} onClick={() => void commit()} disabled={saving}>
+          {saving ? "Wird gespeichert…" : "Hinzufügen"}
         </button>
       </div>
 

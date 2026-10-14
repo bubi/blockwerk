@@ -37,6 +37,7 @@ export function TaskOverview({
   onScopeChange = () => {},
   onToggle,
   onJumpToBlock,
+  onEdit,
 }: {
   mode: "team" | "person";
   person: SpaceRow | null;
@@ -47,6 +48,7 @@ export function TaskOverview({
   spacesById: ReadonlyMap<string, SpaceRow>;
   onScopeChange?: (scope: TodayScope) => void;
   onToggle: (itemId: string, done: boolean) => void;
+  onEdit?: (id: string) => void;
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
 }) {
   const team = mode === "team";
@@ -150,6 +152,7 @@ export function TaskOverview({
                       today={today}
                       onToggle={onToggle}
                       onJumpToBlock={onJumpToBlock}
+                    onEdit={onEdit}
                     />
                   ))}
                 </ul>
@@ -168,6 +171,7 @@ export function TaskOverview({
                   today={today}
                   onToggle={onToggle}
                   onJumpToBlock={onJumpToBlock}
+                    onEdit={onEdit}
                 />
               ))}
             </ul>
@@ -225,6 +229,7 @@ export function TaskOverview({
                 today={today}
                 onToggle={onToggle}
                 onJumpToBlock={onJumpToBlock}
+                    onEdit={onEdit}
               />
             ))}
           </ul>
@@ -242,6 +247,7 @@ export function TaskOverview({
         today={today}
         onToggle={onToggle}
         onJumpToBlock={onJumpToBlock}
+                    onEdit={onEdit}
       />
       <FoldSection
         label="Ohne Datum"
@@ -254,6 +260,7 @@ export function TaskOverview({
         today={today}
         onToggle={onToggle}
         onJumpToBlock={onJumpToBlock}
+                    onEdit={onEdit}
       />
     </div>
   );
@@ -270,6 +277,7 @@ function FoldSection({
   onToggleOpen,
   onToggle,
   onJumpToBlock,
+  onEdit,
 }: {
   label: string;
   rows: OverviewRow[];
@@ -280,6 +288,7 @@ function FoldSection({
   today: string;
   onToggleOpen: () => void;
   onToggle: (itemId: string, done: boolean) => void;
+  onEdit?: (id: string) => void;
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
 }) {
   if (rows.length === 0) return null;
@@ -309,6 +318,7 @@ function FoldSection({
               today={today}
               onToggle={onToggle}
               onJumpToBlock={onJumpToBlock}
+                    onEdit={onEdit}
             />
           ))}
         </ul>
@@ -326,6 +336,7 @@ function TaskRow({
   today,
   onToggle,
   onJumpToBlock,
+  onEdit,
 }: {
   row: OverviewRow;
   showDue: boolean;
@@ -334,6 +345,7 @@ function TaskRow({
   spacesById: ReadonlyMap<string, SpaceRow>;
   today: string;
   onToggle: (itemId: string, done: boolean) => void;
+  onEdit?: (id: string) => void;
   onJumpToBlock: (blockId: string, pageId: string, spaceId: string) => void;
 }) {
   const assigneeId = row.item.assigneeSpaceId;
@@ -388,6 +400,7 @@ function TaskRow({
             )}
           </span>
         </button>
+        {onEdit && <button type="button" onClick={() => onEdit(row.item.id)} aria-label={`Aufgabe „${row.item.text}" bearbeiten`}>Bearbeiten</button>}
       </li>
       {row.notes.map((note) => (
         <li key={note.id} className={styles.childRow}>

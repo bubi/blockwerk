@@ -40,6 +40,8 @@ import {
   type EntityName,
 } from "./handlers.ts";
 
+import { loadCatalog } from "./db/catalog.ts";
+import { restoreItems, convertItem } from "./item-actions.ts";
 import { mergeItems } from "./db/merge.ts";
 
 const ENTITY_NAMES = [
@@ -206,6 +208,10 @@ export async function handleApiRequest(
       if (method === "GET") return ok(await getSpaces(env.DB, identity.email));
       throw new MethodNotAllowedError("GET");
     }
+    if (a === "catalog" && !b) {
+      if (method !== "GET") throw new MethodNotAllowedError("GET");
+      return ok(await loadCatalog(env.DB));
+    }
     if (a === "calendar" && !b) {
       if (method === "GET")
         return ok(await getCalendarFromParams(env.DB, url.searchParams));
@@ -220,6 +226,14 @@ export async function handleApiRequest(
       if (method === "GET")
         return ok(await getOverviewFromParams(env.DB, url.searchParams));
       throw new MethodNotAllowedError("GET");
+    }
+    if (a === "items" && b === "restore" && !c) {
+      if (method !== "POST") throw new MethodNotAllowedError("POST");
+      return ok(await restoreItems(env.DB, await readJson(request), Date.now()));
+    }
+    if (a === "items" && b && c === "convert") {
+      if (method !== "POST") throw new MethodNotAllowedError("POST");
+      return ok(await convertItem(env.DB, assertId(b), await readJson(request), Date.now()));
     }
     if (a === "items" && b === "merge" && !c) {
       if (method !== "POST") throw new MethodNotAllowedError("POST");

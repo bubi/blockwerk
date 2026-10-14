@@ -30,13 +30,14 @@ interface BlockCardProps {
   /** The current space's open Jour-Fix themes (Feature 2). */
   jfxThemes?: readonly ItemRowRow[];
   onPatchBlock: (id: string, patch: BlockPatch) => void;
+  onEditItem: (id: string) => void;
   onPatchItem: (id: string, patch: ItemPatch) => void;
-  onCreateItem: (input: ItemCreateInput) => void;
+  onCreateItem: (input: ItemCreateInput) => void | Promise<boolean>;
   onDeleteItem: (id: string) => void;
   onDeleteBlock: (id: string) => void;
   onJumpToBlock: (blockId: string) => void;
   /** A "/jfx" theme goes to the target space's Jour-Fix block. */
-  onCreateJourFix?: (text: string, personSpaceId: string | null) => void;
+  onCreateJourFix?: (text: string, personSpaceId: string | null) => void | boolean | Promise<boolean>;
   /** Moves a Jour-Fix theme into this block (Feature 2). */
   onMergeItems: (items: readonly ItemRowRow[]) => Promise<boolean>;
   onMoveTheme: (itemId: string, targetBlockId: string) => void;
@@ -60,6 +61,7 @@ export function BlockCard({
   jfxThemes = [],
   onPatchBlock,
   onPatchItem,
+  onEditItem,
   onCreateItem,
   onDeleteItem,
   onDeleteBlock,
@@ -281,7 +283,7 @@ export function BlockCard({
       (max, item) => Math.max(max, item.position),
       0,
     );
-    onCreateItem({
+    return onCreateItem({
       id: newItemId(),
       blockId: block.id,
       kind: fields.kind,
@@ -349,6 +351,7 @@ export function BlockCard({
               item.refBlockId ? (blocksById.get(item.refBlockId) ?? null) : null
             }
             onPatch={onPatchItem}
+                onEdit={onEditItem}
             onJumpToBlock={onJumpToBlock}
             onInsertAfter={insertAfter}
             onDeleteRow={deleteRow}
@@ -394,6 +397,7 @@ export function BlockCard({
                   }
                   meSpaceId={meSpaceId}
                   onPatch={onPatchItem}
+                onEdit={onEditItem}
                   onJumpToBlock={onJumpToBlock}
                   onInsertAfter={insertAfter}
                   onAddNote={addTaskNote}
@@ -412,6 +416,7 @@ export function BlockCard({
                     isChild
                     prevId={displayPrevId(note.id)}
                     onPatch={onPatchItem}
+                onEdit={onEditItem}
                     onJumpToBlock={onJumpToBlock}
                     onInsertAfter={insertAfter}
                     onDeleteRow={deleteRow}
@@ -442,6 +447,7 @@ export function BlockCard({
                 item={event}
                 prevId={index > 0 ? block.sections.events[index - 1]!.id : null}
                 onPatch={onPatchItem}
+                onEdit={onEditItem}
                 onJumpToBlock={onJumpToBlock}
                 onDeleteRow={deleteRow}
                 onNav={nav}

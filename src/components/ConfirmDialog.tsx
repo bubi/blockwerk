@@ -4,6 +4,7 @@ import styles from "./ConfirmDialog.module.css";
 interface ConfirmDialogProps {
   /** What happens on delete — shown above the buttons so the user knows. */
   message: ReactNode;
+  ariaLabel?: string;
   confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -15,7 +16,7 @@ interface ConfirmDialogProps {
  * click on the backdrop cancels; the focus lands on "Abbrechen" so Enter
  * does not delete by accident.
  */
-export function ConfirmDialog({ message, confirmLabel = "Löschen", onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({ message, confirmLabel = "Löschen", onConfirm, onCancel, ariaLabel = "Löschen bestätigen" }: ConfirmDialogProps) {
   const dialog = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -47,11 +48,11 @@ export function ConfirmDialog({ message, confirmLabel = "Löschen", onConfirm, o
         ref={dialog}
         className={styles.dialog}
         role="dialog"
-        aria-label="Löschen bestätigen"
+        aria-label={ariaLabel}
         aria-modal="true"
         onClick={(event) => event.stopPropagation()}
       >
-        <p className={styles.message}>{message}</p>
+        <div className={styles.message}>{message}</div>
         <div className={styles.buttons}>
           <button type="button" className={styles.confirm} onClick={onConfirm}>
             {confirmLabel}

@@ -81,7 +81,7 @@ describe("optimistic writes", () => {
     expect(selectPersonOpenCount(patched, "p1")).toBe(0);
   });
 
-  it("an optimistic update rollback restores the previous row", () => {
+  it("a failed text update keeps the draft and rolls back other fields", () => {
     const row = item({ id: "t1", kind: "task", blockId: "b1", text: "alt" });
     const base = withData(initialState(), { items: [row] });
     const error: ClientError = { kind: "http", status: 400, body: null };
@@ -90,7 +90,8 @@ describe("optimistic writes", () => {
     expect(patched.items.get("t1")?.text).toBe("neu");
 
     const rolledBack = reduce(patched, { type: "writeFailed", opKey: "k1", error, now: NOW });
-    expect(rolledBack.items.get("t1")?.text).toBe("alt");
+    expect(rolledBack.items.get("t1")?.text).toBe("neu");
+    expect(rolledBack.failedWrites.has("item:t1")).toBe(true);
     expect(rolledBack.notifications).toHaveLength(1);
   });
 });

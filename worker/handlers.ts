@@ -330,6 +330,7 @@ export async function patchBlock(
   logWrite("PATCH", "block", id, email);
   const existing = await getBlock(db, id);
   if (!existing) throw new NotFoundError(`Block '${id}' does not exist`);
+  if ((existing.title === "Jour Fix" || id.startsWith("b-jfx-")) && patch.title !== undefined && patch.title !== "Jour Fix") throw immutable("title");
   if (patch.templateId !== undefined && patch.templateId !== null) {
     await ensureExists(db, "template", patch.templateId, "templateId");
   }
@@ -413,7 +414,7 @@ export async function putItem(
   return createItemWithRespace(db, toNewItemInput(input, id), now);
 }
 
-function toNewItemInput(input: ItemWrite, id: string) {
+export function toNewItemInput(input: ItemWrite, id: string) {
   switch (input.kind) {
     case "note":
       return {

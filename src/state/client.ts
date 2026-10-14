@@ -1,5 +1,6 @@
 import type {
   ApiErrorBody,
+  CatalogResponse,
   CalendarResponse,
   ItemWriteResponse,
   OverviewResponse,
@@ -14,6 +15,7 @@ import type { ClientError, EntityName, EntityRow } from "./state.ts";
  * speaks HTTP. */
 export interface ApiClient {
   getSpaces(): Promise<SpacesResponse>;
+  getCatalog?(): Promise<CatalogResponse>;
   getPage(id: string): Promise<PageResponse>;
   getCalendar(from: string, to: string): Promise<CalendarResponse>;
   getOverview(today: string): Promise<OverviewResponse>;
@@ -23,6 +25,8 @@ export interface ApiClient {
   /** Item writes return the stored row plus a block re-space map, if any. */
   putItem(id: string, body: unknown): Promise<ItemWriteResponse>;
   patchItem(id: string, body: unknown, expectedUpdatedAt?: number): Promise<ItemWriteResponse>;
+  restoreItems?(items: unknown, expectedUpdatedAt?: number): Promise<{ rows: ItemRow[] }>;
+  convertItem?(id: string, kind: string, updatedAt: number): Promise<ItemWriteResponse>;
   mergeItems?(items: { id: string; updatedAt: number }[]): Promise<{ row: ItemRow; deletedIds: string[] }>;
   /** Moves an item into another block (Feature 2, docs/adr/0017). */
   moveItem(id: string, body: unknown): Promise<ItemWriteResponse>;
@@ -64,6 +68,8 @@ export class FetchApiClient implements ApiClient {
     this.maxAttempts = options.maxAttempts ?? 2;
     this.retryDelayMs = options.retryDelayMs ?? 300;
   }
+
+  getCatalog(): Promise<CatalogResponse> { return this.read("/api/catalog"); }
 
   getSpaces(): Promise<SpacesResponse> {
     return this.read("/api/spaces");
@@ -111,6 +117,12 @@ export class FetchApiClient implements ApiClient {
     ).then((response) => this.parse(response));
   }
 
+  restoreItems(items: unknown, expectedUpdatedAt?: number) {
+    return this.perform("POST", "/api/items/restore", { items, expectedUpdatedAt }, false).then(response => this.parse<{ rows: ItemRow[] }>(response));
+  }
+  convertItem(id: string, kind: string, updatedAt: number) {
+    return this.perform("POST", `${this.path("item", id)}/convert`, { kind, updatedAt }, false).then(response => this.parse<ItemWriteResponse>(response));
+  }
   mergeItems(items: { id: string; updatedAt: number }[]) {
     return this.perform("POST", "/api/items/merge", { items }, false).then(response => this.parse<{ row: ItemRow; deletedIds: string[] }>(response));
   }
