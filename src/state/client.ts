@@ -1,3 +1,4 @@
+import type { ItemConversionOptions } from "../../shared/api.ts";
 import type {
   ApiErrorBody,
   CatalogResponse,
@@ -37,9 +38,10 @@ export interface ApiClient {
     id: string,
     kind: string,
     updatedAt: number,
+    options?: ItemConversionOptions,
   ): Promise<ItemWriteResponse>;
   mergeItems?(
-    items: { id: string; updatedAt: number }[],
+    items: { id: string; updatedAt: number; text?: string }[],
   ): Promise<{ row: ItemRow; deletedIds: string[] }>;
   /** Moves an item into another block (Feature 2, docs/adr/0017). */
   moveItem(
@@ -153,15 +155,20 @@ export class FetchApiClient implements ApiClient {
       false,
     ).then((response) => this.parse<{ rows: ItemRow[] }>(response));
   }
-  convertItem(id: string, kind: string, updatedAt: number) {
+  convertItem(
+    id: string,
+    kind: string,
+    updatedAt: number,
+    options?: ItemConversionOptions,
+  ) {
     return this.perform(
       "POST",
       `${this.path("item", id)}/convert`,
-      { kind, updatedAt },
+      { kind, updatedAt, ...options },
       false,
     ).then((response) => this.parse<ItemWriteResponse>(response));
   }
-  mergeItems(items: { id: string; updatedAt: number }[]) {
+  mergeItems(items: { id: string; updatedAt: number; text?: string }[]) {
     return this.perform("POST", "/api/items/merge", { items }, false).then(
       (response) =>
         this.parse<{ row: ItemRow; deletedIds: string[] }>(response),

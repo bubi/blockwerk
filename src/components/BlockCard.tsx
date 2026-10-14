@@ -6,9 +6,14 @@ import type {
   TemplateRow,
 } from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
-import type { ComposerItemFields } from "../domain/composer.ts";
+import type {
+  ComposerCommandKey,
+  ComposerItemFields,
+} from "../domain/composer.ts";
 import { newItemId } from "../domain/ids.ts";
 import { itemLink } from "../domain/links.ts";
+import { inlineMergeItems } from "../domain/inlineCommands.ts";
+import { ItemCommandMenu } from "./ItemCommandMenu.tsx";
 import { canMergeNotes } from "../domain/merge.ts";
 import { insertPositionBetween } from "../domain/position.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
@@ -44,6 +49,11 @@ interface BlockCardProps {
     personSpaceId: string | null,
   ) => void | boolean | Promise<boolean>;
   /** Moves a Jour-Fix theme into this block (Feature 2). */
+  onRunItemCommand: (
+    id: string,
+    command: ComposerCommandKey,
+    targetId?: string,
+  ) => Promise<boolean>;
   onMergeItems: (items: readonly ItemRowRow[]) => Promise<boolean>;
   onMoveTheme: (
     itemId: string,
@@ -77,6 +87,7 @@ export function BlockCard({
   onJumpToBlock,
   onCreateJourFix,
   onMoveTheme,
+  onRunItemCommand,
   onMergeItems,
 }: BlockCardProps) {
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
@@ -94,6 +105,12 @@ export function BlockCard({
     () => new Set(),
   );
 
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [commandContext, setCommandContext] = useState<{
+    id: string;
+    caret: { start: number; end: number } | null;
+    query: string;
+  } | null>(null);
   const doneCount = block.sections.tasks.filter((task) => task.done).length;
   const eventCount = block.sections.events.length;
 
@@ -117,17 +134,97 @@ export function BlockCard({
       for (let i = lo; i <= hi; i++) selectedIds.add(order[i]!);
     }
   }
-  const itemById = new Map(block.items.map((entry) => [entry.id, entry]));
-  const selectedItems: ItemRowRow[] = block.sections.order
-    .filter((id) => selectedIds.has(id))
-    .map((id) => itemById.get(id))
-    .filter((entry): entry is ItemRowRow => entry !== undefined);
-  const mergeLocked = !canMergeNotes(selectedItems);
+  const composerMergeItems = inlineMergeItems(
+    block.items,
+    block.sections.order,
+    selectedIds,
+    activeItemId ?? block.sections.notes.at(-1)?.item.id ?? "",
+  );
+  const mergeLocked = !canMergeNotes(composerMergeItems);
   const mergeHint = mergeLocked
-    ? selectedItems.length < 2
-      ? "Zuerst Zeilen mit Shift+↑/↓ markieren."
+    ? composerMergeItems.length < 2
+      ? "Mindestens zwei benachbarte Notizen erforderlich. / öffnet Befehle auch direkt in jeder Zeile."
       : "Nur Notizen zusammenfassen — keine Aufgaben, Termine, Verweise oder Überschriften."
-    : "markierte Notizen zu Punkten bündeln";
+    : `${composerMergeItems.length} ${selectedIds.size > 1 ? "markierte" : "benachbarte"} Notizen zu Punkten bündeln`;
+
+  const openCommands = (
+    id: string,
+    caret: { start: number; end: number } | null,
+    query = "",
+  ) => {
+    if (!selectedIds.has(id)) setSelection(null);
+    setCommandContext({ id, caret, query });
+  };
+  const closeCommands = (restore = true, focusId = commandContext?.id) => {
+    const caret = commandContext?.caret;
+    setCommandContext(null);
+    if (restore && focusId)
+      requestAnimationFrame(() => {
+        const input = inputRefs.current.get(focusId);
+        if (caret && input) {
+          input.focus();
+          input.setSelectionRange(caret.start, caret.end);
+        } else
+          (
+            rowRefs.current.get(focusId) ??
+            document.querySelector<HTMLElement>(
+              `[data-block-id="${block.id}"] [aria-label="Neue Zeile"]`,
+            )
+          )?.focus();
+      });
+  };
+  const commandMenu = (item: ItemRowRow) => {
+    if (commandContext?.id !== item.id) return null;
+    const candidates = inlineMergeItems(
+      block.items,
+      block.sections.order,
+      selectedIds,
+      item.id,
+    );
+    return (
+      <ItemCommandMenu
+        key={item.id}
+        item={item}
+        initialQuery={commandContext.query}
+        mergeItems={candidates}
+        selected={selectedIds.size > 1}
+        hasChildren={(block.sections.taskNotes.get(item.id)?.length ?? 0) > 0}
+        blocks={[...blocksById.values()]}
+        spaces={spaces}
+        onClose={closeCommands}
+        onLiteral={
+          commandContext.caret
+            ? (text) => {
+                const { start, end } = commandContext.caret!;
+                onPatchItem(item.id, {
+                  text: item.text.slice(0, start) + text + item.text.slice(end),
+                });
+                setCommandContext(null);
+                requestAnimationFrame(() => {
+                  const input = inputRefs.current.get(item.id);
+                  input?.focus();
+                  input?.setSelectionRange(
+                    start + text.length,
+                    start + text.length,
+                  );
+                });
+              }
+            : undefined
+        }
+        onRun={async (key, target) => {
+          const success =
+            key === "merge"
+              ? canMergeNotes(candidates) && (await onMergeItems(candidates))
+              : await onRunItemCommand(item.id, key, target);
+          if (success) {
+            setSelection(null);
+            closeCommands(true, key === "merge" ? candidates[0]!.id : item.id);
+          }
+          return success;
+        }}
+      />
+    );
+  };
 
   const nav = (itemId: string, dir: -1 | 1) => {
     const order = block.sections.order;
@@ -149,9 +246,9 @@ export function BlockCard({
   };
 
   const mergeSelected = async () => {
-    if (!canMergeNotes(selectedItems)) return;
-    const keepId = selectedItems[0]!.id;
-    if (await onMergeItems(selectedItems)) {
+    if (!canMergeNotes(composerMergeItems)) return;
+    const keepId = composerMergeItems[0]!.id;
+    if (await onMergeItems(composerMergeItems)) {
       setSelection(null);
       focusInput(keepId);
     }
@@ -327,6 +424,12 @@ export function BlockCard({
       className={`${styles.block} hue-${template.hue} ${pulse ? styles.pulse : ""}`}
       id={`blk-${block.id}`}
       data-block-id={block.id}
+      onFocusCapture={(event) => {
+        const row = (event.target as HTMLElement).closest<HTMLElement>(
+          "[data-item-id]",
+        );
+        if (row) setActiveItemId(row.dataset.itemId ?? null);
+      }}
     >
       <header className={styles.head}>
         <div className={`${styles.top} typdot`}>
@@ -369,6 +472,8 @@ export function BlockCard({
           <ItemRow
             key={item.id}
             item={item}
+            onOpenCommands={openCommands}
+            commandMenu={commandMenu(item)}
             indent={indent}
             prevId={index > 0 ? block.sections.notes[index - 1]!.item.id : null}
             targetBlock={
@@ -413,6 +518,8 @@ export function BlockCard({
               <Fragment key={task.id}>
                 <ItemRow
                   item={task}
+                  onOpenCommands={openCommands}
+                  commandMenu={commandMenu(task)}
                   prevId={displayPrevId(task.id)}
                   assignee={
                     task.assigneeSpaceId
@@ -437,6 +544,8 @@ export function BlockCard({
                   <ItemRow
                     key={note.id}
                     item={note}
+                    onOpenCommands={openCommands}
+                    commandMenu={commandMenu(note)}
                     isChild
                     prevId={displayPrevId(note.id)}
                     onPatch={onPatchItem}
@@ -469,6 +578,8 @@ export function BlockCard({
               <ItemRow
                 key={event.id}
                 item={event}
+                onOpenCommands={openCommands}
+                commandMenu={commandMenu(event)}
                 prevId={index > 0 ? block.sections.events[index - 1]!.id : null}
                 onPatch={onPatchItem}
                 onEdit={onEditItem}

@@ -1,5 +1,6 @@
+import { getBlock } from "./db/blocks.ts";
 import { z } from "zod";
-import { idString, itemWriteSchema } from "../shared/schemas.ts";
+import { idString, itemWriteSchema, dateString } from "../shared/schemas.ts";
 import { ConflictError, NotFoundError, ValidationError } from "./errors.ts";
 import { getItem, buildItemRow } from "./db/items.ts";
 import { toNewItemInput } from "./handlers.ts";
@@ -179,20 +180,42 @@ export async function convertItem(
 ) {
   const input = z
     .object({
-      kind: z.enum(["note", "task", "event"]),
+      kind: z.enum(["note", "task", "event", "ref"]),
+      sourceText: z.string().max(10_000).optional(),
+      heading: z.union([z.literal(1), z.literal(2), z.null()]).optional(),
+      refBlockId: idString.optional(),
+      eventDate: dateString.optional(),
       updatedAt: z.number().int(),
     })
     .strict()
     .parse(body);
   const existing = await getItem(db, id);
   if (!existing) throw new NotFoundError();
-  if (existing.kind === input.kind) return { row: existing, respaced: null };
+  if (input.sourceText !== undefined && input.sourceText !== existing.text)
+    throw new ConflictError();
+  if (existing.updatedAt !== input.updatedAt) throw new ConflictError();
   if (
-    existing.updatedAt !== input.updatedAt ||
-    existing.parentItemId !== null ||
-    existing.kind === "ref"
+    existing.parentItemId !== null &&
+    (input.kind !== "note" || input.heading != null)
   )
     throw new ConflictError();
+  if (
+    input.kind === "ref" &&
+    (!input.refBlockId || !(await getBlock(db, input.refBlockId)))
+  )
+    throw new ValidationError(
+      [{ path: "refBlockId", code: "invalid_target" }],
+      "Bitte einen vorhandenen Zielblock wählen.",
+    );
+  if (input.heading !== undefined && input.kind !== "note")
+    throw new ValidationError([{ path: "heading", code: "invalid_kind" }]);
+  if (
+    existing.kind === input.kind &&
+    input.heading === undefined &&
+    input.refBlockId === undefined &&
+    input.eventDate === undefined
+  )
+    return { row: existing, respaced: null };
   if (
     input.kind !== "task" &&
     (await db
@@ -206,10 +229,39 @@ export async function convertItem(
     );
   const result = await db
     .prepare(
-      "UPDATE items SET kind = ?, heading = NULL, list_mark = NULL, done = 0, due_date = NULL, event_date = NULL, event_time = NULL, assignee_space_id = NULL, ref_block_id = NULL, updated_at = ? WHERE id = ? AND updated_at = ?",
+      "UPDATE items SET kind = ?, heading = ?, list_mark = ?, done = ?, due_date = ?, event_date = ?, event_time = ?, assignee_space_id = ?, ref_block_id = ?, updated_at = ? WHERE id = ? AND updated_at = ?",
     )
     .bind(
       input.kind,
+      input.kind === "note"
+        ? input.heading !== undefined
+          ? input.heading
+          : existing.kind === "note"
+            ? existing.heading
+            : null
+        : null,
+      input.kind === "note" &&
+        input.heading === undefined &&
+        existing.kind === "note"
+        ? existing.listMark
+        : null,
+      input.kind === "task" && existing.kind === "task" && existing.done
+        ? 1
+        : 0,
+      input.kind === "task" && existing.kind === "task"
+        ? existing.dueDate
+        : null,
+      input.kind === "event"
+        ? (input.eventDate ??
+            (existing.kind === "event" ? existing.eventDate : null))
+        : null,
+      input.kind === "event" && existing.kind === "event"
+        ? existing.eventTime
+        : null,
+      input.kind === "task" && existing.kind === "task"
+        ? existing.assigneeSpaceId
+        : null,
+      input.kind === "ref" ? input.refBlockId : null,
       Math.max(now, existing.updatedAt + 1),
       id,
       input.updatedAt,

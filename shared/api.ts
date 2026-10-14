@@ -122,3 +122,10 @@ export interface CatalogResponse {
   pages: PageRow[];
   items: ItemRow[];
 }
+
+export interface ItemConversionOptions {
+  sourceText?: string;
+  heading?: 1 | 2 | null;
+  refBlockId?: string;
+  eventDate?: string;
+}

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import type { BlockRow, ItemRow, SpaceRow } from "../../shared/db.ts";
 import type { ItemPatch } from "../../shared/schemas.ts";
 import { formatShort, fromISODate, relativeLabel } from "../domain/dates.ts";
@@ -9,6 +9,10 @@ import {
 } from "../domain/headings.ts";
 import { GrowingTextarea } from "./GrowingTextarea.tsx";
 import { readDraft, writeDraft } from "../domain/drafts.ts";
+import {
+  insertedCommand,
+  slashStartsCommand,
+} from "../domain/inlineCommands.ts";
 import styles from "./ItemRow.module.css";
 
 interface ItemRowProps {
@@ -25,6 +29,12 @@ interface ItemRowProps {
   /** The row before this one in display order — where focus returns after a delete. */
   prevId?: string | null;
   onEdit?: (id: string) => void;
+  onOpenCommands?: (
+    id: string,
+    caret: { start: number; end: number } | null,
+    query?: string,
+  ) => void;
+  commandMenu?: ReactNode;
   onPatch: (id: string, patch: ItemPatch) => void;
   onJumpToBlock: (blockId: string) => void;
   /** Enter in a note's field inserts a new note directly below it. */
@@ -75,6 +85,8 @@ export function ItemRow({
   targetBlock,
   prevId,
   onEdit,
+  onOpenCommands,
+  commandMenu,
   onPatch: savePatch,
   onJumpToBlock,
   onInsertAfter,
@@ -136,6 +148,25 @@ export function ItemRow({
     )
       return;
     const inField = event.target === inputRef.current;
+    const field = inputRef.current;
+    if (
+      event.key === "/" &&
+      onOpenCommands &&
+      (!inField ||
+        event.metaKey ||
+        event.ctrlKey ||
+        slashStartsCommand(field?.value ?? "", field?.selectionStart ?? 0))
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      onOpenCommands(
+        item.id,
+        inField && field
+          ? { start: field.selectionStart, end: field.selectionEnd }
+          : null,
+      );
+      return;
+    }
 
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       if (!inField) {
@@ -268,6 +299,15 @@ export function ItemRow({
   };
 
   const handleTextChange = (value: string) => {
+    const command = insertedCommand(item.text, value);
+    if (command && onOpenCommands) {
+      onOpenCommands(
+        item.id,
+        { start: command.start, end: command.start },
+        command.query,
+      );
+      return;
+    }
     if (
       item.kind === "note" &&
       item.heading === null &&
@@ -339,11 +379,7 @@ export function ItemRow({
         }}
         className={isHeading ? styles.headingInput : styles.text}
         value={item.text}
-        onChange={(value) =>
-          isHeading
-            ? onPatch(item.id, { text: value })
-            : handleTextChange(value)
-        }
+        onChange={handleTextChange}
         ariaLabel={isHeading ? "Überschrift" : KIND_LABEL[item.kind]}
         placeholder={
           isHeading
@@ -425,6 +461,17 @@ export function ItemRow({
           <span className={styles.refGone}>Ziel entfernt</span>
         ))}
 
+      {onOpenCommands && (
+        <button
+          type="button"
+          className={styles.edit}
+          onClick={() => onOpenCommands(item.id, null)}
+          aria-label="Zeilenbefehle öffnen"
+          title="Befehle · /"
+        >
+          /
+        </button>
+      )}
       {onEdit && (
         <button
           type="button"
@@ -446,6 +493,7 @@ export function ItemRow({
           ×
         </button>
       )}
+      {commandMenu}
     </li>
   );
 }

@@ -24,7 +24,10 @@ import { Today } from "./components/Today.tsx";
 import { formatError } from "./components/errorText.ts";
 import { LoadError, Loading } from "./components/status.tsx";
 import { monthLedger } from "./domain/calendar.ts";
-import type { ComposerItemFields } from "./domain/composer.ts";
+import type {
+  ComposerCommandKey,
+  ComposerItemFields,
+} from "./domain/composer.ts";
 import { fromISODate, refreshToday, toISODate } from "./domain/dates.ts";
 import { detectHeading } from "./domain/headings.ts";
 import {
@@ -197,11 +200,7 @@ export function App() {
       ? resolvedPageId
       : null;
 
-  const createInSpace = async (
-    fields: ComposerItemFields,
-    target: SpaceWithPages,
-    title: string,
-  ) => {
+  const ensureCaptureBlock = async (target: SpaceWithPages, title: string) => {
     const page =
       target.pages.find((entry) => entry.title === "Notizen") ??
       target.pages[0] ??
@@ -243,7 +242,56 @@ export function App() {
       return false;
     const position =
       Math.max(0, ...(block?.items ?? []).map((item) => item.position)) + 1000;
-    return ops.createItem({ ...fields, id: newItemId(), blockId, position });
+    return { blockId, position };
+  };
+  const createInSpace = async (
+    fields: ComposerItemFields,
+    target: SpaceWithPages,
+    title: string,
+  ) => {
+    const destination = await ensureCaptureBlock(target, title);
+    return destination
+      ? ops.createItem({ ...fields, id: newItemId(), ...destination })
+      : false;
+  };
+  const runItemCommand = async (
+    id: string,
+    command: ComposerCommandKey,
+    targetId?: string,
+  ) => {
+    const item = state.items.get(id);
+    if (!item) return false;
+    if (command === "jfx") {
+      const source = state.blocks.get(item.blockId);
+      const sourceSpaceId = source
+        ? state.pages.get(source.pageId)?.spaceId
+        : null;
+      const target = spaces.find(
+        (entry) => entry.id === (targetId || sourceSpaceId),
+      );
+      if (!target || item.kind !== "note" || item.parentItemId !== null)
+        return false;
+      const destination = await ensureCaptureBlock(target, "Jour Fix");
+      return destination
+        ? ops.moveItem(id, destination.blockId, destination.position)
+        : false;
+    }
+    if (command === "merge") return false;
+    if (command === "heading")
+      return ops.convertItem(id, "note", { heading: 1 });
+    if (command === "note")
+      return ops.convertItem(id, "note", { heading: null });
+    if (command === "ref")
+      return targetId
+        ? ops.convertItem(id, "ref", { refBlockId: targetId })
+        : false;
+    return ops.convertItem(
+      id,
+      command,
+      command === "event" && item.kind !== "event"
+        ? { eventDate: today }
+        : undefined,
+    );
   };
 
   const createPersonTask = async (fields: ComposerItemFields) => {
@@ -586,7 +634,11 @@ export function App() {
     const nextPageId: PageSelection =
       next.kind === "person" ? "tasks" : (next.pages[0]?.id ?? "jourfix");
     setJump(null);
-    history.replaceState(history.state, "", location.pathname + location.search);
+    history.replaceState(
+      history.state,
+      "",
+      location.pathname + location.search,
+    );
     if (narrow) {
       commitNav({ nLevel: "pages", spaceId: id, pageId: nextPageId });
     } else {
@@ -598,7 +650,11 @@ export function App() {
 
   const selectPage = (id: PageSelection) => {
     setJump(null);
-    history.replaceState(history.state, "", location.pathname + location.search);
+    history.replaceState(
+      history.state,
+      "",
+      location.pathname + location.search,
+    );
     if (narrow) {
       commitNav({ nLevel: "stream", pageId: id });
     } else {
@@ -608,7 +664,11 @@ export function App() {
   };
 
   const goHome = () => {
-    history.replaceState(history.state, "", location.pathname + location.search);
+    history.replaceState(
+      history.state,
+      "",
+      location.pathname + location.search,
+    );
     setHome(true);
     setJump(null);
     setQuery("");
@@ -635,7 +695,11 @@ export function App() {
     // Select the new space synchronously, before any await — otherwise the
     // async continuation could revert a selection the user already changed.
     setJump(null);
-    history.replaceState(history.state, "", location.pathname + location.search);
+    history.replaceState(
+      history.state,
+      "",
+      location.pathname + location.search,
+    );
     if (narrow) {
       commitNav({
         mTab: "notizen",
@@ -941,6 +1005,7 @@ export function App() {
       onCreateTask={createPersonTask}
       onCreateJourFix={createJourFixTheme}
       onMoveTheme={moveTheme}
+      onRunItemCommand={runItemCommand}
       onMergeItems={ops.mergeItems}
       onCreateBlock={createBlock}
       onDeleteBlock={deleteBlock}

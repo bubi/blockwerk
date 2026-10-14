@@ -49,14 +49,20 @@ export function WorkspaceTools({
             Fehlern erhalten.
           </p>
           <p>
-            In bestehenden Notizen: Enter fügt darunter eine Zeile ein. In
-            Listen fügt Enter einen Punkt im selben Eintrag hinzu; Enter auf
-            einem leeren Punkt beendet die Liste.
+            In bestehenden Zeilen wandeln /task, /event, /heading und /note die
+            aktuelle Zeile um; Text und ID bleiben erhalten. Verweise und Jour
+            Fix fragen ihr Ziel ab. Escape schließt die Befehle ohne
+            Textänderung. Shift+Enter im Befehlsmenü fügt den Befehl als
+            normalen Text ein. In bestehenden Notizen: Enter fügt darunter eine
+            Zeile ein. In Listen fügt Enter einen Punkt im selben Eintrag hinzu;
+            Enter auf einem leeren Punkt beendet die Liste.
           </p>
           <p>
             Escape wechselt vom Feld zur Zeile. Dort wählen ↑/↓ Nachbarzeilen,
             Leertaste hakt Aufgaben ab und Enter öffnet das Feld. Shift+↑/↓
-            markiert Notizen zum Zusammenfassen.
+            markiert Notizen zum Zusammenfassen. / öffnet die Befehle direkt an
+            der aktuellen Zeile; /merge nutzt die Auswahl oder zeigt zwei
+            benachbarte Notizen an.
           </p>
           <p>
             Backspace in einer leeren Notiz entfernt zuerst

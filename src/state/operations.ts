@@ -1,3 +1,4 @@
+import type { ItemConversionOptions } from "../../shared/api.ts";
 import { readDraft, writeDraft } from "../domain/drafts.ts";
 import type { PageResponse } from "../../shared/api.ts";
 import type {
@@ -64,7 +65,11 @@ export interface Operations {
   flushWrites(): void;
   undoLast(): Promise<boolean>;
   updateUndoRevision(id: string): void;
-  convertItem(id: string, kind: "note" | "task" | "event"): Promise<boolean>;
+  convertItem(
+    id: string,
+    kind: "note" | "task" | "event" | "ref",
+    options?: ItemConversionOptions,
+  ): Promise<boolean>;
 
   /** Dismisses a visible error notification. */
   dismissNotification(id: string): void;
@@ -506,7 +511,7 @@ export function createOperations(
       writeQueue = task;
       return task;
     },
-    convertItem: (id, kind) => {
+    convertItem: (id, kind, options) => {
       flushWrites();
       const task = writeQueue.then(async () => {
         const original = getState?.().items.get(id);
@@ -516,6 +521,7 @@ export function createOperations(
             id,
             kind,
             version(id) ?? original.updatedAt,
+            { ...options, sourceText: original.text },
           );
           versions.set(id, result.row.updatedAt);
           dispatch({
@@ -546,9 +552,13 @@ export function createOperations(
       const task = writeQueue.then(async () => {
         try {
           if (!client.mergeItems) throw new Error("Merge API unavailable");
+          const originals = items.map(
+            (item) => getState?.().items.get(item.id) ?? item,
+          );
           const result = await client.mergeItems(
-            items.map((item) => ({
+            originals.map((item) => ({
               id: item.id,
+              text: item.text,
               updatedAt: version(item.id) ?? item.updatedAt,
             })),
           );
@@ -556,7 +566,7 @@ export function createOperations(
           dispatch({
             type: "recordUndo",
             undo: {
-              rows: [...items],
+              rows: originals,
               expectedUpdatedAt: result.row.updatedAt,
               label: "Notizen zusammenfassen",
             },
@@ -591,7 +601,12 @@ export function createOperations(
             ? client.moveItem(id, { blockId, position })
             : client.moveItem(
                 id,
-                { blockId, position, append: true },
+                {
+                  blockId,
+                  position,
+                  append: true,
+                  sourceText: getState?.().items.get(id)?.text,
+                },
                 version(id),
               ),
       ),

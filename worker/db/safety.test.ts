@@ -282,3 +282,159 @@ it("a retried creation acknowledges unchanged content and never overwrites a lat
   );
   expect((await getItem(db, id))?.text).toBe("Newer");
 });
+
+it("inline heading and plain-note commands preserve identity and text and are reversible", async () => {
+  const { db, first } = await setup("inlineheading");
+  const heading = await convertItem(
+    db,
+    first.id,
+    { kind: "note", heading: 1, updatedAt: first.updatedAt },
+    10,
+  );
+  expect(heading.row?.heading).toBe(1);
+  expect(heading.row?.text).toBe(first.text);
+  const note = await convertItem(
+    db,
+    first.id,
+    { kind: "note", heading: null, updatedAt: heading.row!.updatedAt },
+    20,
+  );
+  expect(note.row?.heading).toBeNull();
+  expect(note.row?.id).toBe(first.id);
+});
+it("reference commands validate their target and retain the original content", async () => {
+  const { db, first } = await setup("inlineref");
+  await expect(
+    convertItem(
+      db,
+      first.id,
+      { kind: "ref", refBlockId: "missing", updatedAt: first.updatedAt },
+      10,
+    ),
+  ).rejects.toMatchObject({ status: 400 });
+  expect((await getItem(db, first.id))?.kind).toBe("note");
+  const ref = await convertItem(
+    db,
+    first.id,
+    { kind: "ref", refBlockId: first.blockId, updatedAt: first.updatedAt },
+    20,
+  );
+  expect(ref.row?.text).toBe(first.text);
+  expect(ref.row?.refBlockId).toBe(first.blockId);
+  const { id, createdAt, updatedAt, ...data } = first;
+  await restoreItems(
+    db,
+    {
+      items: [{ id, createdAt, updatedAt, data }],
+      expectedUpdatedAt: ref.row!.updatedAt,
+    },
+    30,
+  );
+  expect((await getItem(db, id))?.text).toBe(first.text);
+  expect((await getItem(db, id))?.kind).toBe("note");
+});
+it("event conversion atomically adds its date and repeated task commands keep existing metadata", async () => {
+  const { db, first } = await setup("inlinemetadata");
+  const event = await convertItem(
+    db,
+    first.id,
+    { kind: "event", eventDate: "2026-10-14", updatedAt: first.updatedAt },
+    10,
+  );
+  expect(event.row?.eventDate).toBe("2026-10-14");
+  expect(event.row?.text).toBe(first.text);
+  const task = await convertItem(
+    db,
+    first.id,
+    { kind: "task", updatedAt: event.row!.updatedAt },
+    20,
+  );
+  await patchItem(
+    db,
+    first.id,
+    { done: true, dueDate: "2026-10-20" },
+    30,
+    "writer",
+    task.row!.updatedAt,
+  );
+  const current = (await getItem(db, first.id))!;
+  const unchanged = await convertItem(
+    db,
+    first.id,
+    { kind: "task", updatedAt: current.updatedAt },
+    40,
+  );
+  expect(unchanged.row?.done).toBe(true);
+  expect(unchanged.row?.dueDate).toBe("2026-10-20");
+});
+
+it("commands refuse unsaved source text rather than discarding its local draft", async () => {
+  const { db, first, second } = await setup("inlinedraft");
+  await expect(
+    convertItem(
+      db,
+      first.id,
+      { kind: "task", updatedAt: first.updatedAt, sourceText: "Unsaved draft" },
+      10,
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+  await expect(
+    mergeItems(
+      db,
+      {
+        items: [
+          { id: first.id, updatedAt: first.updatedAt, text: "Unsaved draft" },
+          { id: second.id, updatedAt: second.updatedAt, text: second.text },
+        ],
+      },
+      10,
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+  await expect(
+    moveItemHandler(
+      db,
+      first.id,
+      { blockId: first.blockId, position: 3000, sourceText: "Unsaved draft" },
+      10,
+      "writer",
+      first.updatedAt,
+    ),
+  ).rejects.toMatchObject({ status: 409 });
+  expect((await getItem(db, first.id))?.text).toBe(first.text);
+  expect((await getItem(db, second.id))?.text).toBe(second.text);
+});
+
+it("merges a large selection with a bounded number of SQL parameters", async () => {
+  const { db, first, second } = await setup("largemerge");
+  const rows = [first, second];
+  for (let index = 0; index < 118; index++)
+    rows.push(
+      await createItem(
+        db,
+        {
+          id: `largemergenote${index}`,
+          blockId: first.blockId,
+          kind: "note",
+          text: `Note ${index}`,
+          heading: null,
+          position: (index + 3) * 1000,
+        },
+        1,
+      ),
+    );
+  const merged = await mergeItems(
+    db,
+    {
+      items: rows.map((row) => ({
+        id: row.id,
+        updatedAt: row.updatedAt,
+        text: row.text,
+      })),
+    },
+    10,
+  );
+  expect(merged.row?.id).toBe(first.id);
+  expect(merged.deletedIds).toHaveLength(119);
+  expect(merged.row?.text).toContain("Note 117");
+  expect(await getItem(db, second.id)).toBeNull();
+});

@@ -555,6 +555,8 @@ export async function moveItemHandler(
   )
     throw new ConflictError();
   const input = itemMoveSchema.parse(body);
+  if (input.sourceText !== undefined && input.sourceText !== existing.text)
+    throw new ConflictError();
   await ensureExists(db, "block", input.blockId, "blockId");
   const row = await moveItemToBlock(
     db,

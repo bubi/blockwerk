@@ -1,0 +1,95 @@
+.menu {
+  order: 10;
+  flex: 0 0 100%;
+  min-width: 0;
+  padding: var(--s3);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+.top {
+  display: flex;
+  gap: var(--s2);
+}
+.top input,
+.target select {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s2) var(--s3);
+  background: var(--side);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  font: inherit;
+}
+.top button,
+.target button,
+.literal {
+  min-height: 44px;
+  padding: var(--s2);
+  color: var(--text2);
+}
+.menu ul {
+  list-style: none;
+  padding: 0;
+  margin: var(--s2) 0 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.menu [role="option"] {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s3);
+  text-align: left;
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s2);
+  border-radius: var(--r-xs);
+}
+.menu strong {
+  color: var(--green-dk);
+  flex: none;
+  font-size: 14px;
+}
+.menu [role="option"] span {
+  color: var(--text2);
+  font-size: 12px;
+}
+.menu [aria-disabled="true"] {
+  cursor: default;
+}
+.menu .active {
+  background: var(--green-soft);
+}
+.preview {
+  margin: 0;
+  padding: 0 var(--s2) var(--s2);
+  color: var(--text2);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.target {
+  display: grid;
+  gap: var(--s2);
+  padding-top: var(--s3);
+}
+.target label {
+  display: grid;
+  gap: var(--s1);
+}
+.target button {
+  justify-self: start;
+  color: var(--green-dk);
+}
+.literal,
+.empty {
+  font-size: 12px;
+  color: var(--text2);
+}
+@media (max-width: 860px) {
+  .menu [role="option"] {
+    flex-direction: column;
+    gap: var(--s1);
+  }
+}

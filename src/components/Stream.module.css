@@ -79,3 +79,20 @@
   gap: var(--s4);
   max-width: var(--measure);
 }
+
+.jfxlist > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s2);
+}
+.jfxlist > li > input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+}
+.jfxlist > li > button {
+  min-height: 44px;
+  padding: var(--s2);
+  color: var(--text2);
+}

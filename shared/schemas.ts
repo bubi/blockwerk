@@ -318,6 +318,7 @@ export const itemMoveSchema = z
     blockId: idString,
     position: z.number().int().min(0),
     append: z.boolean().optional(),
+    sourceText: z.string().max(10_000).optional(),
   })
   .strict();
 

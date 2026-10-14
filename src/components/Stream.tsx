@@ -1,3 +1,10 @@
+import { useState } from "react";
+import { ItemCommandMenu } from "./ItemCommandMenu.tsx";
+import {
+  inlineMergeItems,
+  insertedCommand,
+  slashStartsCommand,
+} from "../domain/inlineCommands.ts";
 import type { SpaceWithPages } from "../../shared/api.ts";
 import type {
   BlockRow,
@@ -6,7 +13,10 @@ import type {
   TemplateRow,
 } from "../../shared/db.ts";
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
-import type { ComposerItemFields } from "../domain/composer.ts";
+import type {
+  ComposerCommandKey,
+  ComposerItemFields,
+} from "../domain/composer.ts";
 import type { TaskOverviewView } from "../domain/overview.ts";
 import type { PageSelection } from "../state/navigation.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
@@ -66,6 +76,11 @@ interface StreamProps {
     personSpaceId: string | null,
   ) => void | boolean | Promise<boolean>;
   /** Moves a Jour-Fix theme into the given block (Feature 2). */
+  onRunItemCommand: (
+    id: string,
+    command: ComposerCommandKey,
+    targetId?: string,
+  ) => Promise<boolean>;
   onMergeItems: (items: readonly ItemRow[]) => Promise<boolean>;
   onMoveTheme: (
     itemId: string,
@@ -109,6 +124,7 @@ export function Stream(props: StreamProps) {
     onCreateTask,
     onCreateJourFix,
     onMoveTheme,
+    onRunItemCommand,
     onMergeItems,
     onCreateBlock,
     onDeleteBlock,
@@ -167,6 +183,8 @@ export function Stream(props: StreamProps) {
           spaces={spaces}
           blocks={[...blocksById.values()]}
           today={todayDate}
+          onRunItemCommand={onRunItemCommand}
+          onMergeItems={onMergeItems}
           onCreate={onCreateJourFix}
           onPatch={onPatchItem}
           onEdit={onEditItem}
@@ -201,6 +219,7 @@ export function Stream(props: StreamProps) {
           onManageTemplates={onManageTemplates}
           onCreateJourFix={onCreateJourFix}
           onMoveTheme={onMoveTheme}
+          onRunItemCommand={onRunItemCommand}
           onMergeItems={onMergeItems}
         />
       )}
@@ -211,6 +230,8 @@ export function Stream(props: StreamProps) {
 /** The "Jour Fix" entry (Feature 2, docs/adr/0017): the open themes of the
  * space's Jour-Fix block, or a calm hint while none exist yet. */
 function JourFixPane({
+  onRunItemCommand,
+  onMergeItems,
   themes,
   space,
   spaces,
@@ -224,6 +245,12 @@ function JourFixPane({
   onEdit,
   references,
 }: {
+  onRunItemCommand: (
+    id: string,
+    command: ComposerCommandKey,
+    targetId?: string,
+  ) => Promise<boolean>;
+  onMergeItems: (items: readonly ItemRow[]) => Promise<boolean>;
   themes: ItemRow[];
   space: SpaceWithPages;
   spaces: readonly Pick<SpaceRow, "id" | "name" | "kind">[];
@@ -240,6 +267,24 @@ function JourFixPane({
   onRetry: () => void;
   onEdit: (id: string) => void;
 }) {
+  const [command, setCommand] = useState<{
+    id: string;
+    query: string;
+    start: number;
+    end: number;
+  } | null>(null);
+  const closeCommand = (restore = true, id = command?.id) => {
+    const caret = command;
+    setCommand(null);
+    if (restore && id)
+      requestAnimationFrame(() => {
+        const input = document.querySelector<HTMLInputElement>(
+          `[data-item-id="${CSS.escape(id)}"] input[aria-label="Jour-Fix-Thema"]`,
+        );
+        input?.focus();
+        if (caret) input?.setSelectionRange(caret.start, caret.end);
+      });
+  };
   const history = references.filter((ref) => {
     const source = blocks.find((block) => block.id === ref.blockId);
     return (
@@ -275,15 +320,103 @@ function JourFixPane({
       ) : (
         <ul className={styles.jfxlist}>
           {themes.map((theme) => (
-            <li key={theme.id}>
+            <li key={theme.id} data-item-id={theme.id}>
               <input
                 aria-label="Jour-Fix-Thema"
                 value={theme.text}
                 maxLength={10_000}
-                onChange={(event) =>
-                  onPatch(theme.id, { text: event.target.value })
-                }
+                onChange={(event) => {
+                  const token = insertedCommand(theme.text, event.target.value);
+                  if (token)
+                    setCommand({
+                      id: theme.id,
+                      query: token.query,
+                      start: token.start,
+                      end: token.start,
+                    });
+                  else onPatch(theme.id, { text: event.target.value });
+                }}
+                onKeyDown={(event) => {
+                  const input = event.currentTarget;
+                  if (
+                    !event.nativeEvent.isComposing &&
+                    event.key === "/" &&
+                    (event.ctrlKey ||
+                      event.metaKey ||
+                      slashStartsCommand(
+                        input.value,
+                        input.selectionStart ?? 0,
+                      ))
+                  ) {
+                    event.preventDefault();
+                    setCommand({
+                      id: theme.id,
+                      query: "",
+                      start: input.selectionStart ?? 0,
+                      end: input.selectionEnd ?? 0,
+                    });
+                  }
+                }}
               />
+              <button
+                type="button"
+                aria-label="Zeilenbefehle öffnen"
+                onClick={() =>
+                  setCommand({
+                    id: theme.id,
+                    query: "",
+                    start: theme.text.length,
+                    end: theme.text.length,
+                  })
+                }
+              >
+                /
+              </button>
+              {command?.id === theme.id && (
+                <ItemCommandMenu
+                  key={theme.id}
+                  item={theme}
+                  initialQuery={command.query}
+                  mergeItems={inlineMergeItems(
+                    themes,
+                    themes.map((item) => item.id),
+                    new Set(),
+                    theme.id,
+                  )}
+                  selected={false}
+                  hasChildren={false}
+                  blocks={blocks}
+                  spaces={spaces}
+                  onClose={closeCommand}
+                  onLiteral={(text) => {
+                    onPatch(theme.id, {
+                      text:
+                        theme.text.slice(0, command.start) +
+                        text +
+                        theme.text.slice(command.end),
+                    });
+                    closeCommand();
+                  }}
+                  onRun={async (key, target) => {
+                    const candidates = inlineMergeItems(
+                      themes,
+                      themes.map((item) => item.id),
+                      new Set(),
+                      theme.id,
+                    );
+                    const success =
+                      key === "merge"
+                        ? await onMergeItems(candidates)
+                        : await onRunItemCommand(theme.id, key, target);
+                    if (success)
+                      closeCommand(
+                        true,
+                        key === "merge" ? candidates[0]?.id : theme.id,
+                      );
+                    return success;
+                  }}
+                />
+              )}
               <button type="button" onClick={() => onEdit(theme.id)}>
                 Bearbeiten
               </button>
@@ -346,6 +479,7 @@ function PagePane({
   onManageTemplates,
   onCreateJourFix,
   onMoveTheme,
+  onRunItemCommand,
   onMergeItems,
 }: {
   pageView: ViewStatus;
@@ -374,6 +508,11 @@ function PagePane({
     text: string,
     personSpaceId: string | null,
   ) => void | boolean | Promise<boolean>;
+  onRunItemCommand: (
+    id: string,
+    command: ComposerCommandKey,
+    targetId?: string,
+  ) => Promise<boolean>;
   onMergeItems: (items: readonly ItemRow[]) => Promise<boolean>;
   onMoveTheme: (
     itemId: string,
@@ -423,6 +562,7 @@ function PagePane({
               onJumpToBlock={onJumpToBlock}
               onCreateJourFix={onCreateJourFix}
               onMoveTheme={onMoveTheme}
+              onRunItemCommand={onRunItemCommand}
               onMergeItems={onMergeItems}
             />
           ))}
