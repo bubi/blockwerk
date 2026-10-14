@@ -54,6 +54,19 @@ Prüfen mit `node -v` und `npm -v`.
    npm run test:e2e
    ```
 
+Die Browsertests setzen ausschließlich `.wrangler/e2e-state` zurück. Bestehende
+Notizen in `.wrangler/state` bleiben erhalten. Der Port 8787 muss frei sein.
+
+Für eine vollständige Release-Prüfung in einer frischen Quellkopie:
+
+```sh
+node scripts/verify-release.mjs --e2e
+```
+
+Das führt Build/TypeScript, ESLint, Unit-, Worker-/D1- und Browsertests sowie
+`wrangler deploy --dry-run` aus. Es veröffentlicht nichts und führt keine
+Remote-Migrationen aus. Die temporäre Kopie bleibt für die Fehlersuche erhalten.
+
 ## Deploy
 
 Nur nötig, wenn du die Anwendung wirklich hochladen willst:
@@ -65,13 +78,13 @@ Deployment passiert außerdem automatisch über GitHub Actions nach jedem Push a
 
 ## Scripts
 
-| Befehl | Zweck |
-|---|---|
-| `npm run dev` | D1 migrieren + seeden, dann Worker (8787) + Vite (5173) |
-| `npm run build` | Typecheck + Vite-Build nach `dist/` |
-| `npm run typecheck` | `tsc -b` für App, Worker und Tooling |
-| `npm run lint` | ESLint |
-| `npm test` | Vitest (Domain- und App-Logik) |
-| `npm run test:workers` | Vitest gegen den Worker (echtes workerd/D1) |
-| `npm run test:e2e` | Playwright gegen die lokale Umgebung |
-| `npm run deploy` | Build, dann `wrangler deploy` |
+| Befehl                 | Zweck                                                   |
+| ---------------------- | ------------------------------------------------------- |
+| `npm run dev`          | D1 migrieren + seeden, dann Worker (8787) + Vite (5173) |
+| `npm run build`        | Typecheck + Vite-Build nach `dist/`                     |
+| `npm run typecheck`    | `tsc -b` für App, Worker und Tooling                    |
+| `npm run lint`         | ESLint                                                  |
+| `npm test`             | Vitest (Domain- und App-Logik)                          |
+| `npm run test:workers` | Vitest gegen den Worker (echtes workerd/D1)             |
+| `npm run test:e2e`     | Playwright gegen eine isolierte Beispieldatenbank       |
+| `npm run deploy`       | Build, dann `wrangler deploy`                           |

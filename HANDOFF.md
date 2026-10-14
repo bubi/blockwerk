@@ -11,6 +11,31 @@ lässt sich aus dem Code nicht ableiten, weil es Entscheidungen _gegen_ etwas si
 
 ---
 
+## Stand 14. Oktober 2026 — lokal umgesetzt, noch nicht veröffentlicht
+
+Die Audit-, Produkt- und Design-Empfehlungen sind in getrennten Commits umgesetzt.
+Details, Nachweise und Grenzen stehen in
+[`docs/IMPLEMENTATION-RESULT-2026-10-14.md`](docs/IMPLEMENTATION-RESULT-2026-10-14.md).
+Die Abschnitte weiter unten dokumentieren den vorherigen Produktionsstand;
+insbesondere „Konflikterkennung“, „Rückgängig“, „Rückverweise“ und „Tasks
+nachträglich ändern“ sind für den neuen lokalen Stand überholt.
+
+Notizen behalten IDs und Ursprünge. PATCH, Löschen und Verschieben prüfen die
+Revision über das bestehende `updated_at`; neu angelegte Items sind gegen
+überschreibende Wiederholungen geschützt. Alte API-Clients ohne Header bleiben
+kompatibel. Hierarchische Löschaktionen (Bereich/Seite/Block) bleiben bewusste,
+bestätigte Aktionen; gezieltes Rückgängig gilt für Items, Zusammenführen und
+Umwandeln. Rückgängig lebt in der laufenden Sitzung und speichert höchstens zehn
+Aktionen; eine Wiederherstellung ist auf 1.000 Items begrenzt.
+
+E2E nutzt `.wrangler/e2e-state`, die Entwicklungsdatenbank bleibt erhalten. Die
+Release-Prüfung erstellt isolierte Quellkopien und veröffentlicht nichts.
+Keine neue Migration erforderlich. CI wurde am 13.10. geprüft: der jüngste
+vorhandene Lauf vom 12.08. war erfolgreich, einschließlich Deployment. Ein
+aktuell erschöpftes Minutenbudget ist damit nicht bestätigt.
+
+---
+
 ## Stand
 
 **Umgesetzt und im Betrieb:**

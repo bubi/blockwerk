@@ -1,10 +1,36 @@
 # Blockwerk — Design System
 
-Version 1.1 · Stand 12. August 2026
+Version 1.2 · Stand 14. Oktober 2026
 
 Verbindliche Spezifikation für die Oberfläche von Blockwerk. Sie beschreibt, **was gilt**, nicht wie eine bestimmte Technik es umzusetzen hat. Die mitgelieferte `blockwerk.jsx` ist die Referenzimplementierung: sie hält diese Spezifikation vollständig ein und darf bei Zweifelsfragen als Beleg herangezogen werden.
 
 > Die Projektregeln in `PROJECT.md` stehen über diesem Dokument. Wo beide etwas zum selben Punkt sagen — Dateiablage, Namensgebung, Formatierung, Teststrategie, Commit-Konventionen —, gilt `PROJECT.md`. Dieses Dokument entscheidet ausschließlich über das Aussehen und Verhalten der Oberfläche.
+
+---
+
+## Ergänzung vom 14. Oktober 2026
+
+Diese Ergänzung hat Vorrang vor älteren Details weiter unten. Die grüne, ruhige
+Identität bleibt erhalten. `design/tokens.css` ist die einzige Tokenquelle und
+wird vom globalen Stylesheet importiert. Sekundärtexte und Bedeutungsfarben sind
+für bessere Lesbarkeit dunkler; die dekorative Körnung entfällt.
+
+„Heute“ zeigt Datum und Kennzahlen kompakt und die Aufgaben vor der
+Teamzusammenfassung. Die Kennzahl heißt korrekt „in dieser Sitzung erledigt“;
+es gibt weiterhin kein historisches `done_at`. Das Datumspanel öffnet sich über
+„Termine und Fälligkeiten“ nach Bedarf. Mobile Inhalte haben Platz für die feste
+untere Navigation und die Safe Area.
+
+„Block anlegen“ ist eine beschriftete, dauerhaft sichtbare Aktion in der
+Trennlinie. Zeilenaktionen und Checkboxen haben größere Trefferflächen.
+Bearbeitbare Felder erhalten einen klaren Fokuszustand. Sprache: „Aufgabe“,
+„Vorlage“, „Zuständig“, „Fällig“. Daten und bestehende Vorlagennamen bleiben erhalten.
+
+Dialoge halten den Fokus, machen den Hintergrund inert, behandeln Escape und
+stellen den Ausgangsfokus wieder her. Löschdialoge starten bei „Abbrechen“;
+Speicherdialoge verwenden Grün. Reiter und Vorlagenmenüs unterstützen Pfeiltasten,
+Home und End. Die kontextuelle Tastaturhilfe beschreibt die tatsächlich vorhandenen
+Befehle; Cmd/Ctrl+Z wirkt außerhalb von Eingabefeldern als gezieltes Rückgängig.
 
 ---
 

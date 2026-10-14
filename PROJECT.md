@@ -242,14 +242,14 @@ Composer/Tastatur, Task-Spiegel und die Verwaltung.
 npm run dev              # D1 local migrieren + seeden, dann Worker (8787) + Vite (5173, HMR, /api-Proxy) gleichzeitig
 npm run dev:worker       # nur der Worker (braucht dist, siehe ASSETS-Binding)
 npm run dev:vite         # nur Vite
-npm run test:e2e         # Playwright gegen lokale Umgebung (resetet .wrangler/state)
+npm run test:e2e         # Playwright gegen lokale Umgebung (resetet ausschließlich .wrangler/e2e-state)
 ```
 
 Die Berechtigung kommt in der Entwicklung aus `.dev.vars`
 (`DEV_ACCESS_EMAIL=dev@example.com`); Access selbst prüft nur der Worker in
 Produktion. `seed.sql` ist mit `INSERT OR IGNORE` idempotent, mehrfaches Seeden
-schadet also nicht. `npm run test:e2e` setzt den lokalen D1-Zustand zurück
-(`rm -rf .wrangler/state`), damit die Wege deterministisch sind — erst `npm run dev`
+schadet also nicht. `npm run test:e2e` setzt ausschließlich seine isolierte Beispieldatenbank zurück
+(`rm -rf .wrangler/e2e-state`), nicht die Entwicklungsdatenbank in `.wrangler/state`, damit die Wege deterministisch sind — erst `npm run dev`
 stoppen, sonst belegt der Worker den Port.
 
 **Deploy:** Normalerweise über CI (GitHub Actions → `wrangler deploy`). Ist CI nicht
