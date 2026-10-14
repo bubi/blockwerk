@@ -63,6 +63,7 @@ export interface PendingOperation {
   change: "put" | "patch" | "delete" | "move";
   /** What `writeFailed` must undo. Transient — dropped on confirmation. */
   undo: UndoPlan;
+  write: OptimisticWrite;
 }
 
 /** A visible error after a rolled-back write. The UI renders these; they are
@@ -106,6 +107,7 @@ export interface AppState {
 
   /** Optimistic writes in flight, with their rollback plans. */
   pending: Map<string, PendingOperation>;
+  latestWrites: Map<string, string>;
 
   notifications: UiNotification[];
 }
@@ -124,6 +126,7 @@ export function initialState(): AppState {
     overviewView: { status: "idle" },
     search: { query: "", results: null, view: { status: "idle" } },
     pending: new Map(),
+    latestWrites: new Map(),
     notifications: [],
   };
 }

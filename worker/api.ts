@@ -40,6 +40,8 @@ import {
   type EntityName,
 } from "./handlers.ts";
 
+import { mergeItems } from "./db/merge.ts";
+
 const ENTITY_NAMES = [
   "spaces",
   "pages",
@@ -171,6 +173,7 @@ function patchEntity(
   id: string,
   body: unknown,
   email: string,
+  expectedUpdatedAt?: number,
 ) {
   const now = Date.now();
   switch (entity) {
@@ -181,7 +184,7 @@ function patchEntity(
     case "block":
       return patchBlock(db, id, body, now, email);
     case "item":
-      return patchItem(db, id, body, now, email);
+      return patchItem(db, id, body, now, email, expectedUpdatedAt);
     case "template":
       return patchTemplate(db, id, body, now, email);
   }
@@ -218,6 +221,10 @@ export async function handleApiRequest(
         return ok(await getOverviewFromParams(env.DB, url.searchParams));
       throw new MethodNotAllowedError("GET");
     }
+    if (a === "items" && b === "merge" && !c) {
+      if (method !== "POST") throw new MethodNotAllowedError("POST");
+      return ok(await mergeItems(env.DB, await readJson(request), Date.now()));
+    }
     if (a === "items" && b && c === "move") {
       // A dedicated move route (Feature 2, docs/adr/0017): blockId is not part
       // of the generic item patch.
@@ -247,7 +254,9 @@ export async function handleApiRequest(
             email,
           ),
         );
-      if (method === "PATCH")
+      if (method === "PATCH") {
+        const version = request.headers.get("If-Match");
+        if (version !== null && !/^\d+$/.test(version)) throw new BadRequestError("Invalid If-Match version");
         return ok(
           await patchEntity(
             env.DB,
@@ -255,8 +264,10 @@ export async function handleApiRequest(
             id,
             await readJson(request),
             email,
+            version === null ? undefined : Number(version),
           ),
         );
+      }
       if (method === "DELETE") {
         const deleted = await deleteEntity(
           env.DB,

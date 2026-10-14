@@ -50,8 +50,10 @@ export type Action =
   | { type: "searchCleared" }
   // ---- optimistic writes ----
   | { type: "writeOptimistic"; op: OptimisticWrite; now: number }
-  | { type: "writeConfirmed"; opKey: string; respaced?: Record<string, number> }
+  | { type: "writeConfirmed"; opKey: string; respaced?: Record<string, number>; row?: ItemRow }
   | { type: "writeFailed"; opKey: string; error: ClientError; now: number }
+  | { type: "itemsMerged"; row: ItemRow; deletedIds: string[] }
+  | { type: "operationFailed"; entity: EntityName; id: string; error: ClientError }
   | { type: "dismissNotification"; id: string };
 
 export function reduce(state: AppState, action: Action): AppState {
@@ -147,8 +149,16 @@ export function reduce(state: AppState, action: Action): AppState {
       };
     case "writeOptimistic":
       return applyWrite(state, action.op, action.now);
+    case "itemsMerged": {
+      const items = new Map(state.items);
+      for (const id of action.deletedIds) items.delete(id);
+      items.set(action.row.id, action.row);
+      return { ...state, items };
+    }
+    case "operationFailed":
+      return { ...state, notifications: [...state.notifications, { id: `failed-${Date.now()}`, kind: "error", entity: action.entity, entityId: action.id, error: action.error, createdAt: Date.now() }] };
     case "writeConfirmed":
-      return confirmWrite(state, action.opKey, action.respaced);
+      return confirmWrite(state, action.opKey, action.respaced, action.row);
     case "writeFailed":
       return failWrite(state, action.opKey, action.error, action.now);
     case "dismissNotification":
@@ -183,19 +193,19 @@ function applyPageLoaded(
   const itemsMap = new Map(state.items);
   for (const droppedBlock of dropped) blocksMap.delete(droppedBlock.id);
   for (const [id, item] of itemsMap)
-    if (droppedIds.has(item.blockId)) itemsMap.delete(id);
+    if (droppedIds.has(item.blockId) || returned.has(item.blockId)) itemsMap.delete(id);
   for (const entry of blocks) {
     blocksMap.set(entry.id, entry);
     for (const item of entry.items) itemsMap.set(item.id, item);
   }
 
-  return {
+  return overlayPending({
     ...state,
     pages: setMap(state.pages, page.id, page),
     blocks: blocksMap,
     items: itemsMap,
     pageViews: setView(state.pageViews, page.id, { status: "loaded" }),
-  };
+  });
 }
 
 function applyOverviewLoaded(
@@ -502,24 +512,37 @@ function addPending(
   undo: UndoPlan,
 ): AppState {
   const pending = new Map(state.pending);
+  const latestWrites = new Map(state.latestWrites);
+  latestWrites.set(`${op.entity}:${op.id}`, op.opKey);
   const entry: PendingOperation = {
     opKey: op.opKey,
     entity: op.entity,
     id: op.id,
     change: op.change,
     undo,
+    write: op,
   };
   pending.set(op.opKey, entry);
-  return { ...state, pending };
+  return { ...state, pending, latestWrites };
 }
 
 function confirmWrite(
   state: AppState,
   opKey: string,
   respaced?: Record<string, number>,
+  row?: ItemRow,
 ): AppState {
   const pending = new Map(state.pending);
   if (!pending.delete(opKey)) return state;
+  if (row) {
+    let baseline = row;
+    for (const [key, entry] of pending) {
+      if (entry.entity !== "item" || entry.id !== row.id) continue;
+      pending.set(key, { ...entry, undo: { ...entry.undo, restore: [{ entity: "item", id: row.id, row: baseline }] } });
+      if (entry.write.entity === "item" && entry.write.change === "patch") baseline = { ...baseline, ...entry.write.patch };
+    }
+    state = overlayPending({ ...state, pending, items: setMap(state.items, row.id, row) });
+  }
   if (!respaced) return { ...state, pending };
 
   // A re-spaced block: adopt the server's positions. Only the position field
@@ -542,13 +565,23 @@ function failWrite(
   if (!op) return state;
 
   let next = state;
-  for (const entry of op.undo.remove)
-    next = removeRow(next, entry.entity, entry.id);
-  for (const entry of op.undo.restore)
-    next = setRow(next, entry.entity, entry.row);
-
-  const pending = new Map(next.pending);
+  const pending = new Map(state.pending);
   pending.delete(opKey);
+  // A late failure must never erase a later optimistic or confirmed edit.
+  const latest = state.latestWrites.get(`${op.entity}:${op.id}`) === opKey;
+  if (latest) {
+    for (const entry of op.undo.remove) next = removeRow(next, entry.entity, entry.id);
+    for (const entry of op.undo.restore) next = setRow(next, entry.entity, entry.row);
+  }
+  // Rebase later rollback snapshots so a second failure cannot resurrect
+  // the failed edit. Each pending patch keeps only its own contribution.
+  for (const [key, later] of pending) {
+    const restore = later.undo.restore.map((entry) => {
+      const base = op.undo.restore.find((old) => old.entity === entry.entity && old.id === entry.id);
+      return base ? { ...entry, row: base.row } : entry;
+    });
+    pending.set(key, { ...later, undo: { ...later.undo, restore } });
+  }
 
   const notification = {
     id: opKey,
@@ -666,5 +699,25 @@ function without<Value>(
 ): Map<string, Value> {
   const next = new Map(map);
   next.delete(id);
+  return next;
+}
+
+function overlayPending(state: AppState): AppState {
+  let next = state;
+  for (const pending of state.pending.values()) {
+    const op = pending.write;
+    if (op.change === "delete") {
+      next = removeRow(next, op.entity, op.id);
+      for (const entry of pending.undo.restore)
+        if (entry.entity === "item" && entry.id !== op.id && (entry.row as ItemRow).parentItemId === op.id)
+          next = removeRow(next, "item", entry.id);
+    } else if (op.change === "put") next = setRow(next, op.entity, op.row);
+    else {
+      const current = getRow(next, op.entity, op.id);
+      if (current) next = setRow(next, op.entity, {
+        ...current, ...(op.change === "patch" ? op.patch : { blockId: op.blockId, position: op.position }),
+      } as EntityRow);
+    }
+  }
   return next;
 }

@@ -113,6 +113,7 @@ export function ItemRow({
   };
 
   const rowKeys = (event: React.KeyboardEvent<HTMLLIElement>) => {
+    if (event.nativeEvent.isComposing || (event.target !== rowRef.current && event.target !== inputRef.current)) return;
     const inField = event.target === inputRef.current;
 
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -179,7 +180,7 @@ export function ItemRow({
           }
           const insert = `\n${listDisplayMark(item.listMark)}`;
           const next =
-            item.text.slice(0, caret) + insert + item.text.slice(caret);
+            item.text.slice(0, caret) + insert + item.text.slice(inputRef.current?.selectionEnd ?? caret);
           onPatch(item.id, { text: next });
           // Land the cursor after the fresh marker so the next bullet can be
           // typed right away.
@@ -191,7 +192,7 @@ export function ItemRow({
         return;
       }
       if (item.kind === "note") {
-        if (event.key === "Backspace" && item.text === "") {
+        if (event.key === "Backspace" && (item.text.trim() === "" || (item.listMark !== null && /^(?:[*-]|•)\s*$/.test(item.text)))) {
           if (isHeading) {
             // First step: back to normal text, second Backspace deletes.
             event.preventDefault();
@@ -201,7 +202,7 @@ export function ItemRow({
           if (item.listMark !== null) {
             // Same two-step as a heading: the marker goes first.
             event.preventDefault();
-            onPatch(item.id, { listMark: null });
+            onPatch(item.id, { listMark: null, text: "" });
             return;
           }
           if (onDeleteRow) {
@@ -319,7 +320,6 @@ export function ItemRow({
         <button
           type="button"
           className={styles.hmark}
-          tabIndex={-1}
           onClick={() => onPatch(item.id, { heading: null })}
           aria-label="In normalen Text umwandeln"
           title="In normalen Text umwandeln"
@@ -335,7 +335,6 @@ export function ItemRow({
           aria-checked={item.done}
           aria-label={`${item.text || "Aufgabe"} — ${item.done ? "wieder öffnen" : "als erledigt markieren"}`}
           className={item.done ? "check check--done" : "check"}
-          tabIndex={-1}
           onClick={() => onPatch(item.id, { done: !item.done })}
         >
           <span aria-hidden="true" />
@@ -357,7 +356,6 @@ export function ItemRow({
         <button
           type="button"
           className={styles.noteAdd}
-          tabIndex={-1}
           onClick={() => onAddNote(item.id)}
           aria-label={`Notiz zu „${item.text || "Aufgabe"}" hinzufügen`}
           title="Notiz hinzufügen"
@@ -375,8 +373,7 @@ export function ItemRow({
           <button
             type="button"
             className={styles.refLink}
-            tabIndex={-1}
-            onClick={() => onJumpToBlock(targetBlock.id)}
+              onClick={() => onJumpToBlock(targetBlock.id)}
             aria-label={`Zum Block „${targetBlock.title || "ohne Titel"}" springen`}
           >
             <span className={styles.refDate}>
@@ -392,7 +389,6 @@ export function ItemRow({
         <button
           type="button"
           className={styles.kill}
-          tabIndex={-1}
           onClick={() => onDeleteRow(item.id, prevId ?? null)}
           aria-label="Zeile entfernen"
           title="Zeile entfernen"

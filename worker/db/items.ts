@@ -155,6 +155,7 @@ export async function updateItem(
   id: string,
   patch: ItemPatch,
   now: number,
+  expectedUpdatedAt?: number,
 ): Promise<ItemRow | null> {
   const sets: string[] = [];
   const values: unknown[] = [];
@@ -176,9 +177,10 @@ export async function updateItem(
   if (patch.refBlockId !== undefined) set("ref_block_id", patch.refBlockId);
   set("updated_at", now);
   values.push(id);
+  if (expectedUpdatedAt !== undefined) values.push(expectedUpdatedAt);
 
   const result = await db
-    .prepare(`UPDATE items SET ${sets.join(", ")} WHERE id = ?`)
+    .prepare(`UPDATE items SET ${sets.join(", ")} WHERE id = ?${expectedUpdatedAt === undefined ? "" : " AND updated_at = ?"}`)
     .bind(...values)
     .run();
   if (result.meta.changes === 0) return null;

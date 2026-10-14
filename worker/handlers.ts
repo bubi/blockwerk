@@ -23,7 +23,7 @@ import {
   type ItemPatch,
   type ItemWrite,
 } from "../shared/schemas.ts";
-import { NotFoundError, ValidationError } from "./errors.ts";
+import { ConflictError, NotFoundError, ValidationError } from "./errors.ts";
 import {
   createBlock,
   createItemWithRespace,
@@ -464,6 +464,7 @@ export async function patchItem(
   body: unknown,
   now: number,
   email: string,
+  expectedUpdatedAt?: number,
 ): Promise<ItemWriteResponse> {
   const patch = itemPatchSchema.parse(body);
   logWrite("PATCH", "item", id, email);
@@ -474,6 +475,7 @@ export async function patchItem(
   // child note can never gain a heading, and a list point can never become a
   // heading. parentItemId itself is immutable (docs/adr/0014); listMark is a
   // marker on the note like heading.
+  if (expectedUpdatedAt !== undefined && existing.updatedAt !== expectedUpdatedAt) throw new ConflictError();
   const violations = itemKindRuleViolations({
     kind: existing.kind,
     parentItemId: existing.parentItemId,
@@ -493,10 +495,9 @@ export async function patchItem(
   if (patch.refBlockId !== undefined && patch.refBlockId !== null) {
     await ensureExists(db, "block", patch.refBlockId, "refBlockId");
   }
-  return {
-    row: assertRow(await updateItem(db, id, patch, now)),
-    respaced: null,
-  };
+  const row = await updateItem(db, id, patch, Math.max(now, existing.updatedAt + 1), expectedUpdatedAt);
+  if (!row) throw new ConflictError();
+  return { row, respaced: null };
 }
 
 /**

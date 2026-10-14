@@ -765,6 +765,7 @@ export function App() {
       onCreateTask={createPersonTask}
       onCreateJourFix={createJourFixTheme}
       onMoveTheme={moveTheme}
+      onMergeItems={ops.mergeItems}
       onCreateBlock={createBlock}
       onDeleteBlock={deleteBlock}
       onManageTemplates={() => setTplOpen(true)}

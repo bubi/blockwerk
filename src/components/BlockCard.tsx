@@ -8,7 +8,7 @@ import type {
 import type { BlockPatch, ItemPatch } from "../../shared/schemas.ts";
 import type { ComposerItemFields } from "../domain/composer.ts";
 import { newItemId } from "../domain/ids.ts";
-import { canMergeNotes, mergeNotesToList } from "../domain/merge.ts";
+import { canMergeNotes } from "../domain/merge.ts";
 import { insertPositionBetween } from "../domain/position.ts";
 import type { ItemCreateInput } from "../state/operations.ts";
 import type { BlockView } from "../state/selectors.ts";
@@ -38,6 +38,7 @@ interface BlockCardProps {
   /** A "/jfx" theme goes to the target space's Jour-Fix block. */
   onCreateJourFix?: (text: string, personSpaceId: string | null) => void;
   /** Moves a Jour-Fix theme into this block (Feature 2). */
+  onMergeItems: (items: readonly ItemRowRow[]) => Promise<boolean>;
   onMoveTheme: (itemId: string, targetBlockId: string) => void;
 }
 
@@ -65,6 +66,7 @@ export function BlockCard({
   onJumpToBlock,
   onCreateJourFix,
   onMoveTheme,
+  onMergeItems,
 }: BlockCardProps) {
   const rowRefs = useRef(new Map<string, HTMLLIElement>());
   const inputRefs = useRef(new Map<string, HTMLTextAreaElement>());
@@ -135,16 +137,13 @@ export function BlockCard({
     rowRefs.current.get(next)?.focus();
   };
 
-  const mergeSelected = () => {
-    const result = mergeNotesToList(selectedItems);
-    if (!result) return;
-    setSelection(null);
-    onPatchItem(result.keepId, {
-      text: result.text,
-      listMark: result.listMark,
-    });
-    for (const id of result.deleteIds) onDeleteItem(id);
-    focusInput(result.keepId);
+  const mergeSelected = async () => {
+    if (!canMergeNotes(selectedItems)) return;
+    const keepId = selectedItems[0]!.id;
+    if (await onMergeItems(selectedItems)) {
+      setSelection(null);
+      focusInput(keepId);
+    }
   };
 
   const toggleJfxTheme = (itemId: string) => {
@@ -268,9 +267,13 @@ export function BlockCard({
 
   const deleteRow = (itemId: string, prevId: string | null) => {
     const order = block.sections.order;
-    const focusId = prevId ?? order[order.indexOf(itemId) + 1] ?? null;
+    const removed = new Set([itemId, ...block.items.filter(item => item.parentItemId === itemId).map(item => item.id)]);
+    const index = order.indexOf(itemId);
+    const before = order.slice(0, index).filter(id => !removed.has(id));
+    const focusId = (prevId && !removed.has(prevId) ? prevId : before.at(-1)) ?? order.slice(index + 1).find(id => !removed.has(id)) ?? null;
     onDeleteItem(itemId);
     if (focusId !== null) focusInput(focusId);
+    else window.setTimeout(() => document.getElementById(`composer-${block.id}`)?.focus(), 0);
   };
 
   const createComposerItem = (fields: ComposerItemFields) => {

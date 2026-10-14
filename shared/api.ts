@@ -10,7 +10,8 @@ export type ApiErrorCode =
   | "bad_request"
   | "not_found"
   | "method_not_allowed"
-  | "internal";
+  | "internal"
+  | "conflict";
 
 export interface ApiFieldIssue {
   /** Dot-joined field path, e.g. "dueDate". */

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import styles from "./ConfirmDialog.module.css";
 
 interface ConfirmDialogProps {
@@ -16,6 +16,25 @@ interface ConfirmDialogProps {
  * does not delete by accident.
  */
 export function ConfirmDialog({ message, confirmLabel = "Löschen", onConfirm, onCancel }: ConfirmDialogProps) {
+  const dialog = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const controller = new AbortController();
+    const focusables = () => Array.from(dialog.current?.querySelectorAll<HTMLElement>('button, input, select, textarea, a[href], [tabindex="0"]') ?? []);
+    const focusIn = (event: FocusEvent) => {
+      if (dialog.current && !dialog.current.contains(event.target as Node)) focusables().at(-1)?.focus();
+    };
+    document.addEventListener("focusin", focusIn, { signal: controller.signal });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") { event.preventDefault(); onCancel(); }
+      if (event.key === "Tab") {
+        const elements = focusables(); const first = elements[0]; const last = elements.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
+    }, { signal: controller.signal });
+    return () => { controller.abort(); if (previous?.isConnected) previous.focus(); };
+  }, [onCancel]);
   return (
     <div
       className={styles.overlay}
@@ -25,6 +44,7 @@ export function ConfirmDialog({ message, confirmLabel = "Löschen", onConfirm, o
       }}
     >
       <div
+        ref={dialog}
         className={styles.dialog}
         role="dialog"
         aria-label="Löschen bestätigen"

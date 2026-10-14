@@ -13,6 +13,8 @@ interface GrowingTextareaProps {
   ariaExpanded?: boolean;
   ariaControls?: string;
   ariaActiveDescendant?: string;
+  onBlur?: () => void;
+  onSelect?: (event: React.SyntheticEvent<HTMLTextAreaElement>) => void;
   onKeyDown?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onKeyUp?: (event: React.KeyboardEvent<HTMLTextAreaElement>) => void;
   onClick?: (event: React.MouseEvent<HTMLTextAreaElement>) => void;
@@ -41,6 +43,8 @@ export const GrowingTextarea = forwardRef<
     ariaExpanded,
     ariaControls,
     ariaActiveDescendant,
+    onBlur,
+    onSelect,
     onKeyDown,
     onKeyUp,
     onClick,
@@ -66,6 +70,9 @@ export const GrowingTextarea = forwardRef<
         else if (ref) ref.current = el;
       }}
       rows={1}
+      maxLength={10_000}
+      onBlur={onBlur}
+      onSelect={onSelect}
       id={id}
       className={`${styles.field} ${className ?? ""}`}
       value={value}

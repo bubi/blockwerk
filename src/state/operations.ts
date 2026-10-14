@@ -16,7 +16,7 @@ import type {
 } from "../../shared/schemas.ts";
 import { asClientError, type ApiClient } from "./client.ts";
 import type { Action, Dispatch } from "./reducer.ts";
-import type { OptimisticWrite } from "./state.ts";
+import type { AppState, OptimisticWrite } from "./state.ts";
 
 /**
  * The glue between the pure reducer and the HTTP client: apply the optimistic
@@ -35,27 +35,28 @@ export interface Operations {
   /** Resets the search view and discards any in-flight request. */
   clearSearch(): void;
 
-  createSpace(input: SpaceCreateInput): Promise<void>;
-  updateSpace(id: string, patch: SpacePatch): Promise<void>;
-  deleteSpace(id: string): Promise<void>;
+  createSpace(input: SpaceCreateInput): Promise<boolean>;
+  updateSpace(id: string, patch: SpacePatch): Promise<boolean>;
+  deleteSpace(id: string): Promise<boolean>;
 
-  createPage(input: PageCreateInput): Promise<void>;
-  updatePage(id: string, patch: PagePatch): Promise<void>;
-  deletePage(id: string): Promise<void>;
+  createPage(input: PageCreateInput): Promise<boolean>;
+  updatePage(id: string, patch: PagePatch): Promise<boolean>;
+  deletePage(id: string): Promise<boolean>;
 
-  createBlock(input: BlockCreateInput): Promise<void>;
-  updateBlock(id: string, patch: BlockPatch): Promise<void>;
-  deleteBlock(id: string): Promise<void>;
+  createBlock(input: BlockCreateInput): Promise<boolean>;
+  updateBlock(id: string, patch: BlockPatch): Promise<boolean>;
+  deleteBlock(id: string): Promise<boolean>;
 
-  createItem(input: ItemCreateInput): Promise<void>;
-  updateItem(id: string, patch: ItemPatch): Promise<void>;
-  deleteItem(id: string): Promise<void>;
+  createItem(input: ItemCreateInput): Promise<boolean>;
+  updateItem(id: string, patch: ItemPatch): Promise<boolean>;
+  deleteItem(id: string): Promise<boolean>;
   /** Moves an item into another block (Feature 2, docs/adr/0017). */
-  moveItem(id: string, blockId: string, position: number): Promise<void>;
+  mergeItems(items: readonly ItemRow[]): Promise<boolean>;
+  moveItem(id: string, blockId: string, position: number): Promise<boolean>;
 
-  createTemplate(input: TemplateCreateInput): Promise<void>;
-  updateTemplate(id: string, patch: TemplatePatch): Promise<void>;
-  deleteTemplate(id: string): Promise<void>;
+  createTemplate(input: TemplateCreateInput): Promise<boolean>;
+  updateTemplate(id: string, patch: TemplatePatch): Promise<boolean>;
+  deleteTemplate(id: string): Promise<boolean>;
 
   /** Dismisses a visible error notification. */
   dismissNotification(id: string): void;
@@ -112,7 +113,10 @@ export interface TemplateCreateInput {
 export function createOperations(
   client: ApiClient,
   dispatch: Dispatch,
+  getState?: () => AppState,
 ): Operations {
+  const versions = new Map<string, number>();
+  const version = (id: string) => versions.get(id) ?? getState?.().items.get(id)?.updatedAt;
   const loadSpaces = async () => {
     dispatch({ type: "spacesLoadStarted" });
     try {
@@ -133,6 +137,8 @@ export function createOperations(
     dispatch({ type: "pageLoadStarted", pageId });
     try {
       const data = await client.getPage(pageId);
+      for (const block of data.blocks) for (const item of block.items)
+        if (!getState?.().pending.size) versions.set(item.id, item.updatedAt);
       dispatch({ type: "pageLoaded", page: data.page, blocks: data.blocks });
     } catch (err) {
       dispatch({ type: "pageLoadFailed", pageId, error: asClientError(err) });
@@ -195,22 +201,33 @@ export function createOperations(
     dispatch({ type: "searchCleared" });
   };
 
-  const runWrite = async (
+  let writeQueue: Promise<unknown> = Promise.resolve();
+
+  const runWrite = (
     op: OptimisticWrite,
     send: () => Promise<unknown>,
   ) => {
-    dispatch({ type: "writeOptimistic", op, now: Date.now() });
-    try {
-      const result = await send();
-      dispatch(confirmedAction(op.opKey, result));
-    } catch (err) {
-      dispatch({
-        type: "writeFailed",
-        opKey: op.opKey,
-        error: asClientError(err),
-        now: Date.now(),
-      });
+    if (op.entity === "item" && !versions.has(op.id)) {
+      const current = getState?.().items.get(op.id);
+      if (current) versions.set(op.id, current.updatedAt);
     }
+    dispatch({ type: "writeOptimistic", op, now: Date.now() });
+    const result = writeQueue.then(async () => {
+      try {
+        const result = await send();
+        if (result && typeof result === "object" && "row" in result) {
+          const row = (result as { row: ItemRow }).row;
+          if (row?.id && typeof row.updatedAt === "number") versions.set(row.id, row.updatedAt);
+        }
+        dispatch(confirmedAction(op.opKey, result));
+        return true;
+      } catch (err) {
+        dispatch({ type: "writeFailed", opKey: op.opKey, error: asClientError(err), now: Date.now() });
+        return false;
+      }
+    });
+    writeQueue = result;
+    return result;
   };
 
   return {
@@ -340,7 +357,7 @@ export function createOperations(
           change: "patch",
           patch,
         },
-        () => client.patchItem(id, patch),
+        () => { const expected = version(id); return expected === undefined ? client.patchItem(id, patch) : client.patchItem(id, patch, expected); },
       ),
     deleteItem: (id) =>
       runWrite(
@@ -352,6 +369,22 @@ export function createOperations(
         },
         () => client.delete("item", id),
       ),
+    mergeItems: (items) => {
+      const task = writeQueue.then(async () => {
+        try {
+          if (!client.mergeItems) throw new Error("Merge API unavailable");
+          const result = await client.mergeItems(items.map(item => ({ id: item.id, updatedAt: version(item.id) ?? item.updatedAt })));
+          versions.set(result.row.id, result.row.updatedAt);
+          dispatch({ type: "itemsMerged", ...result });
+          return true;
+        } catch (err) {
+          dispatch({ type: "operationFailed", entity: "item", id: items[0]!.id, error: asClientError(err) });
+          return false;
+        }
+      });
+      writeQueue = task;
+      return task;
+    },
     moveItem: (id, blockId, position) =>
       runWrite(
         {
@@ -416,6 +449,8 @@ function confirmedAction(
   result: unknown,
 ): Extract<Action, { type: "writeConfirmed" }> {
   const respaced = extractRespaced(result);
+  const row = result && typeof result === "object" && "row" in result ? (result as { row: ItemRow }).row : null;
+  if (row?.id) return { type: "writeConfirmed", opKey, respaced: respaced ?? undefined, row };
   return respaced === null
     ? { type: "writeConfirmed", opKey }
     : { type: "writeConfirmed", opKey, respaced };

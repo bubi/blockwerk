@@ -58,6 +58,7 @@ interface StreamProps {
   /** A "/jfx" theme goes to the target space's Jour-Fix block (Feature 2). */
   onCreateJourFix: (text: string, personSpaceId: string | null) => void;
   /** Moves a Jour-Fix theme into the given block (Feature 2). */
+  onMergeItems: (items: readonly ItemRow[]) => Promise<boolean>;
   onMoveTheme: (itemId: string, targetBlockId: string) => void;
   onCreateBlock: (templateId: string | null) => void;
   onDeleteBlock: (id: string) => void;
@@ -95,6 +96,7 @@ export function Stream(props: StreamProps) {
     onCreateTask,
     onCreateJourFix,
     onMoveTheme,
+    onMergeItems,
     onCreateBlock,
     onDeleteBlock,
     onManageTemplates,
@@ -170,6 +172,7 @@ export function Stream(props: StreamProps) {
           onManageTemplates={onManageTemplates}
           onCreateJourFix={onCreateJourFix}
           onMoveTheme={onMoveTheme}
+          onMergeItems={onMergeItems}
         />
       )}
     </div>
@@ -220,6 +223,7 @@ function PagePane({
   onManageTemplates,
   onCreateJourFix,
   onMoveTheme,
+  onMergeItems,
 }: {
   pageView: ViewStatus;
   pageBlocks: BlockView[];
@@ -242,6 +246,7 @@ function PagePane({
   onDeleteBlock: (id: string) => void;
   onManageTemplates: () => void;
   onCreateJourFix: (text: string, personSpaceId: string | null) => void;
+  onMergeItems: (items: readonly ItemRow[]) => Promise<boolean>;
   onMoveTheme: (itemId: string, targetBlockId: string) => void;
 }) {
   if (pageView.status === "idle" || pageView.status === "loading")
@@ -285,6 +290,7 @@ function PagePane({
               onJumpToBlock={onJumpToBlock}
               onCreateJourFix={onCreateJourFix}
               onMoveTheme={onMoveTheme}
+          onMergeItems={onMergeItems}
             />
           ))}
         </div>

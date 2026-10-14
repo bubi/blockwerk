@@ -57,3 +57,7 @@ export function zodToFieldIssues(error: ZodError): ApiFieldIssue[] {
     return { path: issue.path.join(".") || "$", code: issue.code };
   });
 }
+
+export class ConflictError extends HttpError {
+  constructor() { super(409, { error: { code: "conflict", message: "Der Eintrag wurde inzwischen geändert. Bitte neu laden; dein Entwurf bleibt erhalten." } }); }
+}
